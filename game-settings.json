@@ -1,0 +1,16 @@
+{
+  "_help": "Edit the values below, save, and upload this file with the game. Empty = turned off / test mode. See OWNER_GUIDE.md.",
+  "Server URL": "",
+  "Google Client ID": "",
+  "Feedback URL": "",
+  "PayPal Client ID": "",
+  "PayPal Plan Month": "",
+  "PayPal Plan Year": "",
+  "Gold Price Lifetime": 9.99,
+  "Gold Price Year": 19.99,
+  "Gold Price Month": 2.99,
+  "Currency": "USD",
+  "Amazon Tag": "",
+  "Merch URL": "",
+  "Free Online Players": 4
+}

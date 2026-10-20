@@ -1,0 +1,7 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0,0,640,360">
+<rect x="0" y="0" width="640" height="360" fill="#ffffff"/><rect x="0" y="0" width="640" height="120" fill="#d8332d"/><rect x="0" y="300" width="640" height="60" fill="#1f22f5"/>
+<text x="320" y="72" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="46" font-weight="900" fill="#ffffff" text-anchor="middle">BUILD THAT WALL</text>
+<text x="320" y="170" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" fill="#7a1a16" text-anchor="middle">The game's extension is not allowed to run.</text>
+<text x="320" y="205" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" fill="#333333" text-anchor="middle">Reload the page. When PenguinMod asks about the "BTW Links"</text>
+<text x="320" y="230" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" fill="#333333" text-anchor="middle">extension, choose to run it UNSANDBOXED / Allow.</text>
+<text x="320" y="265" font-family="Arial, Helvetica, sans-serif" font-size="13" fill="#666666" text-anchor="middle">(Popups, the board and online play need it.)</text></svg>
