@@ -11,11 +11,12 @@ export interface PriceInfo {
   server: string;     // game server URL; empty = this device only
 }
 
-export type BuyResult = 'ok' | 'cancel' | 'error' | `server-${string}`;
+export type BuyResult = 'ok' | 'cancel' | 'error' | 'noserver' | `server-${string}`;
 
 const PAYPAL_AUTOPAY = 'https://www.paypal.com/myaccount/autopay/';
 
-// Buying Gold, packs and donations. The server double-checks every payment with PayPal.
+// Buying Gold, packs and donations. With a game server, the browser only approves the order and the
+// server takes the payment after checking the price, so a wrong price never charges the player.
 export class Purchases {
   constructor(
     private readonly store: SaveStore,
@@ -33,19 +34,22 @@ export class Purchases {
     const kind = ['pack', 'donate'].includes(kindIn) ? kindIn : 'gold';
     const names: Record<string, string> = { lifetime: 'Lifetime Gold', month: '30 days of Gold', year: '1 year of Gold' };
     const name = kind === 'gold' ? (names[id] || 'Gold') : kind === 'donate' ? 'Donation to support Build That Wall' : (title || id);
-    const res = await this.checkout({ title: name, price: p.price, currency: p.currency, clientId: p.clientId, customId: kind + ':' + id });
+    const item = kind === 'donate' ? 'donate:donation' : kind + ':' + id;
+    const serverCapture = this.useServer(p.server);
+    const res = await this.checkout({ title: name, price: p.price, currency: p.currency, clientId: p.clientId, customId: kind + ':' + id, serverCapture });
     if (res.status !== 'ok') return res.status;
-    this.addSpent(p.price);
-    if (kind === 'donate') {                                   // thank you! nothing to unlock
-      if (this.useServer(p.server)) void this.api.call(p.server, '/paypal/confirm', { orderID: res.id, item: 'donate:donation' });
+    if (serverCapture) {                                       // the server checks the price, then takes the payment
+      const r = await this.api.call<ServerEntitlements>(p.server, '/paypal/confirm', { orderID: res.id, item });
+      // No answer: the order may or may not have been taken; the next account load shows what the server unlocked
+      if (!r) return 'noserver';
+      if (isError(r)) return `server-${r.error}`;
+      this.addSpent(p.price);
+      if (kind !== 'donate') this.ent.applyServer(r);
       return 'ok';
     }
-    if (this.useServer(p.server)) {                            // the server double-checks the payment with PayPal
-      const r = await this.api.call<ServerEntitlements>(p.server, '/paypal/confirm', { orderID: res.id, item: kind + ':' + id });
-      if (r && !isError(r)) { this.ent.applyServer(r); return 'ok'; }
-      if (r && isError(r)) return `server-${r.error}`;
-    }
-    // NOTE: with no server (or no answer from it) the purchase is only remembered on this device
+    this.addSpent(p.price);
+    if (kind === 'donate') return 'ok';                        // thank you! nothing to unlock
+    // NOTE: with no server the purchase is only remembered on this device
     this.ent.addPaid({ kind, id, exp: kind === 'gold' ? this.ent.planExp(id) : 0, order: res.id, src: 'local' });
     return 'ok';
   }

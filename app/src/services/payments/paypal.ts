@@ -9,10 +9,11 @@ export interface CheckoutRequest {
   clientId: string;       // empty or "test" = PayPal sandbox test mode
   customId: string;       // "gold:lifetime", "pack:<id>", "donate:donation"; the server checks it
   planId?: string;        // a PayPal plan id makes it a subscription
+  serverCapture?: boolean; // the game server takes the payment after checking the price; the browser only approves
 }
 
 export type CheckoutResult =
-  | { status: 'ok'; id: string; sub?: boolean; test: boolean }
+  | { status: 'ok'; id: string; sub?: boolean; approved?: boolean; test: boolean }   // approved = not paid yet
   | { status: 'cancel' }
   | { status: 'error' };
 
@@ -51,7 +52,7 @@ export class PayPalCheckout {
     const test = cid === 'test';
     const cur = (String(req.currency || 'USD').toUpperCase().replace(/[^A-Z]/g, '') || 'USD').slice(0, 3);
     const price = (Math.round((+req.price || 0.99) * 100) / 100).toFixed(2);
-    const planName = req.title, planId = req.planId, customId = req.customId;
+    const planName = req.title, planId = req.planId, customId = req.customId, serverCapture = !!req.serverCapture;
     return new Promise(res => {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;';
@@ -89,7 +90,9 @@ export class PayPalCheckout {
           createOrder: (_d: unknown, act: PayPalActions) => act.order.create({
             purchase_units: [{ amount: { currency_code: cur, value: price }, description: 'Build That Wall: ' + planName, custom_id: customId }],
             application_context: { shipping_preference: 'NO_SHIPPING', brand_name: 'Build That Wall' } }),
-          onApprove: (_d: unknown, act: PayPalActions) => act.order.capture().then(det => {
+          onApprove: (d: { orderID: string }, act: PayPalActions) => serverCapture
+            ? finish({ status: 'ok', id: d.orderID, approved: true, test })
+            : act.order.capture().then(det => {
             if (det && det.status === 'COMPLETED') finish({ status: 'ok', id: det.id, test });
             else note.textContent = 'The payment was not completed. Please try again.';
           }).catch(() => { note.textContent = 'The payment did not go through. Please try again.'; }),

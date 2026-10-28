@@ -34,23 +34,39 @@ describe('Purchases', () => {
   });
 
   it('with a server, the server confirms the payment', async () => {
-    const { ent, calls, buy } = setup({ status: 'ok', id: 'O-2', test: false },
+    const { ent, calls, checkout, buy } = setup({ status: 'ok', id: 'O-2', test: false },
       { '/paypal/confirm': { packs: [], gold: { plan: 'lifetime', exp: 0 } } });
     expect(await buy.payItem('gold', 'lifetime', price(SERVER))).toBe('ok');
     expect(calls[0]!.body).toMatchObject({ orderID: 'O-2', item: 'gold:lifetime' });
+    expect(checkout.mock.calls[0]![0].serverCapture).toBe(true);
     expect(ent.paidAll()).toEqual([{ kind: 'gold', id: 'lifetime', exp: 0, src: 'server', renews: false, cancelled: false }]);
   });
 
   it('server refusals are reported', async () => {
-    const { ent, buy } = setup({ status: 'ok', id: 'O-3', test: false }, { '/paypal/confirm': { error: 'amount' } });
+    const { ent, addSpent, buy } = setup({ status: 'ok', id: 'O-3', test: false }, { '/paypal/confirm': { error: 'amount' } });
     expect(await buy.payItem('pack', 'xmas', price(SERVER), 'Christmas pack')).toBe('server-amount');
     expect(ent.paidAll()).toEqual([]);
+    expect(addSpent).not.toHaveBeenCalled();
   });
 
-  it('server unreachable falls back to this device', async () => {
-    const { ent, buy } = setup({ status: 'ok', id: 'O-4', test: false });
-    expect(await buy.payItem('pack', 'xmas', price(SERVER))).toBe('ok');
-    expect(ent.paidAll()).toEqual([{ kind: 'pack', id: 'xmas', exp: 0, order: 'O-4', src: 'local' }]);
+  it('server unreachable unlocks nothing on this device (the server takes the payment)', async () => {
+    const { ent, addSpent, buy } = setup({ status: 'ok', id: 'O-4', test: false });
+    expect(await buy.payItem('pack', 'xmas', price(SERVER))).toBe('noserver');
+    expect(ent.paidAll()).toEqual([]);
+    expect(addSpent).not.toHaveBeenCalled();
+  });
+
+  it('without a server the browser takes the payment', async () => {
+    const { checkout, buy } = setup({ status: 'ok', id: 'O-8', test: true });
+    await buy.payItem('gold', 'lifetime', price());
+    expect(checkout.mock.calls[0]![0].serverCapture).toBe(false);
+  });
+
+  it('donations through the server are confirmed before saying thanks', async () => {
+    const { ent, calls, buy } = setup({ status: 'ok', id: 'O-9', test: false }, { '/paypal/confirm': { error: 'notpaid' } });
+    expect(await buy.payItem('donate', 'donation', price(SERVER))).toBe('server-notpaid');
+    expect(calls[0]!.body).toMatchObject({ orderID: 'O-9', item: 'donate:donation' });
+    expect(ent.paidAll()).toEqual([]);
   });
 
   it('donations unlock nothing', async () => {
