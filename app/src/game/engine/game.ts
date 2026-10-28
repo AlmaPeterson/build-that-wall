@@ -290,6 +290,8 @@ export class Game implements GameApi {
     const cost = actionCost(card);
     s.actionsLeft -= cost;
     this.pendingPlay = { type: 'play', seat, card, text: this.name(seat) + ' played ' + cardName(card) + '.' };
+    this.pendingSlot = slot;
+    this.pendingDiscard = s.discard.length;
     const done = await this.opts.rules.run(this.context(seat, card));
     this.flushDeferred();
     if (!done) {                                            // backed out before anything happened
@@ -509,7 +511,21 @@ export class Game implements GameApi {
   // A 'play' event waits until the card's effect does something, so a card the player backs out of
   // is never announced (or learned from by the bots)
   private pendingPlay: GameEvent | null = null;
+  private pendingSlot = -1;
+  private pendingDiscard = 0;   // discard pile size when the play started
   private deferred: GameEvent[] = [];
+
+  /**
+   * A card being played that hasn't been announced yet (its player is still answering its questions and may
+   * back out). Screens show it where it was until then, so it doesn't seem to vanish and come back.
+   */
+  get unannouncedPlay(): { seat: Seat; slot: number; card: CardId; discarded: boolean } | null {
+    const p = this.pendingPlay;
+    if (!p || p.seat === undefined || p.card === undefined) return null;
+    // Some effects discard their card before asking their questions
+    const discarded = this.state.discard.slice(this.pendingDiscard).includes(p.card);
+    return { seat: p.seat, slot: this.pendingSlot, card: p.card, discarded };
+  }
   private emit(e: GameEvent): void {
     if (this.pendingPlay && e !== this.pendingPlay) this.flushPlay();
     this.flushDeferred();

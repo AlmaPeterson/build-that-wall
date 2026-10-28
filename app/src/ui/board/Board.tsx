@@ -3,7 +3,7 @@
 // (blocks, targets, picks) are shown by the overlays on top of this.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { CardId } from '../../data/cards';
-import type { Action, GameEvent, GameState } from '../../game';
+import type { Action } from '../../game';
 import { controller as controllerStore, screen, settings } from '../app-state';
 import { playSfx } from '../audio';
 import { Button } from '../components/Button';
@@ -26,7 +26,6 @@ import './board.css';
 
 const AMAZON = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
 const HEADER_IMAGE = 'assets/stage/page.svg';
-const QUIET: readonly string[] = ['deal', 'draw', 'turnStart', 'turnEnd', 'gameStart'];   // not shown in the hidden hand
 
 /** Where a card dragged out of the hand can be dropped, in stage units (board.css .piles, .walls-mine). */
 const DROP_ZONES: { zone: DropZone; x: number; y: number; w: number; h: number; label: string }[] = [
@@ -38,17 +37,6 @@ const DROP_ZONES: { zone: DropZone; x: number; y: number; w: number; h: number; 
 type Picking =
   | { kind: 'walls'; slot: number; picked: number[] }       // 2 walls to pay for building `slot`
   | { kind: 'wallForManHour'; manHour: number };            // the wall to build with this Man Hour
-
-/** The last thing a bot did, for the log line and the hidden-hand picture. */
-function lastBotEvent(state: GameState, events: readonly GameEvent[]): GameEvent | null {
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i]!;
-    if (e.type === 'turnStart' && e.seat !== undefined && !state.seats[e.seat]?.bot) return null;
-    if (QUIET.includes(e.type) || e.seat === undefined) continue;
-    if (state.seats[e.seat]?.bot) return e;
-  }
-  return null;
-}
 
 export function Board({ controller }: { controller: GameController }) {
   const animator = animatorFor(controller);
@@ -159,7 +147,6 @@ export function Board({ controller }: { controller: GameController }) {
     screen.set('menu');
   }
 
-  const botEvent = lastBotEvent(view, snap.events);
   const running = !view.over;
 
   return (
@@ -175,8 +162,7 @@ export function Board({ controller }: { controller: GameController }) {
 
       {handSeat !== null
         ? <Hand seat={handSeat} cards={hand} onCard={onCard} onLift={live && !picking ? onLift : undefined} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
-        : <HiddenHand lastCard={view.turn < 0 || snap.turnBanner != null ? null : botEvent?.card ?? null}
-            message={view.turn < 0 ? 'Dealing the cards…' : snap.turnBanner != null || snap.passTo !== null ? 'Your cards are coming up…' : undefined} />}
+        : <HiddenHand message={view.turn < 0 ? 'Dealing the cards…' : snap.turnBanner != null || snap.passTo !== null ? 'Your cards are coming up…' : undefined} />}
 
       {picking && (
         <div class="at pickbar" role="status">

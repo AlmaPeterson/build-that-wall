@@ -69,6 +69,55 @@ describe('GameController', () => {
   });
 });
 
+describe('a card being played', () => {
+  const tick = () => new Promise(r => setTimeout(r, 0));
+  /** You (seat 0) against a bot, on your turn, with `hand`; the bot has built `botWalls`. */
+  async function myTurn(hand: number[], botWalls: number[] = []) {
+    for (let seed = 1; seed < 100; seed++) {
+      const c = new GameController();
+      void c.start(settings(2, 1), seed);
+      await tick();
+      if (c.snapshot.get().view?.turn !== 0 || c.snapshot.get().prompt) { c.stop(); continue; }
+      const s = c.api!.state;
+      s.seats[0]!.hand = [...hand];
+      s.seats[1]!.walls = [...botWalls];
+      s.actionsLeft = 3;
+      c.refresh();
+      return c;
+    }
+    throw new Error('no seed starts on your turn');
+  }
+
+  it("stays in your hand on screen while you answer its question; backing out leaves it there", async () => {
+    const c = await myTurn([7, 29], [30]);
+    const events = c.snapshot.get().events.length;
+    const done = c.act({ type: 'play', slot: 0 });                  // Debt: pick a wall
+    await tick();
+    const asking = c.snapshot.get();
+    expect(asking.prompt?.decision.kind).toBe('chooseWall');
+    expect(asking.view!.seats[0]!.hand).toEqual([7, 29]);          // not gone yet
+    asking.prompt!.answer(null);                                     // back out
+    expect((await done).reason).toBe('Cancelled.');
+    expect(c.snapshot.get().view!.seats[0]!.hand).toEqual([7, 29]);
+    expect(c.snapshot.get().events.length).toBe(events);             // nothing happened
+  });
+
+  it('a card that goes to the discard pile before its question is still shown in your hand meanwhile', async () => {
+    const c = await myTurn([22, 29]);                                // Supreme Court Nominee: pick from the draw pile
+    void c.act({ type: 'play', slot: 0 });
+    await tick();
+    const asking = c.snapshot.get();
+    expect(asking.prompt?.decision.kind).toBe('pickCards');
+    expect(asking.view!.seats[0]!.hand).toEqual([22, 29]);
+    expect(asking.view!.discard).not.toContain(22);
+    expect(c.api!.state.discard.at(-1)).toBe(22);                    // (the game itself has discarded it)
+    asking.prompt!.answer([] as never);
+    await tick();
+    expect(c.snapshot.get().view!.seats[0]!.hand).toEqual([29]);
+    expect(c.snapshot.get().events.some(e => e.type === 'play' && e.card === 22)).toBe(true);
+  });
+});
+
 describe('GameController on a shared device', () => {
   const tick = () => new Promise(r => setTimeout(r, 0));
   /** Answer every open question with its first option (and tap through pass screens) until the game waits for an action. */
