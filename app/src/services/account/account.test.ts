@@ -149,6 +149,20 @@ describe('GoogleSignIn', () => {
     expect(decodeIdToken(cred).sub).toBe('42');
   });
 
+  it('signing out signs out of both kinds of sign-in, and keeps the saves for next time', () => {
+    const { store } = makeStore();
+    signIn(store, { sub: '42' });
+    store.set('gname', 'Alex');
+    store.set('gemail', 'alex@example.com');
+    store.set('color', 'green');
+    expect(isSignedIn(store)).toBe(true);
+    new GoogleSignIn(store, async () => { throw new Error('no DOM'); }).signOut();
+    expect(isSignedIn(store)).toBe(false);
+    expect(store.get('gname')).toBeFalsy();
+    expect(store.get('gemail')).toBeFalsy();
+    expect(JSON.parse(store.get('acct:g:42') || '{}')).toMatchObject({ color: 'green' });
+  });
+
   it('names are at most 20 characters, emoji counted once', () => {
     expect(shortName('')).toBe('Player');
     expect(shortName('🧱'.repeat(25))).toBe('🧱'.repeat(20));

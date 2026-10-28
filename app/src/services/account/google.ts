@@ -72,6 +72,9 @@ export class GoogleSignIn {
   signOut(): void {
     this.store.stash(accountId(this.store));
     setUser(this.store, null);
+    // The older pop-up sign-in (the classic game, on the same site) counts as signed in too
+    this.store.remove('gname');
+    this.store.remove('gemail');
     try { gis()?.disableAutoSelect(); } catch { /* GIS not loaded */ }
   }
 }
