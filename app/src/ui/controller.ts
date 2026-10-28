@@ -147,17 +147,33 @@ export class GameController {
     return s.seats.filter((x, i) => !x.bot && !this.opts.remoteDecider?.(i)).length >= 2;
   }
 
-  private async ask<D extends Decision>(decision: D): Promise<Answer<D>> {
+  /**
+   * A "pick a card from your hand" question asked while that player's card is being played: the screen still
+   * shows the played card in the hand (viewOf), so the question's slots are moved to match what's on screen,
+   * and the answer moved back. Everything else is passed through as it is.
+   */
+  protected screenSlots<D extends Decision>(d: D): { decision: D; back(a: Answer<D>): Answer<D> } {
+    const p = this.game?.unannouncedPlay;
+    if (!p || d.kind !== 'chooseHandCard' || d.seat !== p.seat) return { decision: d, back: a => a };
+    const at = p.slot;
+    return {
+      decision: { ...d, options: d.options.map(s => (s >= at ? s + 1 : s)) },
+      back: a => (typeof a === 'number' && a > at ? a - 1 : a) as Answer<D>,
+    };
+  }
+
+  private async ask<D extends Decision>(asked: D): Promise<Answer<D>> {
     // Someone other than the player holding the device must answer: hand it to them first
-    if (this.passing() && this.holder !== decision.seat) await this.passTo(decision.seat);
+    if (this.passing() && this.holder !== asked.seat) await this.passTo(asked.seat);
     if (this.stopped) return forever;
+    const { decision, back } = this.screenSlots(asked);
     return new Promise(resolve => {
       const prompt: Prompt<D> = {
         decision,
         answer: value => {
           this.prompts = this.prompts.filter(p => p !== prompt);
           this.publish();
-          resolve(value);
+          resolve(back(value));
         },
       };
       this.prompts.push(prompt as unknown as Prompt);
