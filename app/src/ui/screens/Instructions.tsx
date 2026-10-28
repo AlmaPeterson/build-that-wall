@@ -1,6 +1,6 @@
 // How to Play: the four rules pages, plus the illustrated guide.
 import { useState } from 'preact/hooks';
-import { screen } from '../app-state';
+import { screen, goBack } from '../app-state';
 import { Button } from '../components/Button';
 import { Guide } from '../menus/Guide';
 import { INSTRUCTION_PAGES } from '../menus/instructions';
@@ -26,8 +26,8 @@ export function InstructionsScreen() {
         <span>Page {i + 1} of {INSTRUCTION_PAGES.length}</span>
         {i < INSTRUCTION_PAGES.length - 1
           ? <Button onClick={() => setI(i + 1)}>Next ▶</Button>
-          : <Button onClick={() => screen.set('menu')}>Done</Button>}
-        <Button color="plain" onClick={() => screen.set('menu')}>Menu</Button>
+          : <Button onClick={goBack}>Done</Button>}
+        <Button color="plain" onClick={goBack}>Back</Button>
       </footer>
       {guide && <Guide onClose={() => setGuide(false)} finishLabel="Start a tutorial game" onFinish={startTutorialGame} />}
     </div>
