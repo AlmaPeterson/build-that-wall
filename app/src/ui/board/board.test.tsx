@@ -76,6 +76,16 @@ describe('Board', () => {
     expect(c.api!.state.actionsLeft).toBe(2);
   });
 
+  it('with two Man Hours, the second one can build any wall too', async () => {
+    const c = await setup([14, 29, 14, 30]);
+    await click($('.hand__card[data-slot="2"]'));
+    await click($$('.zoom__buttons button')[0]);
+    expect($$('.hand__card--pickable').map(b => b.dataset.slot)).toEqual(['1', '3']);
+    await click($('.hand__card[data-slot="3"]'));
+    expect(c.api!.state.seats[0]!.walls).toEqual([30]);
+    expect(c.api!.state.seats[0]!.hand).toEqual([14, 29]);
+  });
+
   it('playable cards show their cost; unplayable ones say why', async () => {
     await setup([26, 19, 20]);
     await click($('.hand__card[data-slot="0"]'));

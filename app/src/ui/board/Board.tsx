@@ -11,7 +11,7 @@ import type { GameController } from '../controller';
 import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
 import {
-  buildMenu, canInteract, cardActions, payableWalls, shownHand, type CardChoice,
+  buildMenu, canInteract, cardActions, manHourWalls, payableWalls, shownHand, type CardChoice,
 } from './board-state';
 import { BuildMenu, ConfirmEnd } from './BoardModal';
 import { ActionLog } from './ActionLog';
@@ -98,7 +98,8 @@ export function Board({ controller }: { controller: GameController }) {
   const api = controller.api;
   const pickable = !picking ? [] : picking.kind === 'walls'
     ? payableWalls(hand, picking.slot)
-    : (api?.buildOptions(snap.viewer) ?? []).filter(b => 'manHour' in b.pay && b.pay.manHour === picking.manHour).map(b => b.slot);
+    // Any wall can be built with the Man Hour that was tapped (the engine's list only pairs walls with the first Man Hour)
+    : (api?.buildOptions(snap.viewer).length ? manHourWalls(hand) : []);
 
   function onCard(slot: number) {
     playSfx('click');

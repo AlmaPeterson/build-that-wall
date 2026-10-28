@@ -134,6 +134,11 @@ export function buildMenu(api: GameApi | null, snap: GameSnapshot, busy = false)
   return out;
 }
 
+/** Wall cards in the hand a Man Hour can build: every one of them, whichever Man Hour was picked. */
+export function manHourWalls(hand: readonly CardId[]): number[] {
+  return hand.flatMap((c, i) => (isWall(c) ? [i] : []));
+}
+
 /** Wall cards in the hand that can pay for building `slot` (any other wall). */
 export function payableWalls(hand: readonly CardId[], slot: number): number[] {
   return hand.flatMap((c, i) => (i !== slot && isWall(c) ? [i] : []));
