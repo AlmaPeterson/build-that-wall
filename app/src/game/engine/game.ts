@@ -20,6 +20,8 @@ export interface GameOptions {
   beforeTurn?(seat: Seat): Promise<void>;
   /** Called before each bot action, e.g. to pace bots so people can follow what they do. */
   beforeBotAction?(seat: Seat): Promise<void>;
+  /** A human's turn was skipped (Quarantine): the game waits for this, e.g. until they tap OK. */
+  afterSkip?(seat: Seat): Promise<void>;
 }
 
 const MAN_HOUR = 14, SELF_DEFENSE = 20, TRUMP_TRAIN = 25, QUARANTINE = 17;
@@ -154,7 +156,10 @@ export class Game implements GameApi {
       if (this.opts.beforeTurn) await this.opts.beforeTurn(seat);
       const play = await this.startTurn();
       if (this.state.over) return;
-      if (!play) continue;                                  // Quarantined: the turn is skipped
+      if (!play) {                                          // Quarantined: the turn is skipped
+        if (!this.state.over && !this.state.seats[seat]!.bot && this.opts.afterSkip) await this.opts.afterSkip(seat);
+        continue;
+      }
       if (!this.state.seats[seat]!.bot) return;             // wait for the human
       await this.botTurn(seat);
     }

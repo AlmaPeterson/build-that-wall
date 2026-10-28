@@ -19,6 +19,7 @@ export interface LocalGameOptions {
   emit?: Emit;
   beforeTurn?(seat: Seat): Promise<void>;
   beforeBotAction?(seat: Seat): Promise<void>;
+  afterSkip?(seat: Seat): Promise<void>;
 }
 
 export function createLocalGame(o: LocalGameOptions): Game {
@@ -40,6 +41,7 @@ export function createLocalGame(o: LocalGameOptions): Game {
     },
     beforeTurn: o.beforeTurn,
     beforeBotAction: o.beforeBotAction,
+    afterSkip: o.afterSkip,
   });
 }
 

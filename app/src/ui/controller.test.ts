@@ -45,6 +45,27 @@ describe('GameController', () => {
     }
   });
 
+  it('a quarantined human: the game waits for their OK before going on to the next turn', async () => {
+    const c = new GameController();
+    void c.start(settings(2, 1), 3);
+    await new Promise(r => setTimeout(r, 0));
+    expect(c.snapshot.get().view!.turn).toBe(0);
+    c.api!.state.seats[0]!.skipNext = true;
+    const ended = c.act({ type: 'endTurn' });                     // the bot's turn, then the skipped one
+    await new Promise(r => setTimeout(r, 10));
+    const held = c.snapshot.get();
+    expect(held.skipped).toBe(0);
+    expect(held.view!.turn).toBe(0);                               // not moved on behind the notice
+    expect(held.events.at(-1)?.type).toBe('skipped');
+    c.skipSeen();
+    await new Promise(r => setTimeout(r, 10));
+    const after = c.snapshot.get();
+    expect(after.skipped).toBeNull();
+    expect((await ended).ok).toBe(true);
+    expect(after.events.filter(e => e.type === 'turnStart').length).toBeGreaterThan(held.events.filter(e => e.type === 'turnStart').length);
+    c.stop();
+  });
+
   it("one person playing: shows \"Player 1's turn\" for a moment, with the hand hidden, before the turn starts", async () => {
     const c = new GameController({ turnBanner: 30 });
     void c.start(settings(2, 1), 3);

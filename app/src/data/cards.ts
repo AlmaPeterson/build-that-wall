@@ -30,7 +30,7 @@ export type Effect =
   | { kind: 'stealRandom'; from: Target; count: number }
   | { kind: 'removeTrainGuard'; from: Target }
   | { kind: 'takeBuiltWall'; from: Target; eligible: WallEligibility; counter: CardId }
-  | { kind: 'giveBuiltWall'; from: Target; to: Target; into: 'hand'; eligible: WallEligibility }
+  | { kind: 'giveBuiltWall'; from: Target; to: Target; into: 'hand' | 'walls'; eligible: WallEligibility }
   | { kind: 'everyoneReturnsWall'; eligible: WallEligibility; blockablePerPlayer: boolean }
   | { kind: 'discardFromHand'; cardIds: CardId[]; count: number; who: Target }
   | {

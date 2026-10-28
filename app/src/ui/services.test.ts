@@ -19,7 +19,7 @@ function fakeFetch(settingsFile: Record<string, unknown>, server: Record<string,
   const f = vi.fn(async (url: string, init?: RequestInit) => {
     calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null });
     if (url === 'game-settings.json') return { ok: true, json: async () => settingsFile } as Response;
-    const path = url.replace(SERVER, '');
+    const path = '/' + decodeURIComponent(url.replace(SERVER + '?path=', ''));
     if (path in server) return { ok: true, json: async () => server[path] } as Response;
     throw new Error('offline');
   });
@@ -48,7 +48,7 @@ describe('app services', () => {
   it('signed in, init loads the account from the game server', async () => {
     const { s, calls } = make({ signedIn: true, server: { '/load': { packs: [], gold: { plan: 'lifetime', exp: 0 } }, '/account': { codes: [] } } });
     await s.init();
-    expect(calls.some(c => c.url.endsWith('/load'))).toBe(true);
+    expect(calls.some(c => c.url.endsWith('?path=load'))).toBe(true);
     expect(s.player.get()).toMatchObject({ signedIn: true, gold: true, goldInfo: 'Lifetime Gold' });
   });
 
@@ -67,7 +67,7 @@ describe('app services', () => {
     await s.init();
     expect(await s.buyGold('lifetime')).toBe('ok');
     expect(checkout.mock.calls[0]![0]).toMatchObject({ price: 12.5, currency: 'EUR', serverCapture: true });
-    expect(calls.find(c => c.url.endsWith('/paypal/confirm'))!.body).toMatchObject({ item: 'gold:lifetime', orderID: 'O-2' });
+    expect(calls.find(c => c.url.endsWith('?path=paypal%2Fconfirm'))!.body).toMatchObject({ item: 'gold:lifetime', orderID: 'O-2' });
     expect(s.player.get().gold).toBe(true);
   });
 

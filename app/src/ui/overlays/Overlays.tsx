@@ -89,7 +89,14 @@ export function Overlays({ controller }: { controller: GameController }) {
     modal = <BigNotice head="FINAL ROUND" title={n.text.startsWith('The last card') ? 'LAST CARD!' : 'FINAL ROUND!'} sub={n.text}
       onClose={() => setNotices(ns => ns.slice(1))} />;
   } else if (recap) {
-    modal = <Recap lines={recap.lines} myTurn={recap.myTurn} onClose={() => setRecap(null)} />;
+    // Quarantined: one OK closes the recap and lets the game go on (the turn is skipped, so not "it's my turn")
+    const skipped = snap.skipped != null;
+    const lines = skipped ? [...recap.lines, { text: "You're in Quarantine: you drew your cards but skip the rest of this turn." }] : recap.lines;
+    modal = <Recap lines={lines} myTurn={recap.myTurn && !skipped}
+      onClose={() => { setRecap(null); if (skipped) controller.skipSeen(); }} />;
+  } else if (snap.skipped != null && !view.over) {
+    modal = <BigNotice head="QUARANTINE" title="TURN SKIPPED" sub={seatName(view, snap.skipped) + " is in Quarantine: they drew their cards but skip the rest of this turn."}
+      onClose={() => controller.skipSeen()} />;
   } else if (snap.turnBanner != null && !view.over) {
     modal = <TurnBanner name={seatName(view, snap.turnBanner)} />;
   }

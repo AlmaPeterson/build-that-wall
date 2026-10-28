@@ -17,7 +17,7 @@ describe('ServerApi', () => {
   it('posts plain text JSON with the id token, trimming trailing slashes', async () => {
     const { api, calls } = fakeApi({ '/save': { ok: true } });
     expect(await api.call(SERVER + '//', '/save', { data: { a: 1 } })).toEqual({ ok: true });
-    expect(calls[0]!.url).toBe(SERVER + '/save');
+    expect(calls[0]!.url).toBe(SERVER + '?path=save');
     expect(calls[0]!.init).toMatchObject({ method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     expect(calls[0]!.body).toEqual({ id_token: 'tok', data: { a: 1 } });
   });

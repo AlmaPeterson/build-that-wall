@@ -100,11 +100,11 @@ const PRIVATE_TYPES = ['exploit', 'strategy'];
 // injection, player, replyTo, page, attachments:[{name, type, data(base64)}]}
 function doPost(e) {
   const data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-  const path = String((e && e.pathInfo) || '');
+  const path = apiPath_(e);
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    if (path) return json_(handleApi_(path, data));    // .../exec/load, .../exec/save, ...
+    if (path) return json_(handleApi_(path, data));    // .../exec?path=load, .../exec?path=save, ...
     handleFeedback_(data);
   } catch (err) {
     console.error(err);
@@ -116,9 +116,14 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  const path = String((e && e.pathInfo) || '');
+  const path = apiPath_(e);
   if (path === 'leaderboard') return json_({ players: leaderboard_() });
   return ContentService.createTextOutput('Build That Wall server is running.');
+}
+
+// The game sends ?path=load: Google asks visitors to sign in for .../exec/load, so pathInfo is only a fallback
+function apiPath_(e) {
+  return String((e && e.parameter && e.parameter.path) || (e && e.pathInfo) || '').replace(/^\/+|\/+$/g, '');
 }
 
 function handleFeedback_(data) {

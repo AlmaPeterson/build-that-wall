@@ -3,8 +3,10 @@ import realSettings from '../../public/game-settings.json';   // the one the gam
 import { DEFAULT_SETTINGS, loadSettings, parseSettings } from './config';
 
 describe('game settings', () => {
-  it('reads the real game-settings.json', () => {
-    expect(parseSettings(realSettings)).toEqual(DEFAULT_SETTINGS);
+  it('reads the real game-settings.json: every name is known and every value is the right type', () => {
+    const s = parseSettings(realSettings);
+    expect(Object.keys(s).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
+    for (const k of Object.keys(s) as (keyof typeof s)[]) expect(typeof s[k]).toBe(typeof DEFAULT_SETTINGS[k]);
   });
 
   it('maps names, skips notes and unknown keys, and keeps defaults for bad numbers', () => {

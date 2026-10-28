@@ -30,8 +30,9 @@ export class ServerApi {
     base = String(base || '').replace(/\/+$/, '');
     if (!/^https:\/\//.test(base)) return null;
     try {
+      // ?path=load, not /load: Google asks visitors to sign in for anything after /exec.
       // Plain text keeps it a "simple" request, so a Google Apps Script server can answer it
-      const r = await this.fetchFn(base + path, body === null ? {} : {
+      const r = await this.fetchFn(base + '?path=' + encodeURIComponent(path.replace(/^\/+/, '')), body === null ? {} : {
         method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(Object.assign({ id_token: this.token() }, body)),
       });

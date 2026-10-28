@@ -333,12 +333,13 @@ describe('Play Immediately cards', () => {
     expect(n.seats[0]!.hand).toEqual([20]);
   });
 
-  it("Afghanistan Pull Out: one of your walls goes into an opponent's hand", async () => {
+  it("Afghanistan Pull Out: one of your walls goes onto an opponent's board, still built", async () => {
     const s = makeState([{ walls: [W1, W2, W2, W2] }, {}, {}]);
     const ctx = await immediate(s, 2, { chooseSeat: [2] });
     expect(ctx.asked.find(d => d.kind === 'chooseWall')).toMatchObject({ options: [{ seat: 0, kind: W1 }], cancellable: false });
     expect(s.seats[0]!.walls).toEqual([W2, W2, W2]);
-    expect(s.seats[2]!.hand).toEqual([W1]);
+    expect(s.seats[2]!.walls).toEqual([W1]);
+    expect(s.seats[2]!.hand).toEqual([]);
   });
 
   it('Afghanistan Pull Out: sets of 3 and guarded pairs are safe; blockable', async () => {

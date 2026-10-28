@@ -155,7 +155,7 @@ export class Animator {
     const own = ownImmediate(prev, next);
     const plan = speed > 0 || own ? planStep(prev, next, Math.max(speed, own ? 0.01 : 0), () => this.nextId++, held) : null;
     if (!plan) { this.show(next, held); return; }
-    this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null, turnBanner: null }, flights: plan.flights, duration: plan.duration,
+    this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null, turnBanner: null, skipped: null }, flights: plan.flights, duration: plan.duration,
       caption: plan.caption, target: plan.target, held: null });
     await this.wait(plan.duration);
     if (plan.confirm) {

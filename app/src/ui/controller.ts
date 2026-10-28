@@ -27,6 +27,8 @@ export interface GameSnapshot {
   passTo: Seat | null;
   /** "Player 1's turn" is showing for a moment before that player's turn starts (one person playing). */
   turnBanner?: Seat | null;
+  /** This seat's turn was skipped (Quarantine): the game waits until they tap OK (skipSeen). */
+  skipped?: Seat | null;
 }
 
 export interface ControllerOptions {
@@ -66,6 +68,8 @@ export class GameController {
   private stopped = false;
   private pace: (() => Promise<void>) | null = null;
   private bannerSeat: Seat | null = null;
+  private skipResolve: (() => void) | null = null;
+  private skipSeat: Seat | null = null;
 
   constructor(private readonly opts: ControllerOptions = {}) {
     for (const fn of createdHooks) fn(this);
@@ -90,6 +94,7 @@ export class GameController {
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
       beforeTurn: seat => (this.passing() ? this.passTo(seat) : this.banner(seat)),
+      afterSkip: seat => this.waitForSkipOk(seat),
       beforeBotAction: async () => {
         // Let the board finish showing what just happened, then pause so people can follow
         if (this.pace) await this.pace();
@@ -117,6 +122,8 @@ export class GameController {
     this.stopped = true;
     this.prompts = [];
     this.passResolve = null;
+    this.skipResolve = null;
+    this.skipSeat = null;
   }
 
   /** Bots wait for this before each action: the board's animator, so the game never runs ahead of what's shown. */
@@ -195,6 +202,24 @@ export class GameController {
     this.publish();
   }
 
+  /** The quarantined player tapped OK: the game goes on to the next turn. */
+  skipSeen(): void {
+    const r = this.skipResolve;
+    this.skipResolve = null;
+    this.skipSeat = null;
+    this.publish();
+    r?.();
+  }
+
+  /** A human on this device was quarantined: hold the game until they've seen it, so it doesn't run on behind the notice. */
+  private async waitForSkipOk(seat: Seat): Promise<void> {
+    if (this.opts.remoteDecider?.(seat) || (this.opts.localSeat !== undefined && this.opts.localSeat !== seat)) return;
+    if (this.pace) await this.pace();
+    if (this.stopped) return forever;
+    await new Promise<void>(resolve => { this.skipResolve = resolve; this.skipSeat = seat; this.publish(); });
+    if (this.stopped) return forever;
+  }
+
   private passTo(seat: Seat): Promise<void> {
     if (this.stopped) return forever;
     return new Promise(resolve => { this.passResolve = resolve; this.passSeat = seat; this.publish(seat); });
@@ -239,6 +264,7 @@ export class GameController {
       prompt: passTo === null ? this.prompts[0] ?? null : null,
       passTo,
       turnBanner: this.bannerSeat,
+      skipped: this.skipSeat,
     });
   }
 }

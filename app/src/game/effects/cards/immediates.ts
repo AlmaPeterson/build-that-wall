@@ -12,16 +12,16 @@ async function abduction(ctx: EffectContext): Promise<void> {
   ctx.emit({ type: 'discard', seat: ctx.player, card: 14, text: seatName(ctx, ctx.player) + ' discarded a Man Hour.' });
 }
 
-/** 2 Afghanistan Pull Out: give one of your built walls (not in a set of 3, not guarded) into an opponent's hand. */
+/** 2 Afghanistan Pull Out: give one of your built walls (not in a set of 3, not guarded) to an opponent. It stays built, on their board. */
 async function afghanistan(ctx: EffectContext): Promise<void> {
   if (!ctx.eligibleWalls(ctx.player).length) { announce(ctx, 'Afghanistan Pull Out: no wall can be given away. Sets of 3 are safe.'); return; }
   if (await ctx.defend(ctx.player, ctx.player, 2)) return;
   const w = await askWall(ctx, ctx.player, ctx.eligibleWalls(ctx.player));
   const to = await askSeat(ctx, ctx.player, others(ctx));
   if (!w || to === null) return;
-  ctx.moveWall(w, { hand: to });
+  ctx.moveWall(w, { walls: to });
   ctx.emit({ type: 'wallMoved', seat: ctx.player, target: to, card: w.kind,
-    text: seatName(ctx, ctx.player) + ' gave ' + cardName(w.kind) + ' to ' + seatName(ctx, to) + '. It went into their hand.' });
+    text: seatName(ctx, ctx.player) + ' gave ' + cardName(w.kind) + ' to ' + seatName(ctx, to) + '. It stays built on their board.' });
 }
 
 /** 8 Deep State (whole hand) and 24 Trafficking (Savings, Trump, Trump Train, Man Hour): hand them out, unless blocked. */
