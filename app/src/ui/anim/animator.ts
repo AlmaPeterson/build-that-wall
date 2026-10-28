@@ -263,6 +263,8 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     const m: Move = take(x => fromHand(x) && x.card === card) ?? take(x => fromHand(x) && x.card === CARD_BACK)
       ?? { card, from: handPlace(before, reveal.seat!, card), to: fallback };
     m.card = card;
+    // Not on any pile yet and played on nobody: it stays in the middle (it lands with a later step)
+    if (m.to.at === 'seat' && target === undefined) m.to = { at: 'center' };
     const t1 = start + ms(T.toCenter), t2 = t1 + (confirming ? 0 : ms(T.hold)), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
     const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
     if (start > 0) keys.push({ ...keys[0]!, t: start });   // waits in the hand until the block is over

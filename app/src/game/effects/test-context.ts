@@ -29,6 +29,8 @@ export type Script = Partial<Record<Decision['kind'], Scripted[]>>;
 
 export interface TestContext extends EffectContext {
   events: GameEvent[];
+  /** The discard pile as it was when each event was emitted (what a screen would show with it). */
+  discardAtEmit: CardId[][];
   asked: Decision[];
   /** Answers queued per decision kind; shift()ed as decisions come in. */
   script: Script;
@@ -44,6 +46,7 @@ function defaultAnswer(d: Decision): unknown {
 
 export function makeContext(state: GameState, player: Seat, card: CardId, script: Script = {}): TestContext {
   const events: GameEvent[] = [];
+  const discardAtEmit: CardId[][] = [];
   const asked: Decision[] = [];
   const seat = (s: Seat) => state.seats[s]!;
   const isGuarded = (w: WallRef) => state.trainGuards.some(g => g.seat === w.seat && g.kind === w.kind);
@@ -56,8 +59,8 @@ export function makeContext(state: GameState, player: Seat, card: CardId, script
     }
   };
   const ctx: TestContext = {
-    state, player, card, events, asked, script,
-    emit: e => { events.push(e); },
+    state, player, card, events, discardAtEmit, asked, script,
+    emit: e => { events.push(e); discardAtEmit.push([...state.discard]); },
     async decide(d) {
       asked.push(d);
       const q = script[d.kind];

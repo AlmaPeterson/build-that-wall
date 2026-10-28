@@ -20,6 +20,8 @@ export async function pilePick(ctx: EffectContext): Promise<boolean> {
     if (card === 11) state.jail.push(id);
     else ctx.addToHand(ctx.player, id);
   }
+  // Discarded before it's announced (after the picks, so it can't pick itself), so it's seen going to the pile
+  if (card === 27) ctx.discard(27);
   if (card === 11) {
     state.jail.push(11);
     state.jailRelease = state.turnCount + 3 * state.seats.length;
@@ -28,7 +30,6 @@ export async function pilePick(ctx: EffectContext): Promise<boolean> {
   } else {
     announce(ctx, seatName(ctx, ctx.player) + ' took ' + picks.length + ' card(s) with ' + cardName(card) + '.');
   }
-  if (card === 27) ctx.discard(27);
   if (card === 22 || card === 11) ctx.shuffleDraw();
   return true;
 }
