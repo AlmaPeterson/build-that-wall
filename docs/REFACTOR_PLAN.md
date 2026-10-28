@@ -50,7 +50,7 @@ tutorial, animations.
 
 ## Phases
 
-### Phase 0 — Foundations (in progress)
+### Phase 0 — Foundations (done)
 1. **Scaffold** `app/`: Vite + TypeScript (strict) + Vitest, folder layout, npm scripts.
 2. **Port the services** out of BTW Links into typed, Scratch-free modules with tests:
    - `services/storage`, `services/account` (Google sign-in, server API, saves, sync),
@@ -83,6 +83,27 @@ tutorial, animations.
 - Split `game-server.gs` into files (`config`, `sheets`, `feedback`, `accounts`, `paypal`),
   manage it with `clasp`, merge duplicate sheet setup, one source of truth for prices,
   narrow the script lock so slow feedback calls don't block saves.
+
+## Phase 0 results
+
+- `app/src/services/`: storage, account, gold, payments, leaderboard, config (83 tests);
+  online (MQTT rooms, typed protocol) and feedback (filter, send, box) (71 tests). PeerJS dropped.
+- `tools/dump-project.py` → `docs/project-dump/`; `docs/game-rules.md`; `app/src/data/cards.json` (49 cards);
+  `tools/export-assets.py` → `app/public/assets/` (896 files) + `app/src/data/assets.json`.
+- Old behaviour kept as-is is marked `// NOTE:` in the code; bugs found in the blocks are in
+  `docs/game-rules.md` section 15.
+
+## Decisions needed before Phase 1
+
+- Should Easy bots play cards, or only build walls (current behaviour)?
+- Card 4 ("a card"): placeholder/card back, or a real card?
+- Handing out cards: clockwise from the next seat?
+- Expansion packs (`test_small`/`test_full` look like test data): what goes in them?
+- Ending 4 + Ending Times 2: is the "final round starts without 3 sets" behaviour intended?
+- Which known block bugs to fix in the port (double Quarantine block, Debt learning over-count,
+  hands sent to every online player, cards dealt to seats that left, Toilet Paper text vs code)?
+- Keep the Google sign-in requirement for Start/End Turn/Build Wall/Settings?
+- Payments: PayPal captures in the browser before the server checks the price; move capture to the server?
 
 ## Known issues to keep in mind
 
