@@ -285,13 +285,15 @@ export class Game implements GameApi {
     const card = hand.splice(slot, 1)[0]!;
     const cost = actionCost(card);
     s.actionsLeft -= cost;
-    this.emit({ type: 'play', seat, card, text: this.name(seat) + ' played ' + cardName(card) + '.' });
+    this.pendingPlay = { type: 'play', seat, card, text: this.name(seat) + ' played ' + cardName(card) + '.' };
     const done = await this.opts.rules.run(this.context(seat, card));
     if (!done) {                                            // backed out before anything happened
+      this.pendingPlay = null;
       hand.splice(slot, 0, card);
       s.actionsLeft += cost;
       return no('Cancelled.');
     }
+    this.flushPlay();
     this.trainCheck();
     await this.resolveNow();
     return { ok: true };
@@ -484,7 +486,18 @@ export class Game implements GameApi {
   }
 
   private name(seat: Seat): string { return board.seatName(this.state, seat); }
-  private emit(e: GameEvent): void { this.emitFn(e); }
+  // A 'play' event waits until the card's effect does something, so a card the player backs out of
+  // is never announced (or learned from by the bots)
+  private pendingPlay: GameEvent | null = null;
+  private emit(e: GameEvent): void {
+    if (this.pendingPlay && e !== this.pendingPlay) this.flushPlay();
+    this.emitFn(e);
+  }
+  private flushPlay(): void {
+    const p = this.pendingPlay;
+    this.pendingPlay = null;
+    if (p) this.emitFn(p);
+  }
 }
 
 const no = (reason: string): ActionResult => ({ ok: false, reason });
