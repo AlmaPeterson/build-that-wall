@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import realSettings from '../../../game-settings.json';
+import realSettings from '../../public/game-settings.json';   // the one the game serves (also copied to /classic/)
 import { DEFAULT_SETTINGS, loadSettings, parseSettings } from './config';
 
 describe('game settings', () => {

@@ -1,0 +1,58 @@
+# Publishes the game to GitHub Pages on every push to main: the new game (app/) at the site root,
+# the old PenguinMod game at /classic/, plus the privacy and terms pages.
+# Settings → Pages → Source must be "GitHub Actions".
+name: Publish the game
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One publish at a time; a newer push replaces one that's waiting
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Put the site together
+        run: |
+          mkdir -p ../_site
+          cp -r dist/. ../_site/
+          cp -r ../classic ../_site/classic
+          cp public/game-settings.json ../_site/classic/      # the old game reads the same settings
+          cp ../privacy.html ../terms.html ../_site/
+          cp ../privacy.html ../terms.html ../_site/classic/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -19,7 +19,7 @@ import shutil
 import sys
 import urllib.parse
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else 'assets/project.json'
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'classic/assets/project.json'
 PUB = sys.argv[2] if len(sys.argv) > 2 else 'app/public'
 MANIFEST = sys.argv[3] if len(sys.argv) > 3 else 'app/src/data/assets.json'
 ASSET_DIR = os.path.dirname(SRC)
