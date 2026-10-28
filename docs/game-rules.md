@@ -544,13 +544,11 @@ Decide for each whether the port copies it or fixes it.
 
 ### Unclear
 
-- **Unclear:** Card 4 ("a card") has a costume but no text and isn't in the deck. Probably a
-  placeholder or card back; the catalogue marks it `placeholder`.
+- **Decided:** Card 4 ("a card") is the card back, not a playable card (the catalogue's `placeholder`).
 - **Unclear:** `Card Help` gives short texts only for some cards; `Explain A/B` is the full text.
   Which one the new UI should use where (help vs. explain) is a UI decision.
-- **Unclear:** The intended pack contents. `test_small` / `test_full` look like test data.
-- **Unclear:** Whether Easy bots were meant to play cards. The code says never (section 11).
-- **Unclear:** In `define distribute` the round starts at the next seat and wraps; whether the
-  intended order is "starting left of the giver" (it is, if seats go clockwise).
-- **Unclear:** `Ending Times = 2` with Ending 4: the deck final round starts after the second run-out
-  even if nobody has 3 sets yet; play then continues until 3 sets. Confirm this is intended.
+- **Decided:** Expansion packs aren't built yet; `test_small` / `test_full` are test data. Keep the pack plumbing, ship no pack cards.
+- **Decided:** Easy bots build when they can; when they can't, they play a card or Debt (new behaviour, see REFACTOR_PLAN decisions).
+- **Decided:** In `define distribute` cards go clockwise, starting with the next seat.
+- **Decided:** `Ending Times = 2` with Ending 4: the deck final round starting after the second run-out
+  without 3 sets is intended; everyone else gets one more turn.

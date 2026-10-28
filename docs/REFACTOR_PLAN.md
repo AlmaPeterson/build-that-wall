@@ -93,17 +93,23 @@ tutorial, animations.
 - Old behaviour kept as-is is marked `// NOTE:` in the code; bugs found in the blocks are in
   `docs/game-rules.md` section 15.
 
-## Decisions needed before Phase 1
+## Decisions (owner, 2026-10-27)
 
-- Should Easy bots play cards, or only build walls (current behaviour)?
-- Card 4 ("a card"): placeholder/card back, or a real card?
-- Handing out cards: clockwise from the next seat?
-- Expansion packs (`test_small`/`test_full` look like test data): what goes in them?
-- Ending 4 + Ending Times 2: is the "final round starts without 3 sets" behaviour intended?
-- Which known block bugs to fix in the port (double Quarantine block, Debt learning over-count,
-  hands sent to every online player, cards dealt to seats that left, Toilet Paper text vs code)?
-- Keep the Google sign-in requirement for Start/End Turn/Build Wall/Settings?
-- Payments: PayPal captures in the browser before the server checks the price; move capture to the server?
+1. **Easy bots** build a wall whenever they can; when they can't build, they play an action card or
+   Debt instead of passing (old game: they pass).
+2. **Card 4** ("a card") is the card back, not a playable card.
+3. **Handing out cards** goes clockwise, starting with the next seat.
+4. **Expansion packs** aren't built yet: keep the pack plumbing, ship no pack cards.
+5. **Endings**: when the draw pile runs out (the last allowed time with Ending Times = 2), everyone
+   else gets one more turn, as the old game does. Ending 4 + Ending Times 2 starting the deck final
+   round without 3 sets is intended.
+6. **Fix all the block bugs** in the port: double Quarantine block, Debt learning over-count, stale
+   `attack` learning, Easy Debt dead branch, Hard bots reading stale miles, pack cards missing from the
+   pile picker, cards dealt to seats that left, hands sent to every online player, Toilet Paper/instructions
+   text vs code (make the text match the code unless the owner says otherwise).
+7. **Guest play**: no sign-in needed to play. Sign-in stays for things tied to an account
+   (Gold, purchases, cloud saves, online leaderboard).
+8. **Payments**: the server captures PayPal orders after checking the price, not the browser.
 
 ## Known issues to keep in mind
 
