@@ -1,0 +1,293 @@
+# Alerts and Buttons
+# 538 blocks, 2 costumes, 0 sounds
+
+always (runs every frame)
+    set [GHOST] effect to (if <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>> then (100) else (0))
+
+when green flag clicked
+    btwlinks.resetPenLayer
+    wait (0.1) seconds
+    repeat (3)
+        broadcast [Hide Alert]
+        erase all
+        shovelcss.changecss COLORABLE:[monitor text] COLOR:[#000000]
+        shovelcss.changecss COLORABLE:[monitor background] COLOR:(shovelcss.transparentinput)
+        shovelcss.changecss COLORABLE:[monitor border] COLOR:(shovelcss.transparentinput)
+        show
+        switch costume to [N/A]
+        go to [front] layer
+        go to x: (0) y: (0)
+        delete clones of [_myself_]
+        hide variable [X]
+        hide variable [Scan Card's QR Code]
+        hide variable [Zoom =]
+        hide variable [Zoom -]
+        hide variable [Zoom +]
+        hide variable [Players -]
+        hide variable [Players +]
+        hide variable [Player Count]
+        hide variable [New Game]
+        hide variable [Next Page]
+        hide variable [Back Page]
+        wait (0.05) seconds
+    end
+
+when I receive [Alert]
+    go to x: (0) y: (0)
+    switch costume to [Alert Background]
+    go to [front] layer
+
+when I receive [btn Build Wall]
+    if <(costume [name]) != [Alert Background]> then
+        if <<(Game Running) = (1)> and <<(View Player) = (Turn)> and <(Dealing) = (0)>>> then
+            broadcast [Build Menu]
+        end
+    end
+
+when I receive [btn End Turn]
+    if <(costume [name]) != [Alert Background]> then
+        if <<<<(Dealing) = (0)> and <(Turn) > (0)>> and <<<(AI Busy) = (0)> and <not <(Turn) > ((Game Players) - (Game AI))>>> and <(Game Running) = (1)>>> and <(FX Busy) = (0)>> then
+            if <<not <(btwlinks.netRole) = []>> and <not <(if <<(Turn) > ((Game Players) - (Game AI))> or <(item (Turn) of [Left Seats]) = (1)>> then (1) else (Turn)) = (My Seat)>>> then
+                broadcast [End Other Turn]
+            else
+                broadcast [Next Turn]
+            end
+        end
+    end
+
+when I receive [btn Scan Card's QR Code]
+    if <(Zoomed Card) != (4)> then
+        btwlinks.openTab URL:(item (Zoomed Card) of [Card QR Links])
+    end
+
+when I receive [btn Tutorial]
+    if <(costume [name]) != [Alert Background]> then
+    end
+
+when I receive [btn Use a no Action Card]
+    if <(costume [name]) != [Alert Background]> then
+    end
+
+when I receive [btn Zoom +]
+    all at once
+        set [Card Hight] to ((Card Hight) * (1.2))
+        set [Card Width] to ((Card Width) * (1.2))
+        btwlinks.zoomDraw URI:(item (Zoomed Card) of [Card Data URI High]) X:(Zoom X) Y:(Zoom Y) W:(Card Width) H:(Card Hight)
+    end
+
+when I receive [btn Zoom -]
+    all at once
+        set [Card Hight] to ((Card Hight) / (1.2))
+        set [Card Width] to ((Card Width) / (1.2))
+        btwlinks.zoomDraw URI:(item (Zoomed Card) of [Card Data URI High]) X:(Zoom X) Y:(Zoom Y) W:(Card Width) H:(Card Hight)
+    end
+
+when I receive [btn Zoom =]
+    set [Zoom X] to (0)
+    set [Zoom Y] to (0)
+    all at once
+        set [Card Hight] to (360)
+        set [Card Width] to (258)
+        btwlinks.zoomDraw URI:(item (Zoomed Card) of [Card Data URI High]) X:(Zoom X) Y:(Zoom Y) W:(Card Width) H:(Card Hight)
+    end
+
+when I receive [Hide Alert]
+    change [Pen Epoch] by (1)
+    set [Button Mode] to []
+    erase all
+    switch costume to [N/A]
+    go to [front] layer
+    hide variable [Zoom +]
+    hide variable [Zoom -]
+    hide variable [Zoom =]
+    hide variable [Scan Card's QR Code]
+    hide variable [X]
+    hide variable [Players -]
+    hide variable [Players +]
+    hide variable [Player Count]
+    hide variable [New Game]
+    hide variable [Next Page]
+    hide variable [Back Page]
+    hide variable [Cards -]
+    hide variable [Cards Count]
+    hide variable [Cards +]
+
+when I receive [Play Popup]
+    if <<(FX Busy) > (0)> or <(Dealing) = (1)>> then
+        stop [this script]
+    end
+    if <(costume [name]) != [Alert Background]> then
+        if <<(Selected Card) > (28)> and <(Selected Card) < (45)>> then
+            set [Card Kind] to [wall]
+        else
+            if <(Selected Card) = (14)> then
+                set [Card Kind] to [manhour]
+            else
+                set [Card Kind] to [other]
+            end
+        end
+        if <(Selected Card) = (20)> then
+            set [Card Kind] to [defense]
+        end
+        if <(Selected Card) = (19)> then
+            set [Card Kind] to [savings]
+        end
+        broadcast [Load Work Hand] and wait
+        set [Wall Cards] to (0)
+        set [kk] to (1)
+        repeat (length of [Work Hand])
+            if <<(item (kk) of [Work Hand]) > (28)> and <(item (kk) of [Work Hand]) < (45)>> then
+                change [Wall Cards] by (1)
+            end
+            change [kk] by (1)
+        end
+        if <<[Work Hand] contains (14)?> or <(Wall Cards) > (2)>> then
+            set [Can Build] to (1)
+        else
+            set [Can Build] to (0)
+        end
+        delete all of [Tmp Types]
+        set [pp k] to (1)
+        repeat (length of [Work Hand])
+            set [pp c] to (item (pp k) of [Work Hand])
+            if <<<(pp c) > (28)> and <(pp c) < (45)>> and <not <(pp k) = (Selected Slot)>>> then
+                add (pp c) to [Tmp Types]
+            end
+            change [pp k] by (1)
+        end
+        set [Can Pick2] to (if <(length of [Tmp Types]) > (1)> then (1) else (0))
+        set [Has Manhour] to (if <[Work Hand] contains (14)?> then (1) else (0))
+        set [Has Wall] to (if <(Wall Cards) > (0)> then (1) else (0))
+        broadcast [Alert] and wait
+        set [Button Mode] to [play]
+        set [Play Answer] to []
+        set [X Clicked] to (0)
+        erase all
+        draw image [data:image/svg+xml;base64,PHN2ZyB4bWxucz…(202 chars)] at x: (0) y: (0) width: (2000) height: (2000) rotated: (90)
+        draw image (item (Selected Card) of [Card Data URI High]) at x: (0) y: (16) width: (218) height: (304) rotated: (90)
+        wait until <<(Play Answer) != []> or <(X Clicked) = (1)>>
+        erase all
+        broadcast [Hide Alert] and wait
+        if <<<(Play Answer) = [play]> and <<(View Player) = (Turn)> and <(Dealing) = (0)>>> and <not <(item (Selected Card) of [Card Action Cost]) > (Actions Left)>>> then
+            if <(Selected Card) = (7)> then
+                broadcast [Debt Start]
+            else
+                if <(Selected Card) = (25)> then
+                    broadcast [Train Start]
+                else
+                    if <(Selected Card) = (26)> then
+                        broadcast [Trump Start]
+                    else
+                        if <<<<<<<<<<<<<<<<<<<<<<<<<<(Selected Card) = (3)> or <(Selected Card) = (5)>> or <(Selected Card) = (6)>> or <(Selected Card) = (9)>> or <(Selected Card) = (11)>> or <(Selected Card) = (13)>> or <(Selected Card) = (16)>> or <(Selected Card) = (17)>> or <(Selected Card) = (21)>> or <(Selected Card) = (22)>> or <(Selected Card) = (23)>> or <(Selected Card) = (27)>> or <(Selected Card) = (28)>> or <(Selected Card) = (45)>> or <(Selected Card) = (46)>> or <(Selected Card) = (47)>> or <(Selected Card) = (48)>> or <(Selected Card) = (49)>> or <(Selected Card) = (1)>> or <(Selected Card) = (2)>> or <(Selected Card) = (8)>> or <(Selected Card) = (10)>> or <(Selected Card) = (12)>> or <(Selected Card) = (15)>> or <(Selected Card) = (18)>> or <(Selected Card) = (24)>> then
+                            broadcast [Special Start]
+                        else
+                            broadcast [Play Card]
+                        end
+                    end
+                end
+            end
+        end
+        if <<<<(Play Answer) = [usemanhour]> and <(Card Kind) = [wall]>> and <(Has Manhour) = (1)>> and <<<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Actions Left) > (0)>> and <(AI Busy) = (0)>>> then
+            set [Build Player] to (Turn)
+            set [Build Slot] to (Selected Slot)
+            set [Build Card] to (Selected Card)
+            delete all of [Remove Slots]
+            add (Selected Slot) to [Remove Slots]
+            add (item # of (14) in [Work Hand]) to [Remove Slots]
+            broadcast [Build Wall Now] and wait
+        end
+        if <<<<<(Play Answer) = [pickwalls]> and <(Card Kind) = [wall]>> and <(Can Pick2) = (1)>> or <<<(Play Answer) = [pickwall]> and <(Card Kind) = [manhour]>> and <(Has Wall) = (1)>>> and <<<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Actions Left) > (0)>> and <(AI Busy) = (0)>>> then
+            set [Pick Need] to (if <(Play Answer) = [pickwalls]> then (2) else (1))
+            delete all of [Picked Slots]
+            delete all of [Picked Cards]
+            set [Pick Result] to []
+            set [X Clicked] to (0)
+            set [Button Mode] to [pick]
+            change [Pen Epoch] by (1)
+            wait until <<<not <(Pick Result) = []>> or <(X Clicked) = (1)>> or <(Game Running) = (0)>>
+            set [Button Mode] to []
+            change [Pen Epoch] by (1)
+            if <<(Pick Result) = [done]> and <(Actions Left) > (0)>> then
+                set [Build Player] to (Turn)
+                delete all of [Remove Slots]
+                if <(Pick Need) = (2)> then
+                    set [Build Slot] to (Selected Slot)
+                    set [Build Card] to (Selected Card)
+                    add (Selected Slot) to [Remove Slots]
+                    add (item (1) of [Picked Slots]) to [Remove Slots]
+                    add (item (2) of [Picked Slots]) to [Remove Slots]
+                else
+                    set [Build Slot] to (item (1) of [Picked Slots])
+                    set [Build Card] to (item (1) of [Picked Cards])
+                    add (item (1) of [Picked Slots]) to [Remove Slots]
+                    add (Selected Slot) to [Remove Slots]
+                end
+                broadcast [Build Wall Now] and wait
+            end
+            set [Pick Result] to []
+            delete all of [Picked Slots]
+            delete all of [Picked Cards]
+        end
+    end
+
+when I receive [Thumb]
+    hide variable [Build Wall]
+    hide variable [End Turn]
+    hide variable [Settings]
+    hide variable [i]
+    hide variable [Scan Card's QR Code]
+    hide variable [Tutorial]
+    hide variable [Use a no Action Card]
+    hide variable [X]
+    hide variable [Zoom -]
+    hide variable [Zoom +]
+    hide variable [Zoom =]
+    hide variable [Players -]
+    hide variable [Players +]
+    hide variable [Player Count]
+    hide variable [New Game]
+    hide variable [Next Page]
+    hide variable [Back Page]
+    hide variable [Instructions]
+    hide variable [Cards -]
+    hide variable [Cards Count]
+    hide variable [Cards +]
+
+when stop clicked
+    broadcast [Hide Alert]
+
+define Zoom in on card (Card)
+    set [Zoom X] to (0)
+    set [Zoom Y] to (0)
+    set [Zoomed Card] to (Card)
+    set [Button Mode] to [zoom]
+    set [Card Hight] to (360)
+    set [Card Width] to (258)
+    btwlinks.zoomDraw URI:(item (Zoomed Card) of [Card Data URI High]) X:(Zoom X) Y:(Zoom Y) W:(Card Width) H:(Card Hight)
+    broadcast [Alert]
+    set [X Clicked] to (0)
+    repeat until <(X Clicked) = (1)>
+        if <mouse down?> then
+            wait (0.05) seconds
+        end
+        if <<mouse down?> and <(Btn Click) = (0)>> then
+            set [zd x] to ((mouse x) - (Zoom X))
+            set [zd y] to ((mouse y) - (Zoom Y))
+            repeat until <<not <mouse down?>> or <(X Clicked) = (1)>>
+                if <<not <((mouse x) - (zd x)) = (Zoom X)>> or <not <((mouse y) - (zd y)) = (Zoom Y)>>> then
+                    set [Zoom X] to ((mouse x) - (zd x))
+                    set [Zoom Y] to ((mouse y) - (zd y))
+                    btwlinks.zoomDraw URI:(item (Zoomed Card) of [Card Data URI High]) X:(Zoom X) Y:(Zoom Y) W:(Card Width) H:(Card Hight)
+                end
+            end
+        end
+        if <<mouse down?> and <(Btn Click) = (1)>> then
+            wait until <not <mouse down?>>
+            set [Btn Click] to (0)
+        end
+        if <not <mouse down?>> then
+            set [Btn Click] to (0)
+        end
+    end
+    btwlinks.zoomHide
+    broadcast [Hide Alert]

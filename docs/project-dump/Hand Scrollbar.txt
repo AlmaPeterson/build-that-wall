@@ -1,0 +1,67 @@
+# Hand Scrollbar
+# 288 blocks, 2 costumes, 0 sounds
+
+when [down arrow] key pressed
+    if <<<(View Count) > (7)> and <(Game Running) = (1)>> and <<not <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> and <not <(Button Mode) = [pass]>>>> then
+        change [Hand Scroll] by (1)
+    end
+
+when [left arrow] key pressed
+    if <<<(View Count) > (7)> and <(Game Running) = (1)>> and <<not <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> and <not <(Button Mode) = [pass]>>>> then
+        change [Hand Scroll] by (-1)
+    end
+
+when [right arrow] key pressed
+    if <<<(View Count) > (7)> and <(Game Running) = (1)>> and <<not <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> and <not <(Button Mode) = [pass]>>>> then
+        change [Hand Scroll] by (1)
+    end
+
+when [up arrow] key pressed
+    if <<<(View Count) > (7)> and <(Game Running) = (1)>> and <<not <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> and <not <(Button Mode) = [pass]>>>> then
+        change [Hand Scroll] by (-1)
+    end
+
+when green flag clicked
+    hide
+    delete clones of [_myself_]
+    set [Hand Scroll] to (0)
+    set [Scroll Dragging] to (0)
+    set [Part] to [track]
+    switch costume to [track]
+    go to x: (-83.5) y: (-113)
+    create clone of [_myself_]
+    set [Part] to [thumb]
+    switch costume to [thumb]
+    create clone of [_myself_]
+    set [Part] to []
+    forever
+        set [View Count] to (if <(View Player) = (1)> then (length of [Hand P1]) else (if <(View Player) = (2)> then (length of [Hand P2]) else (if <(View Player) = (3)> then (length of [Hand P3]) else (if <(View Player) = (4)> then (length of [Hand P4]) else (if <(View Player) = (5)> then (length of [Hand P5]) else (if <(View Player) = (6)> then (length of [Hand P6]) else (0)))))))
+        set [Max Scroll] to (if <(View Count) > (7)> then ((View Count) - (7)) else (0))
+        if <<mouse down?> and <<<<(View Count) > (7)> and <(Game Running) = (1)>> and <<not <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> and <not <(Button Mode) = [pass]>>>> and <<(Scroll Dragging) = (1)> or <<<(mouse y) > (-107)> and <(mouse y) < (-91)>> and <<(mouse x) > (-309)> and <(mouse x) < (142)>>>>>> then
+            set [Scroll Dragging] to (1)
+            set [Hand Scroll] to (round ((((mouse x) - (-275.0)) / (383)) * (Max Scroll)))
+        else
+            if <not <mouse down?>> then
+                set [Scroll Dragging] to (0)
+            end
+        end
+        if <(Hand Scroll) > (Max Scroll)> then
+            set [Hand Scroll] to (Max Scroll)
+        end
+        if <(Hand Scroll) < (0)> then
+            set [Hand Scroll] to (0)
+        end
+    end
+
+when I start as a clone
+    forever
+        if <(Part) = [thumb]> then
+            set x to ((-275.0) + ((383) * (if <(Max Scroll) > (0)> then ((Hand Scroll) / (Max Scroll)) else (0))))
+        end
+        if <<<(View Count) > (7)> and <(Game Running) = (1)>> and <<not <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> and <not <(Button Mode) = [pass]>>>> then
+            show
+            go to [front] layer
+        else
+            hide
+        end
+    end

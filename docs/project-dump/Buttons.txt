@@ -1,0 +1,1595 @@
+# Buttons
+# 2282 blocks, 315 costumes, 1 sounds
+
+when green flag clicked
+    set [Boot Buttons] to (0)
+    hide
+    delete clones of [_myself_]
+    set [Button Mode] to []
+    set [X Clicked] to (0)
+    set [Open Dropdown] to []
+    all at once
+        set [Button ID] to [Start End]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (95)
+        create clone of [_myself_]
+        set [Button ID] to [End Turn]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (64)
+        create clone of [_myself_]
+        set [Button ID] to [Build Wall]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (33)
+        create clone of [_myself_]
+        set [Button ID] to [Settings]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (2)
+        create clone of [_myself_]
+        set [Button ID] to [Tutorial]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (-29)
+        create clone of [_myself_]
+        set [Button ID] to [Use a no Action Card]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (-60)
+        create clone of [_myself_]
+        set [Button ID] to [Instructions]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (-91)
+        create clone of [_myself_]
+        set [Button ID] to [X]
+        set [Button Group] to [x]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (298) y: (158)
+        create clone of [_myself_]
+        set [Button ID] to [Zoom +]
+        set [Button Group] to [zoom]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-261) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Zoom -]
+        set [Button Group] to [zoom]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-154) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Zoom =]
+        set [Button Group] to [zoom]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-42) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Scan Card's QR Code]
+        set [Button Group] to [zoom]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (150) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Back Page]
+        set [Button Group] to [instructions]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-200) y: (-150)
+        create clone of [_myself_]
+        set [Button ID] to [Next Page]
+        set [Button Group] to [instructions]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (200) y: (-150)
+        create clone of [_myself_]
+        set [Button ID] to [Yes]
+        set [Button Group] to [confirm]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-70) y: (-30)
+        create clone of [_myself_]
+        set [Button ID] to [No]
+        set [Button Group] to [confirm]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (70) y: (-30)
+        create clone of [_myself_]
+        set [Button ID] to [Pass OK]
+        set [Button Group] to [pass]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (0) y: (-60)
+        create clone of [_myself_]
+        set [Button ID] to [Pass Cancel]
+        set [Button Group] to [pass]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (70) y: (-60)
+        create clone of [_myself_]
+        set [Button ID] to [Play Card]
+        set [Button Group] to [play]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-75) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Cancel Play]
+        set [Button Group] to [play]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (75) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Wait Turn]
+        set [Button Group] to [play]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (1)
+        go to x: (-75) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [No Actions]
+        set [Button Group] to [play]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (1)
+        go to x: (-75) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Turn Info]
+        set [Button Group] to [main]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (68) y: (97)
+        create clone of [_myself_]
+        set [Button ID] to [Build Btn]
+        set [Button Group] to [play]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-75) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Need Labor]
+        set [Button Group] to [play]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (1)
+        go to x: (-75) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Use On Wall]
+        set [Button Group] to [play]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-75) y: (-158)
+        create clone of [_myself_]
+        set [Button ID] to [Msg OK]
+        set [Button Group] to [msg]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (0) y: (-45)
+        create clone of [_myself_]
+        set [Button ID] to [Game Mode]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [mode]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-40) y: (110)
+        create clone of [_myself_]
+        set [Button ID] to [Players -]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-95) y: (84)
+        create clone of [_myself_]
+        set [Button ID] to [Player Count]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-40) y: (84)
+        create clone of [_myself_]
+        set [Button ID] to [Players +]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (15) y: (84)
+        create clone of [_myself_]
+        set [Button ID] to [Auto Join]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-15) y: (58)
+        create clone of [_myself_]
+        set [Button ID] to [Ending]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [ending]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-15) y: (32)
+        create clone of [_myself_]
+        set [Button ID] to [Ending Times]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [times]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (160) y: (32)
+        create clone of [_myself_]
+        set [Button ID] to [AI -]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-95) y: (6)
+        create clone of [_myself_]
+        set [Button ID] to [AI Count]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-40) y: (6)
+        create clone of [_myself_]
+        set [Button ID] to [AI +]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (15) y: (6)
+        create clone of [_myself_]
+        set [Button ID] to [AI1]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [ai1]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-135) y: (-20)
+        create clone of [_myself_]
+        set [Button ID] to [AI2]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [ai2]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-61) y: (-20)
+        create clone of [_myself_]
+        set [Button ID] to [AI3]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [ai3]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (13) y: (-20)
+        create clone of [_myself_]
+        set [Button ID] to [AI4]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [ai4]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (86) y: (-20)
+        create clone of [_myself_]
+        set [Button ID] to [AI5]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [ai5]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (160) y: (-20)
+        create clone of [_myself_]
+        set [Button ID] to [AI6]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [ai6]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (234) y: (-20)
+        create clone of [_myself_]
+        set [Button ID] to [Add YouTube]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-85) y: (-48)
+        create clone of [_myself_]
+        set [Button ID] to [Add Songs]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (50) y: (-48)
+        create clone of [_myself_]
+        set [Button ID] to [Clear Songs]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (155) y: (-48)
+        create clone of [_myself_]
+        set [Button ID] to [Song Count]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (1)
+        go to x: (235) y: (-48)
+        create clone of [_myself_]
+        set [Button ID] to [Music Mode]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to [music]
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-85) y: (-74)
+        create clone of [_myself_]
+        set [Button ID] to [Play Music]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (35) y: (-74)
+        create clone of [_myself_]
+        set [Button ID] to [Next Song]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (115) y: (-74)
+        create clone of [_myself_]
+        set [Button ID] to [Stop Music]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (195) y: (-74)
+        create clone of [_myself_]
+        set [Button ID] to [Sound FX]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (-60) y: (-100)
+        create clone of [_myself_]
+        set [Button ID] to [New Game]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (0)
+        go to x: (0) y: (-136)
+        create clone of [_myself_]
+        set [Button ID] to [Notice]
+        set [Button Group] to [settings]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to []
+        set [Option Value] to []
+        set [Info Only] to (1)
+        go to x: (0) y: (-136)
+        create clone of [_myself_]
+        set [Button ID] to [opt mode 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [mode]
+        set [Option Value] to [Pass'n'Play]
+        set [Info Only] to (0)
+        go to x: (-40) y: (86)
+        create clone of [_myself_]
+        set [Button ID] to [opt mode 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [mode]
+        set [Option Value] to [Multiplayer]
+        set [Info Only] to (0)
+        go to x: (-40) y: (62)
+        create clone of [_myself_]
+        set [Button ID] to [opt ending 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ending]
+        set [Option Value] to (1)
+        set [Info Only] to (0)
+        go to x: (-15) y: (8)
+        create clone of [_myself_]
+        set [Button ID] to [opt ending 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ending]
+        set [Option Value] to (2)
+        set [Info Only] to (0)
+        go to x: (-15) y: (-16)
+        create clone of [_myself_]
+        set [Button ID] to [opt ending 3]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ending]
+        set [Option Value] to (3)
+        set [Info Only] to (0)
+        go to x: (-15) y: (-40)
+        create clone of [_myself_]
+        set [Button ID] to [opt ending 4]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ending]
+        set [Option Value] to (4)
+        set [Info Only] to (0)
+        go to x: (-15) y: (-64)
+        create clone of [_myself_]
+        set [Button ID] to [opt times 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [times]
+        set [Option Value] to (1)
+        set [Info Only] to (0)
+        go to x: (160) y: (8)
+        create clone of [_myself_]
+        set [Button ID] to [opt times 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [times]
+        set [Option Value] to (2)
+        set [Info Only] to (0)
+        go to x: (160) y: (-16)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai1 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai1]
+        set [Option Value] to [Easy]
+        set [Info Only] to (0)
+        go to x: (-135) y: (-44)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai1 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai1]
+        set [Option Value] to [Medium]
+        set [Info Only] to (0)
+        go to x: (-135) y: (-68)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai1 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai1]
+        set [Option Value] to [Hard]
+        set [Info Only] to (0)
+        go to x: (-135) y: (-92)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai1 3]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai1]
+        set [Option Value] to [Random]
+        set [Info Only] to (0)
+        go to x: (-135) y: (-116)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai2 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai2]
+        set [Option Value] to [Easy]
+        set [Info Only] to (0)
+        go to x: (-61) y: (-44)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai2 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai2]
+        set [Option Value] to [Medium]
+        set [Info Only] to (0)
+        go to x: (-61) y: (-68)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai2 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai2]
+        set [Option Value] to [Hard]
+        set [Info Only] to (0)
+        go to x: (-61) y: (-92)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai2 3]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai2]
+        set [Option Value] to [Random]
+        set [Info Only] to (0)
+        go to x: (-61) y: (-116)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai3 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai3]
+        set [Option Value] to [Easy]
+        set [Info Only] to (0)
+        go to x: (13) y: (-44)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai3 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai3]
+        set [Option Value] to [Medium]
+        set [Info Only] to (0)
+        go to x: (13) y: (-68)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai3 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai3]
+        set [Option Value] to [Hard]
+        set [Info Only] to (0)
+        go to x: (13) y: (-92)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai3 3]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai3]
+        set [Option Value] to [Random]
+        set [Info Only] to (0)
+        go to x: (13) y: (-116)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai4 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai4]
+        set [Option Value] to [Easy]
+        set [Info Only] to (0)
+        go to x: (86) y: (-44)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai4 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai4]
+        set [Option Value] to [Medium]
+        set [Info Only] to (0)
+        go to x: (86) y: (-68)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai4 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai4]
+        set [Option Value] to [Hard]
+        set [Info Only] to (0)
+        go to x: (86) y: (-92)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai4 3]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai4]
+        set [Option Value] to [Random]
+        set [Info Only] to (0)
+        go to x: (86) y: (-116)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai5 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai5]
+        set [Option Value] to [Easy]
+        set [Info Only] to (0)
+        go to x: (160) y: (-44)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai5 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai5]
+        set [Option Value] to [Medium]
+        set [Info Only] to (0)
+        go to x: (160) y: (-68)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai5 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai5]
+        set [Option Value] to [Hard]
+        set [Info Only] to (0)
+        go to x: (160) y: (-92)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai5 3]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai5]
+        set [Option Value] to [Random]
+        set [Info Only] to (0)
+        go to x: (160) y: (-116)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai6 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai6]
+        set [Option Value] to [Easy]
+        set [Info Only] to (0)
+        go to x: (234) y: (-44)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai6 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai6]
+        set [Option Value] to [Medium]
+        set [Info Only] to (0)
+        go to x: (234) y: (-68)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai6 2]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai6]
+        set [Option Value] to [Hard]
+        set [Info Only] to (0)
+        go to x: (234) y: (-92)
+        create clone of [_myself_]
+        set [Button ID] to [opt ai6 3]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [ai6]
+        set [Option Value] to [Random]
+        set [Info Only] to (0)
+        go to x: (234) y: (-116)
+        create clone of [_myself_]
+        set [Button ID] to [opt music 0]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [music]
+        set [Option Value] to [Cycle All]
+        set [Info Only] to (0)
+        go to x: (-85) y: (-98)
+        create clone of [_myself_]
+        set [Button ID] to [opt music 1]
+        set [Button Group] to [opt]
+        set [Field Dropdown] to []
+        set [Option Dropdown] to [music]
+        set [Option Value] to [Play One]
+        set [Info Only] to (0)
+        go to x: (-85) y: (-122)
+        create clone of [_myself_]
+    end
+    set [Button ID] to [Pick Walls]
+    set [Button Group] to [play]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (-160) y: (-158)
+    create clone of [_myself_]
+    set [Button ID] to [Use Man Hour]
+    set [Button Group] to [play]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (0) y: (-158)
+    create clone of [_myself_]
+    set [Button ID] to [Pick Info]
+    set [Button Group] to [pick]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (1)
+    go to x: (228) y: (62)
+    create clone of [_myself_]
+    set [Button ID] to [Pick Cancel]
+    set [Button Group] to [pick]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (228) y: (14)
+    create clone of [_myself_]
+    set [Button ID] to [Debt Info]
+    set [Button Group] to [dtarget]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (1)
+    go to x: (228) y: (62)
+    create clone of [_myself_]
+    set [Button ID] to [Debt Cancel]
+    set [Button Group] to [dtarget]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (228) y: (14)
+    create clone of [_myself_]
+    set [Button ID] to [Popup OK]
+    set [Button Group] to [dpass]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (0) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Popup OK2]
+    set [Button Group] to [dmsg]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (0) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Popup Yes]
+    set [Button Group] to [dask]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (-80) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Popup No]
+    set [Button Group] to [dask]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (80) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Savings Info]
+    set [Button Group] to [play]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (1)
+    go to x: (-75) y: (-158)
+    create clone of [_myself_]
+    set [Button ID] to [Train Draw]
+    set [Button Group] to [dtrain]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (-125) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Train Protect]
+    set [Button Group] to [dtrain]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (0) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Train Cancel]
+    set [Button Group] to [dtrain]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (125) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Guard Info]
+    set [Button Group] to [dguard]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (1)
+    go to x: (228) y: (62)
+    create clone of [_myself_]
+    set [Button ID] to [Guard Cancel]
+    set [Button Group] to [dguard]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (228) y: (14)
+    create clone of [_myself_]
+    set [Button ID] to [Def Yes]
+    set [Button Group] to [ddef]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (-80) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Def No]
+    set [Button Group] to [ddef]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (80) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [HP Cancel]
+    set [Button Group] to [hpick]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (228) y: (10)
+    create clone of [_myself_]
+    set [Button ID] to [WP Cancel]
+    set [Button Group] to [dwall]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (228) y: (10)
+    create clone of [_myself_]
+    set [Button ID] to [Pool Done]
+    set [Button Group] to [dpool]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (0) y: (-140)
+    create clone of [_myself_]
+    set [Button ID] to [Defense Info]
+    set [Button Group] to [play]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (1)
+    go to x: (-75) y: (-158)
+    create clone of [_myself_]
+    set [Button ID] to [Lobby Start]
+    set [Button Group] to [dlobby]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (-118) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Lobby Copy]
+    set [Button Group] to [dlobby]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (0) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Lobby Leave]
+    set [Button Group] to [dlobby]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (118) y: (-55)
+    create clone of [_myself_]
+    set [Button ID] to [Get Gold]
+    set [Button Group] to [main]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (234) y: (152)
+    create clone of [_myself_]
+    set [Button ID] to [Donate]
+    set [Button Group] to [main]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (-234) y: (152)
+    create clone of [_myself_]
+    set [Button ID] to [Feedback]
+    set [Button Group] to [settings]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (-205) y: (-136)
+    create clone of [_myself_]
+    set [Button ID] to [Text Size]
+    set [Button Group] to [settings]
+    set [Field Dropdown] to []
+    set [Option Dropdown] to []
+    set [Option Value] to []
+    set [Info Only] to (0)
+    go to x: (195) y: (-136)
+    create clone of [_myself_]
+    set [Button ID] to []
+    set [Boot Buttons] to (1)
+    set [Button Group] to []
+    set [Info Only] to (0)
+    forever
+        if <(AI Players) > ((Players) - (0))> then
+            set [AI Players] to ((Players) - (0))
+        end
+        if <not <(Button Mode) = [settings]>> then
+            set [Open Dropdown] to []
+        end
+    end
+
+when I start as a clone
+    set size to (if <<<(Button Group) = [main]> and <not <(Button ID) = [Turn Info]>>> and <not <(Button ID) = [Turn Hit]>>> then (112) else (if <<<<(Button ID) = [Players -]> or <(Button ID) = [Players +]>> or <(Button ID) = [AI -]>> or <(Button ID) = [AI +]>> then (115) else (if <<(Button Group) = [zoom]> or <(Button Group) = [instructions]>> then (115) else (if <(Button ID) = [X]> then (130) else (100))))) %
+    forever
+        if <not <<<<(Button Group) = [main]> or <(Button Group) = [settings]>> or <<(Button Group) = [opt]> or <(Button Group) = [x]>>> or <<(Button Group) = [zoom]> or <(Button Group) = [instructions]>>>> then
+            if <not <(size) = (round ((100) * (TS Btn)))>> then
+                set size to (round ((100) * (TS Btn))) %
+            end
+        end
+        if <(Button ID) = [X]> then
+            if <(Button Mode) = [settings]> then
+                go to x: (255) y: (147)
+                set size to (100) %
+            else
+                if <(Button Mode) = [instructions]> then
+                    go to x: (262) y: (130)
+                    set size to (100) %
+                else
+                    go to x: (298) y: (158)
+                    set size to (130) %
+                end
+            end
+        end
+        set [Extra OK] to (1)
+        if <(Button ID) = [Auto Join]> then
+            if <not <(Game Mode) = [Multiplayer]>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Ending Times]> then
+            if <(Ending) = (1)> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [New Game]> then
+            if <<(Game Running) = (1)> or <<(Game Mode) = [Multiplayer]> and <(Auto Join) = (1)>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Play Card]> then
+            if <not <<<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Card Kind) = [other]>> and <not <(item (Selected Card) of [Card Action Cost]) > (Actions Left)>>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [No Actions]> then
+            if <not <<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <<<(Card Kind) = [other]> and <not <not <(item (Selected Card) of [Card Action Cost]) > (Actions Left)>>>> or <<(Card Kind) = [wall]> and <not <(Actions Left) > (0)>>>>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Build Btn]> then
+            if <not <<<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Card Kind) = [wall]>> and <<(Actions Left) > (0)> and <(Can Build) = (1)>>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Need Labor]> then
+            if <not <<<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Card Kind) = [wall]>> and <<(Actions Left) > (0)> and <(Can Build) = (0)>>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Use On Wall]> then
+            if <not <<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Card Kind) = [manhour]>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Wait Turn]> then
+            if <<(View Player) = (Turn)> and <(Dealing) = (0)>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Turn Info]> then
+            if <<(Game Running) = (0)> or <(Turn) = (0)>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Notice]> then
+            if <not <<(Game Running) = (1)> and <(Settings Changed) = (1)>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [AI1]> then
+            if <(AI Players) < (1)> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [AI2]> then
+            if <(AI Players) < (2)> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [AI3]> then
+            if <(AI Players) < (3)> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [AI4]> then
+            if <(AI Players) < (4)> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [AI5]> then
+            if <(AI Players) < (5)> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [AI6]> then
+            if <(AI Players) < (6)> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button Group) = [opt]> then
+            if <not <<(Button Mode) = [settings]> and <(Open Dropdown) = (Option Dropdown)>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <<(Button ID) = [Build Btn]> or <(Button ID) = [Need Labor]>> then
+            set [Extra OK] to (0)
+        end
+        if <<(Button ID) = [Pick Walls]> or <(Button ID) = [Use Man Hour]>> then
+            if <not <<<<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Card Kind) = [wall]>> and <(Actions Left) > (0)>> and <(AI Busy) = (0)>>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Pass Cancel]> then
+            if <(Turn) > ((Game Players) - (Game AI))> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Cancel Play]> then
+            set x to (if <<<<<(View Player) = (Turn)> and <(Dealing) = (0)>> and <(Card Kind) = [wall]>> and <(Actions Left) > (0)>> and <(AI Busy) = (0)>> then (160) else (75))
+        end
+        if <(Button ID) = [Savings Info]> then
+            if <not <(Card Kind) = [savings]>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Wait Turn]> then
+            if <(Card Kind) = [savings]> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [X]> then
+            if <<<<<<(Button Mode) = [dpass]> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <(Button Mode) = [dtarget]>> or <(Button Mode) = [dtrain]>> or <(Button Mode) = [dguard]>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [HP Cancel]> then
+            if <not <(HP Cancel OK) = (1)>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [WP Cancel]> then
+            if <not <(WP Cancel OK) = (1)>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Defense Info]> then
+            if <not <(Card Kind) = [defense]>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [Wait Turn]> then
+            if <(Card Kind) = [defense]> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <(Button ID) = [X]> then
+            if <<<<<<<<(Button Mode) = [dchoose]> or <(Button Mode) = [ddef]>> or <(Button Mode) = [hpick]>> or <(Button Mode) = [dwall]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>> then
+                set [Extra OK] to (0)
+            end
+        end
+        if <<(Button ID) = [New Game]> and <(Game Running) = (0)>> then
+            set [Extra OK] to (1)
+        end
+        if <<(Button ID) = [Lobby Copy]> and <(Room Code) = []>> then
+            set [Extra OK] to (0)
+        end
+        if <not <(Boot Ready) = (1)>> then
+            set [Extra OK] to (0)
+        end
+        if <(Button ID) = [Pass Cancel]> then
+            set [Extra OK] to (0)
+        end
+        if <(Button ID) = [Build Wall]> then
+            set [Extra OK] to (0)
+        end
+        if <<(Game Running) = (1)> and <<<(Button ID) = [Donate]> or <(Button ID) = [Get Gold]>> or <(Button ID) = [Use a no Action Card]>>> then
+            set [Extra OK] to (0)
+        end
+        if <<not <(Game Running) = (1)>> and <(Button ID) = [End Turn]>> then
+            set [Extra OK] to (0)
+        end
+        if <<<(Button Group) = [main]> and <<<<<<(Button ID) = [Start End]> or <(Button ID) = [End Turn]>> or <(Button ID) = [Settings]>> or <(Button ID) = [Tutorial]>> or <(Button ID) = [Use a no Action Card]>> or <(Button ID) = [Instructions]>>> and <(if <(Game Running) = (1)> then (if <(Button ID) = [Start End]> then (95) else (if <(Button ID) = [End Turn]> then (64) else (if <(Button ID) = [Settings]> then (33) else (if <(Button ID) = [Tutorial]> then (2) else (if <(Button ID) = [Instructions]> then (-29) else (999)))))) else (if <(Button ID) = [Start End]> then (89) else (if <(Button ID) = [Settings]> then (46) else (if <(Button ID) = [Use a no Action Card]> then (3) else (if <(Button ID) = [Instructions]> then (-40) else (if <(Button ID) = [Tutorial]> then (-83) else (999))))))) < (500)>> then
+            if <not <(y position) = (if <(Game Running) = (1)> then (if <(Button ID) = [Start End]> then (95) else (if <(Button ID) = [End Turn]> then (64) else (if <(Button ID) = [Settings]> then (33) else (if <(Button ID) = [Tutorial]> then (2) else (if <(Button ID) = [Instructions]> then (-29) else (999)))))) else (if <(Button ID) = [Start End]> then (89) else (if <(Button ID) = [Settings]> then (46) else (if <(Button ID) = [Use a no Action Card]> then (3) else (if <(Button ID) = [Instructions]> then (-40) else (if <(Button ID) = [Tutorial]> then (-83) else (999)))))))>> then
+                set y to (if <(Game Running) = (1)> then (if <(Button ID) = [Start End]> then (95) else (if <(Button ID) = [End Turn]> then (64) else (if <(Button ID) = [Settings]> then (33) else (if <(Button ID) = [Tutorial]> then (2) else (if <(Button ID) = [Instructions]> then (-29) else (999)))))) else (if <(Button ID) = [Start End]> then (89) else (if <(Button ID) = [Settings]> then (46) else (if <(Button ID) = [Use a no Action Card]> then (3) else (if <(Button ID) = [Instructions]> then (-40) else (if <(Button ID) = [Tutorial]> then (-83) else (999)))))))
+            end
+            if <not <(x position) = (if <(Game Running) = (1)> then (248) else (0))>> then
+                set x to (if <(Game Running) = (1)> then (248) else (0))
+            end
+            if <not <(size) = (if <(Game Running) = (1)> then (112) else (150))>> then
+                set size to (if <(Game Running) = (1)> then (112) else (150)) %
+            end
+        end
+        if <(Button ID) = [Turn Info]> then
+            if <not <(x position) = (-69)>> then
+                set x to (-69)
+            end
+        end
+        if <<(Extra OK) = (1)> and <<<<<(Button Group) = [main]> and <not <not <(Button Mode) = []>>>> or <(Button Group) = (Button Mode)>> or <<(Button Group) = [x]> and <<not <(Button Mode) = []>> and <not <(Button Mode) = [pass]>>>>> or <(Button Group) = [opt]>>> then
+            if <<<<<<<<<<<<<<<<<<(Button ID) = [Game Mode]> or <(Button ID) = [Player Count]>> or <(Button ID) = [Auto Join]>> or <(Button ID) = [Ending]>> or <(Button ID) = [Ending Times]>> or <(Button ID) = [AI Count]>> or <(Button ID) = [Sound FX]>> or <(Button ID) = [Music Mode]>> or <(Button ID) = [Start End]>> or <(Button ID) = [AI1]>> or <(Button ID) = [AI2]>> or <(Button ID) = [AI3]>> or <(Button ID) = [AI4]>> or <(Button ID) = [AI5]>> or <(Button ID) = [Song Count]>> or <(Button ID) = [Play Card]>> or <(Button ID) = [Turn Info]>> or <(Button ID) = [AI6]>> then
+                if <(Button ID) = [Game Mode]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Game Mode|]) (Game Mode))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Player Count]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Player Count|]) (Players))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Auto Join]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Auto Join|]) (Auto Join))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Ending]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Ending|]) (Ending))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Ending Times]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Ending Times|]) (Ending Times))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [AI Count]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [AI Count|]) (AI Players))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Sound FX]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Sound FX|]) (Sound Effects))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Music Mode]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Music Mode|]) (Music Mode))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Start End]> then
+                    set [Want Costume] to (join (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) [Start End|]) (Game Running))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [AI1]> then
+                    set [Want Costume] to (join [b_AI1|] (item (1) of [AI Difficulty]))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [AI2]> then
+                    set [Want Costume] to (join [b_AI2|] (item (2) of [AI Difficulty]))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [AI3]> then
+                    set [Want Costume] to (join [b_AI3|] (item (3) of [AI Difficulty]))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [AI4]> then
+                    set [Want Costume] to (join [b_AI4|] (item (4) of [AI Difficulty]))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [AI5]> then
+                    set [Want Costume] to (join [b_AI5|] (item (5) of [AI Difficulty]))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [AI6]> then
+                    set [Want Costume] to (join [b_AI6|] (item (6) of [AI Difficulty]))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Play Card]> then
+                    set [Want Costume] to (join [b_Play Card|] (item (Selected Card) of [Card Action Cost]))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Turn Info]> then
+                    set [Want Costume] to [b_Turn Hit]
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+                if <(Button ID) = [Song Count]> then
+                    set [Want Costume] to (join [b_Song Count|] (if <(btwlinks.songCount) > (20)> then (20) else (btwlinks.songCount)))
+                    if <not <(costume [name]) = (Want Costume)>> then
+                        switch costume to (join (Want Costume) [])
+                    end
+                end
+            else
+                set [Want Costume] to (join (if <<(Button Group) = [main]> and <not <(Button Mode) = []>>> then [b_] else [b_]) (Button ID))
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <(Button ID) = [Pick Walls]> then
+                set [Want Costume] to (join [b_Pick Walls|] (if <(Can Pick2) = (1)> then [on] else [off]))
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <(Button ID) = [Use Man Hour]> then
+                set [Want Costume] to (join [b_Use Man Hour|] (if <(Has Manhour) = (1)> then [on] else [off]))
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <(Button ID) = [Use On Wall]> then
+                set [Want Costume] to (join [b_Use On Wall|] (if <<(Has Wall) = (1)> and <(Actions Left) > (0)>> then [on] else [off]))
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <(Button ID) = [Pick Info]> then
+                set [Want Costume] to (join (join [b_Pick Info|] (Pick Need)) (join [|] (if <(length of [Picked Slots]) > (0)> then (1) else (0))))
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <(Button ID) = [Pick Cancel]> then
+                set [Want Costume] to [b_Pick Cancel]
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <(Button ID) = [Tutorial]> then
+                set [Want Costume] to (join [b_Tutorial|] (if <(Tutor On) = (1)> then [on] else [off]))
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <(Button ID) = [Train Protect]> then
+                set [Want Costume] to (join [b_Train Protect|] (if <(length of [Train Sets]) > (0)> then [on] else [off]))
+                if <not <(costume [name]) = (Want Costume)>> then
+                    switch costume to (join (Want Costume) [])
+                end
+            end
+            if <not <(Shown) = (1)>> then
+                show
+                set [Shown] to (1)
+            end
+            if <not <<(Button Group) = [main]> and <not <(Button Mode) = []>>>> then
+                if <not <(Front Key) = (Button Mode)>> then
+                    go to [front] layer
+                    set [Front Key] to (Button Mode)
+                end
+            end
+        else
+            if <not <(Shown) = (0)>> then
+                hide
+                set [Shown] to (0)
+                set [Front Key] to [-]
+            end
+        end
+    end
+
+when this sprite clicked
+    if <<<<(Button Group) = [main]> and <(Signed In) = (0)>> and <(Test Mode) = (0)>> and <not <<<(Button ID) = [Use a no Action Card]> or <(Button ID) = [Instructions]>> or <(Button ID) = [Tutorial]>>>> then
+        broadcast [Need Sign In]
+        stop [this script]
+    end
+    set [Btn Click] to (1)
+    if <(Info Only) = (0)> then
+        if <(Sound Effects) = (1)> then
+            start sound [click]
+        end
+        if <(Button Group) = [opt]> then
+            if <(Option Dropdown) = [mode]> then
+                set [Game Mode] to (Option Value)
+            end
+            if <(Option Dropdown) = [ending]> then
+                set [Ending] to (Option Value)
+            end
+            if <(Option Dropdown) = [times]> then
+                set [Ending Times] to (Option Value)
+            end
+            if <(Option Dropdown) = [music]> then
+                set [Music Mode] to (Option Value)
+                btwlinks.setMode MODE:(Music Mode)
+            end
+            if <(Option Dropdown) = [ai1]> then
+                replace item (1) of [AI Difficulty] with (Option Value)
+            end
+            if <(Option Dropdown) = [ai2]> then
+                replace item (2) of [AI Difficulty] with (Option Value)
+            end
+            if <(Option Dropdown) = [ai3]> then
+                replace item (3) of [AI Difficulty] with (Option Value)
+            end
+            if <(Option Dropdown) = [ai4]> then
+                replace item (4) of [AI Difficulty] with (Option Value)
+            end
+            if <(Option Dropdown) = [ai5]> then
+                replace item (5) of [AI Difficulty] with (Option Value)
+            end
+            if <(Option Dropdown) = [ai6]> then
+                replace item (6) of [AI Difficulty] with (Option Value)
+            end
+            if <<(Game Running) = (1)> and <not <(Option Dropdown) = [music]>>> then
+                set [Settings Changed] to (1)
+            end
+            set [Open Dropdown] to []
+        else
+            if <not <(Field Dropdown) = []>> then
+                if <(Open Dropdown) = (Field Dropdown)> then
+                    set [Open Dropdown] to []
+                else
+                    set [Open Dropdown] to (Field Dropdown)
+                end
+            else
+                set [Open Dropdown] to []
+                if <(Button ID) = [X]> then
+                    set [X Clicked] to (1)
+                end
+                if <(Button ID) = [Yes]> then
+                    set [Confirm Answer] to [yes]
+                end
+                if <(Button ID) = [No]> then
+                    set [Confirm Answer] to [no]
+                end
+                if <(Button ID) = [Pass OK]> then
+                    set [Confirm Answer] to [ok]
+                end
+                if <(Button ID) = [Play Card]> then
+                    set [Play Answer] to [play]
+                end
+                if <(Button ID) = [Build Btn]> then
+                    set [Play Answer] to [build]
+                end
+                if <(Button ID) = [Msg OK]> then
+                    set [Confirm Answer] to [ok]
+                end
+                if <(Button ID) = [Cancel Play]> then
+                    set [Play Answer] to [cancel]
+                end
+                if <(Button ID) = [Feedback]> then
+                    broadcast [btn Feedback]
+                end
+                if <(Button ID) = [Text Size]> then
+                    set [Ask Answer] to (btwlinks.textSizes)
+                end
+                if <(Button ID) = [Donate]> then
+                    broadcast [btn Donate]
+                end
+                if <(Button ID) = [Get Gold]> then
+                    broadcast [btn Get Gold]
+                end
+                if <(Button ID) = [Lobby Start]> then
+                    set [Popup Answer] to [ok]
+                end
+                if <(Button ID) = [Lobby Copy]> then
+                    set [Popup Answer] to [copy]
+                end
+                if <(Button ID) = [Lobby Leave]> then
+                    set [Popup Answer] to [leave]
+                end
+                if <(Button ID) = [Def Yes]> then
+                    set [Popup Answer] to [yes]
+                end
+                if <(Button ID) = [Def No]> then
+                    set [Popup Answer] to [no]
+                end
+                if <(Button ID) = [HP Cancel]> then
+                    set [HP Slot] to (-1)
+                end
+                if <(Button ID) = [WP Cancel]> then
+                    set [WP Result] to [cancel]
+                end
+                if <(Button ID) = [Pool Done]> then
+                    set [Pool Done] to (1)
+                end
+                if <(Button ID) = [Train Draw]> then
+                    set [Popup Answer] to [draw]
+                end
+                if <<(Button ID) = [Train Protect]> and <(length of [Train Sets]) > (0)>> then
+                    set [Popup Answer] to [protect]
+                end
+                if <(Button ID) = [Train Cancel]> then
+                    set [Popup Answer] to [cancel]
+                end
+                if <(Button ID) = [Guard Cancel]> then
+                    set [Guard Pick] to [cancel]
+                end
+                if <(Button ID) = [Debt Cancel]> then
+                    set [Debt Pick] to [cancel]
+                end
+                if <<(Button ID) = [Popup OK]> or <(Button ID) = [Popup OK2]>> then
+                    set [Popup Answer] to [ok]
+                end
+                if <(Button ID) = [Popup Yes]> then
+                    set [Popup Answer] to [yes]
+                end
+                if <(Button ID) = [Popup No]> then
+                    set [Popup Answer] to [no]
+                end
+                if <<(Button ID) = [Pick Walls]> and <(Can Pick2) = (1)>> then
+                    set [Play Answer] to [pickwalls]
+                end
+                if <<(Button ID) = [Use Man Hour]> and <(Has Manhour) = (1)>> then
+                    set [Play Answer] to [usemanhour]
+                end
+                if <<<(Button ID) = [Use On Wall]> and <(Has Wall) = (1)>> and <(Actions Left) > (0)>> then
+                    set [Play Answer] to [pickwall]
+                end
+                if <(Button ID) = [Pick Cancel]> then
+                    set [Pick Result] to [cancel]
+                end
+                if <(Button ID) = [Turn Info]> then
+                    broadcast [Rename]
+                end
+                if <(Button ID) = [Pass Cancel]> then
+                    set [Confirm Answer] to [cancel]
+                end
+                if <(Button ID) = [Auto Join]> then
+                    set [Auto Join] to ((1) - (Auto Join))
+                end
+                if <(Button ID) = [Sound FX]> then
+                    set [Sound Effects] to ((1) - (Sound Effects))
+                end
+                if <(Button ID) = [AI -]> then
+                    if <(AI Players) > (0)> then
+                        change [AI Players] by (-1)
+                    end
+                end
+                if <(Button ID) = [AI +]> then
+                    if <(AI Players) < ((Players) - (0))> then
+                        change [AI Players] by (1)
+                    end
+                end
+                if <(Button ID) = [Add YouTube]> then
+                    set [Ask Answer] to (btwlinks.askBox Q:[Paste a YouTube link to add to the playlist:])
+                    if (btwlinks.isValidYouTube URL:(Ask Answer)) then
+                        btwlinks.addYouTube URL:(Ask Answer)
+                    end
+                end
+                if <(Button ID) = [Add Songs]> then
+                    btwlinks.addFiles
+                end
+                if <(Button ID) = [Clear Songs]> then
+                    btwlinks.clearPlaylist
+                end
+                if <(Button ID) = [Play Music]> then
+                    btwlinks.setMode MODE:(Music Mode)
+                    btwlinks.playMusic
+                end
+                if <(Button ID) = [Next Song]> then
+                    btwlinks.nextSong
+                end
+                if <(Button ID) = [Stop Music]> then
+                    btwlinks.stopMusic
+                end
+                if <<(Game Running) = (1)> and <<<<<(Button ID) = [Players -]> or <(Button ID) = [Players +]>> or <(Button ID) = [Auto Join]>> or <(Button ID) = [AI -]>> or <(Button ID) = [AI +]>>> then
+                    set [Settings Changed] to (1)
+                end
+                if <(Button ID) = [Start End]> then
+                    broadcast [btn Start End]
+                end
+                if <(Button ID) = [End Turn]> then
+                    broadcast [btn End Turn]
+                end
+                if <(Button ID) = [Build Wall]> then
+                    broadcast [btn Build Wall]
+                end
+                if <(Button ID) = [Settings]> then
+                    broadcast [btn Settings]
+                end
+                if <(Button ID) = [Tutorial]> then
+                    broadcast [btn Tutorial]
+                end
+                if <(Button ID) = [Use a no Action Card]> then
+                    broadcast [btn Use a no Action Card]
+                end
+                if <(Button ID) = [Instructions]> then
+                    broadcast [btn Instructions]
+                end
+                if <(Button ID) = [Zoom +]> then
+                    broadcast [btn Zoom +]
+                end
+                if <(Button ID) = [Zoom -]> then
+                    broadcast [btn Zoom -]
+                end
+                if <(Button ID) = [Zoom =]> then
+                    broadcast [btn Zoom =]
+                end
+                if <(Button ID) = [Scan Card's QR Code]> then
+                    broadcast [btn Scan Card's QR Code]
+                end
+                if <(Button ID) = [Back Page]> then
+                    broadcast [btn Back Page]
+                end
+                if <(Button ID) = [Next Page]> then
+                    broadcast [btn Next Page]
+                end
+                if <(Button ID) = [Players -]> then
+                    broadcast [btn Players -]
+                end
+                if <(Button ID) = [Players +]> then
+                    broadcast [btn Players +]
+                end
+                if <(Button ID) = [New Game]> then
+                    broadcast [btn New Game]
+                end
+            end
+        end
+        wait (0.12) seconds
+        clear graphic effects
+    end
