@@ -10,9 +10,11 @@ interface Props {
   actions: CardActions;
   onChoose(choice: CardChoice): void;
   onClose(): void;
+  /** The closing button's label (default "Back"). */
+  closeLabel?: string;
 }
 
-export function CardPopup({ card, actions, onChoose, onClose }: Props) {
+export function CardPopup({ card, actions, onChoose, onClose, closeLabel = 'Back' }: Props) {
   const c = cardById(card);
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -30,7 +32,7 @@ export function CardPopup({ card, actions, onChoose, onClose }: Props) {
       </div>
       <div class="zoom__buttons">
         {actions.buttons.map(b => <Button key={b.label} onClick={() => onChoose(b.choice)}>{b.label}</Button>)}
-        <Button onClick={onClose}>Back</Button>
+        <Button onClick={onClose}>{closeLabel}</Button>
       </div>
     </div>
   );

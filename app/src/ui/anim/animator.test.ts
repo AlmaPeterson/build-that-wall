@@ -179,3 +179,61 @@ describe('dealing and drawing', () => {
     expect(lands[0]!.x).toBe(lands[2]!.x);
   });
 });
+
+describe('reading cards', () => {
+  /** Seat 0 (a person) draws Abduction (1), a Play Immediately card, and it's played straight away. */
+  function immediate() {
+    const a = base();
+    a.turn = 0;
+    a.seats[0]!.hand = [29, 1];
+    const b = clone(a);
+    b.seats[0]!.hand = [29];
+    b.discard = [1];
+    const e: GameEvent = { type: 'immediate', seat: 0, card: 1, text: 'PLAY IMMEDIATELY: Player 1 drew Abduction.' };
+    return { prev: snap(a, []), next: snap(b, [e]) };
+  }
+
+  it('your own Play Immediately card stops in the middle, sharp, until you tap Continue', async () => {
+    vi.useFakeTimers();
+    try {
+      const { prev, next } = immediate();
+      const plan = planStep(prev, next, 1)!;
+      expect(plan.flights[0]!.big).toBe(true);
+      expect(plan.flights[0]!.keys.at(-1)).toMatchObject(CENTER);           // stops in the middle
+      expect(plan.confirm?.then.flights[0]!.keys[0]).toMatchObject(CENTER);  // and goes on from there
+      const source = createStore(prev);
+      const anim = new Animator(source, { speed: () => 0 });                 // even with animations off
+      source.set(next);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(anim.state.get().confirm).toMatchObject({ card: 1 });
+      expect(anim.state.get().idle).toBe(false);
+      anim.continue();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(anim.state.get()).toMatchObject({ confirm: null, idle: true, snap: next });
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("a bot's Play Immediately card doesn't wait", () => {
+    const { prev, next } = immediate();
+    const bot = { ...next, view: { ...next.view!, seats: next.view!.seats.map((s, i) => (i === 0 ? { ...s, bot: 'easy' as const } : s)) } };
+    expect(planStep(prev, bot, 1)!.confirm).toBeUndefined();
+  });
+
+  it('pausing (a card opened full size) stops the clock', async () => {
+    vi.useFakeTimers();
+    try {
+      const { prev, next } = debtStep();
+      const source = createStore(prev);
+      const anim = new Animator(source, { speed: () => 1 });
+      source.set(next);
+      const total = anim.state.get().duration;
+      await vi.advanceTimersByTimeAsync(100);
+      anim.pause();
+      await vi.advanceTimersByTimeAsync(total * 3);
+      expect(anim.state.get()).toMatchObject({ paused: true, idle: false });
+      anim.resume();
+      await vi.advanceTimersByTimeAsync(total);
+      expect(anim.state.get()).toMatchObject({ paused: false, idle: true, snap: next });
+    } finally { vi.useRealTimers(); }
+  });
+});
