@@ -12,7 +12,11 @@ import { diffViews, midView, type Move, type Place } from './moves';
 /** One point of a card's path: at time `t` (ms from the start of the step) it is at this rect. */
 export interface Key extends Rect { t: number; face: boolean }
 
-export interface Flight { id: number; card: CardId; keys: Key[] }
+/** `big`: a played card that stops large in the middle, drawn from the high-quality picture. */
+export interface Flight { id: number; card: CardId; keys: Key[]; big?: boolean }
+
+/** Your own Play Immediately card, shown large until you tap Continue. */
+export interface Confirm { card: CardId; text: string }
 
 export interface AnimState {
   /** What the board shows now (lags behind the game while cards are moving). */
@@ -26,6 +30,10 @@ export interface AnimState {
   target: Rect | null;
   /** A played card waiting halfway to its target, drawn where it stopped until the next step. */
   held: Held | null;
+  /** Waiting for Continue on your own Play Immediately card. */
+  confirm: Confirm | null;
+  /** Stopped while a card is open full size. */
+  paused: boolean;
   /** Nothing waiting to be shown: the board is up to date and may be used. */
   idle: boolean;
 }
@@ -53,13 +61,16 @@ export class Animator {
   private last: GameSnapshot;
   private running = false;
   private skipNow: (() => void) | null = null;
+  private pauseNow: (() => void) | null = null;
+  private resumeNow: (() => void) | null = null;
+  private continueNow: (() => void) | null = null;
   private waiters: (() => void)[] = [];
   private nextId = 1;
   private readonly unsubscribe: () => void;
 
   constructor(private readonly source: Store<GameSnapshot>, private readonly opts: AnimatorOptions) {
     this.last = source.get();
-    this.state = createStore<AnimState>({ snap: this.last, flights: [], duration: 0, caption: null, target: null, held: null, idle: true });
+    this.state = createStore<AnimState>({ snap: this.last, flights: [], duration: 0, caption: null, target: null, held: null, confirm: null, paused: false, idle: true });
     this.unsubscribe = source.subscribe(s => this.push(s));
   }
 
@@ -72,7 +83,23 @@ export class Animator {
   /** Finish the current step now (tapping the board). */
   skip(): void { this.skipNow?.(); }
 
-  dispose(): void { this.unsubscribe(); this.queue = []; this.skip(); }
+  /** Stop where we are (a card was opened full size); `resume` carries on. */
+  pause(): void {
+    if (!this.pauseNow || this.state.get().paused) return;
+    this.pauseNow();
+    this.set({ paused: true });
+  }
+
+  resume(): void {
+    if (!this.state.get().paused) return;
+    this.set({ paused: false });
+    this.resumeNow?.();
+  }
+
+  /** Continue after reading your own Play Immediately card. */
+  continue(): void { this.continueNow?.(); }
+
+  dispose(): void { this.unsubscribe(); this.queue = []; this.skip(); this.continue(); }
 
   private push(s: GameSnapshot): void {
     if (same(s, this.last)) return;
@@ -97,7 +124,25 @@ export class Animator {
   private set(p: Partial<AnimState>): void { this.state.set({ ...this.state.get(), ...p }); }
 
   private show(snap: GameSnapshot, held: Held | null = null): void {
-    this.set({ snap, flights: [], caption: null, target: null, duration: 0, held });
+    this.set({ snap, flights: [], caption: null, target: null, duration: 0, held, confirm: null, paused: false });
+  }
+
+  /** Wait `ms`, unless skipped; pausing stops the clock. */
+  private wait(ms: number): Promise<void> {
+    return new Promise(resolve => {
+      let left = ms, since = 0;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const done = () => {
+        if (timer) clearTimeout(timer);
+        this.skipNow = this.pauseNow = this.resumeNow = null;
+        resolve();
+      };
+      const go = () => { since = Date.now(); timer = setTimeout(done, left); };
+      this.skipNow = done;
+      this.pauseNow = () => { if (timer) { clearTimeout(timer); timer = null; left -= Date.now() - since; } };
+      this.resumeNow = () => { if (!timer) go(); };
+      go();
+    });
   }
 
   private async step(next: GameSnapshot): Promise<void> {
@@ -106,15 +151,19 @@ export class Animator {
     const speed = backlog >= BACKLOG * 2 ? 0 : this.opts.speed() * (backlog >= BACKLOG ? 0.4 : 1);
     let held = this.state.get().held;
     if (speed <= 0 || !prev.view || prev.viewer !== next.viewer || next.events.length < prev.events.length) held = null;
-    const plan = speed > 0 ? planStep(prev, next, speed, () => this.nextId++, held) : null;
+    // Your own Play Immediately card always waits for Continue, even with animations off
+    const own = ownImmediate(prev, next);
+    const plan = speed > 0 || own ? planStep(prev, next, Math.max(speed, own ? 0.01 : 0), () => this.nextId++, held) : null;
     if (!plan) { this.show(next, held); return; }
     this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null, turnBanner: null }, flights: plan.flights, duration: plan.duration,
       caption: plan.caption, target: plan.target, held: null });
-    await new Promise<void>(resolve => {
-      const done = () => { clearTimeout(timer); this.skipNow = null; resolve(); };
-      const timer = setTimeout(done, plan.duration);
-      this.skipNow = done;
-    });
+    await this.wait(plan.duration);
+    if (plan.confirm) {
+      this.set({ confirm: plan.confirm.card });
+      await new Promise<void>(r => { this.continueNow = () => { this.continueNow = null; r(); }; });
+      this.set({ confirm: null, flights: plan.confirm.then.flights, duration: plan.confirm.then.duration, caption: null });
+      await this.wait(plan.confirm.then.duration);
+    }
     this.show(next, plan.held);
   }
 }
@@ -126,6 +175,15 @@ export interface StepPlan {
   mid: GameState; flights: Flight[]; duration: number; caption: string | null; target: Rect | null;
   /** The card left waiting at the end of this step, if any. */
   held: Held | null;
+  /** Your own Play Immediately card: `flights` stop with it in the middle; after Continue, `then` plays. */
+  confirm?: { card: Confirm; then: { flights: Flight[]; duration: number } };
+}
+
+/** The viewer drew a Play Immediately card on this step (and is a person, not a bot). */
+function ownImmediate(prev: GameSnapshot, next: GameSnapshot): boolean {
+  if (!next.view || prev.viewer !== next.viewer || next.events.length < prev.events.length) return false;
+  const seat = next.view.seats[next.viewer];
+  return !!seat && !seat.bot && next.events.slice(prev.events.length).some(e => e.type === 'immediate' && e.seat === next.viewer);
 }
 
 /** Where a blocked card and the Self-Defense meet when the card wasn't already waiting somewhere. */
@@ -144,6 +202,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   const blocked = fresh.find(e => e.type === 'blocked' && e.card !== undefined && e.seat !== undefined) ?? null;
   const main = reveal ?? blocked ?? fresh.find(e => e.seat !== undefined && !ROUTINE.includes(e.type)) ?? fresh.find(e => e.seat !== undefined) ?? null;
   const dealing = fresh.some(e => e.type === 'deal');
+  const confirming = reveal?.type === 'immediate' && ownImmediate(prev, next);
   const target = reveal?.target;
   const fallback: Place = target !== undefined ? { at: 'seat', seat: target }
     : main?.seat !== undefined ? { at: 'seat', seat: main.seat } : { at: 'center' };
@@ -165,6 +224,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   let start = 0;
   let targetRect: Rect | null = null;
   let heldAfter: Held | null = null;
+  let splitAt = -1;
   const fromNowhere = (m: Move) => m.from.at === 'seat' || m.from.at === 'center';
 
   // A blocked card: the Self-Defense flies onto it (where it was waiting), then both go to the discard pile
@@ -203,7 +263,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     const m: Move = take(x => fromHand(x) && x.card === card) ?? take(x => fromHand(x) && x.card === CARD_BACK)
       ?? { card, from: handPlace(before, reveal.seat!, card), to: fallback };
     m.card = card;
-    const t1 = start + ms(T.toCenter), t2 = t1 + ms(T.hold), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
+    const t1 = start + ms(T.toCenter), t2 = t1 + (confirming ? 0 : ms(T.hold)), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
     const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
     if (start > 0) keys.push({ ...keys[0]!, t: start });   // waits in the hand until the block is over
     keys.push({ t: t1, ...CENTER, face: true }, { t: t2, ...CENTER, face: true });
@@ -221,9 +281,10 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     } else {
       keys.push({ t: t4, ...at(m.to, 'to'), face: true });
     }
-    flights.push({ id: id(), card, keys });
+    flights.push({ id: id(), card, keys, big: true });
     flown.push(m);
     start = t3;
+    if (confirming) splitAt = t1;
   }
 
   const cap = dealing ? DEAL_FLIGHTS : MAX_FLIGHTS;
@@ -242,8 +303,19 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   });
   if (!flights.length) return null;
   const duration = Math.max(...flights.map(f => f.keys.at(-1)!.t));
-  return { mid: midView(before, flown), flights, duration, target: targetRect, held: heldAfter,
+  const plan: StepPlan = { mid: midView(before, flown), flights, duration, target: targetRect, held: heldAfter,
     caption: main && !ROUTINE.includes(main.type) ? main.text : null };
+  if (splitAt < 0 || !reveal) return plan;
+  // Stop with the card in the middle; everything after that plays once Continue is tapped
+  const upToMiddle = flights.map(f => ({ ...f, keys: [...f.keys.filter(k => k.t <= splitAt)] }));
+  const afterContinue = flights.map(f => {
+    const at = [...f.keys].reverse().find(k => k.t <= splitAt)!;
+    return { ...f, id: id(), keys: [{ ...at, t: 0 }, ...f.keys.filter(k => k.t > splitAt).map(k => ({ ...k, t: k.t - splitAt }))] };
+  });
+  return {
+    ...plan, flights: upToMiddle, duration: splitAt, caption: null,
+    confirm: { card: { card: reveal.card!, text: reveal.text }, then: { flights: afterContinue, duration: Math.max(0, duration - splitAt) } },
+  };
 }
 
 /** Dealing: round by round, seat by seat. */
