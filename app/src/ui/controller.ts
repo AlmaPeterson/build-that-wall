@@ -3,7 +3,7 @@
 //
 // Online play (ui/online) plugs in by giving a different `humanDecider`/`startGame`; the board doesn't care.
 import {
-  createLocalGame, redactEvent, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decider, type Decision,
+  CARD_BACK, createLocalGame, redactEvent, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decider, type Decision,
   type Game, type GameEvent, type GameSettings, type GameState, type Seat,
 } from '../game';
 import { createStore, type Store } from './store';
@@ -197,11 +197,26 @@ export class GameController {
     return s.seats[prev] && !s.seats[prev]!.bot ? prev : Math.max(0, s.seats.findIndex(x => !x.bot));
   }
 
+  /**
+   * What `seat` may see: other hands hidden, and a card that's being played but not announced yet still where
+   * it was (its player may still back out), so screens never show it vanish and come back.
+   */
+  viewOf(seat: Seat): GameState | null {
+    const s = this.game?.state;
+    if (!s) return null;
+    const v = viewFor(s, seat);
+    const p = this.game!.unannouncedPlay;
+    if (p) {
+      if (p.discarded) v.discard.splice(v.discard.lastIndexOf(p.card), 1);
+      v.seats[p.seat]?.hand.splice(p.slot, 0, seat === p.seat ? p.card : CARD_BACK);
+    }
+    return v;
+  }
+
   private publish(passTo: Seat | null = this.passResolve ? this.snapshot.get().passTo : null): void {
-    const s = this.game?.state ?? null;
     const viewer = passTo ?? this.viewer();
     this.snapshot.set({
-      view: s ? viewFor(s, viewer) : null,
+      view: this.viewOf(viewer),
       viewer,
       // Other players' drawn cards stay hidden, on a shared device too
       events: this.events.map(e => redactEvent(e, viewer)),

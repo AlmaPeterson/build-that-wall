@@ -8,7 +8,6 @@ import { useStore } from '../store';
 import { displayOrder, handOrderVersion, moveCard } from './hand-order';
 import { HAND_WIDTH_UNITS, setHandScroll } from '../anim/layout';
 import { cardImage } from '../assets';
-import { zoomProps } from '../components/zoom';
 
 export interface HandPicking {
   pickable: number[];   // slots that can be picked
@@ -172,13 +171,12 @@ export function Hand({ seat, cards, onCard, picking, onLift }: Props) {
   );
 }
 
-/** Shown instead of the hand while a bot plays (and in watch mode), with the last card a bot played. */
-export function HiddenHand({ lastCard, message = 'Hands are hidden while the computer plays' }: { lastCard: CardId | null; message?: string }) {
+/** Shown instead of the hand while a bot plays (and in watch mode). What the bot plays is shown flying across the board. */
+export function HiddenHand({ message = 'Hands are hidden while the computer plays' }: { message?: string }) {
   return (
     <>
       <div class="at hand__title">Your Hand</div>
       <div class="at hand__hidden" aria-live="polite">
-        {lastCard !== null && <img src={cardImage(lastCard, 'thumb')} alt={cardById(lastCard).name} {...zoomProps(lastCard)} />}
         <span>{message}</span>
       </div>
     </>

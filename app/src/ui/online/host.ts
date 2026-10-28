@@ -63,7 +63,7 @@ export class HostController extends GameController {
     const all = this.allEvents;
     for (let seat = 1; seat < this.roomSeats.length; seat++) {
       if (s.seats[seat]?.left) continue;
-      const view = viewFor(s as GameState, seat), js = JSON.stringify(view);
+      const view = this.viewOf(seat) ?? viewFor(s as GameState, seat), js = JSON.stringify(view);
       const from = this.sentEvents.get(seat) ?? 0;
       if (from === all.length && this.sentView.get(seat) === js) continue;
       const msg: ToPlayer = { k: 'snap', seat, view, events: all.slice(from).map(e => redactEvent(e, seat)), from, total: all.length };
