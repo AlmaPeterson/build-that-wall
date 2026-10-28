@@ -251,7 +251,7 @@ const FAQ: [RegExp, string][] = [
   [/\b(trump train|trump card|trump)\b/, 'Trump: discard it to draw 3 cards. Trump Train: draw 3 cards, or protect a set of 2.'],
   [/\b(voting machine)\b/, 'Voting Machine works like a Man Hour that builds 2 sections with one action.'],
   [/\b(how many players|players|bots?|computer)\b/, 'The game is for 2 to 6 players (3 or 4 is best). Change the number of players and bots in Settings.'],
-  [/\b(gold|premium|trial|membership|pay|price|ads?)\b/, 'Gold gives you a colored star, name and background, holiday card backs, confetti, leaderboards and no video ads. Open Gold Membership on the main menu. Signed-in players can try it free for 7 days.'],
+  [/\b(gold|premium|trial|membership|pay|price|ads?)\b/, 'Gold gives you a colored star, name and background, holiday card backs, confetti, leaderboards and no video ads. Open Account & Store on the main menu. Signed-in players can try it free for 7 days.'],
   [/\b(online|multiplayer|friends?|room code|join|host)\b/, 'To play with friends on different devices, set Game Mode to Multiplayer in Settings, then share your room code so they can join.'],
   [/\b(pass|share|one device|same device)\b/, "In Pass'n'Play, everyone shares one device. When a turn ends, pass the device to the player named on the screen; they tap the button to see their cards."],
   [/\b(sign in|log in|login|account|google)\b/, 'Open Account & Store on the main menu and choose Sign in with Google.'],

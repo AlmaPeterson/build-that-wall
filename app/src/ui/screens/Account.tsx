@@ -1,5 +1,4 @@
 // Account & Store: sign in (optional), your name, Gold, donations, backups, feedback.
-// Donate and Gold Membership on the main menu come here too.
 import { useEffect, useState } from 'preact/hooks';
 import { cleanName } from '../../services/online';
 import { deviceInfo, openFeedbackBox } from '../../services/feedback';

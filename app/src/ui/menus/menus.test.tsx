@@ -181,7 +181,7 @@ describe('starting games', () => {
 
   it('menu buttons go to their screens', () => {
     act(() => { render(<MenuScreen />, root); });
-    click('Gold Membership');
+    click('Account & Store');
     expect(screen.get()).toBe('account');
     click('Settings');
     expect(screen.get()).toBe('settings');
