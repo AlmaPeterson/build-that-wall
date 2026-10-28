@@ -1,0 +1,232 @@
+/* The in-game board. Positions use stage units (--u = 1/640 of the stage width), taken from the old game's
+   640×360 layout (Walls Display.txt), so `left: calc(var(--u) * 46)` is x = 46 on the old stage. */
+.board {
+  --tb: var(--text-board);
+  --tc: var(--text-cards);
+  background: var(--paper);
+  font-family: var(--font-body);
+  user-select: none;
+}
+.board * { box-sizing: border-box; }
+.board .at { position: absolute; }
+
+/* Header and footer, as the old backdrop */
+.board__header {
+  position: absolute; left: 0; top: 0; width: 100%; height: calc(var(--u) * 68);
+  background-color: var(--red); background-repeat: no-repeat;   /* image set in Board.tsx (paths are page-relative) */
+  /* the old backdrop (680×386, centred on the stage): only its header with the logo shows here */
+  background-size: calc(var(--u) * 680) calc(var(--u) * 386);
+  background-position: calc(var(--u) * -20) calc(var(--u) * -13);
+}
+.board__footer {
+  /* Outside the stage: fixed to the bottom of the window, full width, sized like the stage */
+  --u: calc(min(100vw, 100vh * 16 / 9) / 640);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: calc(var(--u) * 25);
+  background: #2020ff; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font); font-size: calc(var(--u) * 11);
+}
+.board__footer a { color: #fff; text-decoration: none; }
+.board__footer small { position: absolute; right: calc(var(--u) * 8); bottom: calc(var(--u) * 3); font: calc(var(--u) * 8) 'Times New Roman', serif; }
+
+/* Last thing a bot did (the old "AI Log") */
+.board__log {
+  left: calc(var(--u) * 5); top: calc(var(--u) * 36); width: calc(var(--u) * 250); height: calc(var(--u) * 20);
+  background: #fff; border: 1px solid #d8332d; border-radius: calc(var(--u) * 6);
+  color: #7a1a16; font-weight: bold; font-size: calc(var(--u) * 10 * var(--tb));
+  display: flex; align-items: center; justify-content: center; padding: 0 calc(var(--u) * 6);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Scoreboard: Miles of Wall and Cards in Hand */
+.score {
+  top: calc(var(--u) * 71.4);
+  background: #fff; border: 1px solid #000; border-radius: calc(var(--u) * 2);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2) calc(var(--u) * 3);
+  font-family: 'Times New Roman', Times, serif; font-size: calc(var(--u) * 10 * var(--tb));
+}
+.score--miles { left: calc(var(--u) * 3.3); width: calc(var(--u) * 86); }
+.score--hand { left: calc(var(--u) * 93.7); width: calc(var(--u) * 94); }
+.score__title { font: bold calc(var(--u) * 11 * var(--tb)) Arial, Helvetica, sans-serif; text-align: center; height: calc(var(--u) * 14); }
+.score__row { display: flex; align-items: center; height: calc(var(--u) * 12.945); gap: calc(var(--u) * 3); white-space: nowrap; }
+.score__rank { width: calc(var(--u) * 15); flex: none; }
+.score--miles .score__name { font-size: calc(var(--u) * 9 * var(--tb)); letter-spacing: -0.02em; }
+.score__name { flex: 1; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+.score__row--hand .score__name { font-weight: normal; }
+.score__row--turn .score__name, .score__row--turn .score__num { color: #d8332d; font-weight: bold; }
+.score__num { font-weight: bold; text-align: right; }
+.score__mark {
+  background: #d8332d; color: #fff; border-radius: calc(var(--u) * 3);
+  font: bold calc(var(--u) * 6.5) Arial, sans-serif; padding: 0 calc(var(--u) * 2);
+}
+
+/* Actions left, jail */
+.board__actions {
+  left: calc(var(--u) * 196); top: calc(var(--u) * 73); width: calc(var(--u) * 110); height: calc(var(--u) * 20);
+  background: #fff; border: 1px solid #ccc; border-radius: calc(var(--u) * 6);
+  font-weight: bold; color: #333; font-size: calc(var(--u) * 13 * var(--tb));
+  display: flex; align-items: center; justify-content: center;
+}
+.board__jail {
+  left: calc(var(--u) * 312); top: calc(var(--u) * 76); width: calc(var(--u) * 96); height: calc(var(--u) * 14);
+  background: #555; color: #fff; border-radius: calc(var(--u) * 4);
+  font-weight: bold; font-size: calc(var(--u) * 8 * var(--tb));
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Draw and discard piles */
+.piles { left: calc(var(--u) * 204); top: calc(var(--u) * 102); width: calc(var(--u) * 96); }
+.piles__labels { display: flex; font: 900 calc(var(--u) * 13) var(--font); height: calc(var(--u) * 15); }
+.piles__labels span { flex: 1; text-align: center; }
+.piles__box { display: flex; border: calc(var(--u) * 1.5) solid #111; height: calc(var(--u) * 74); }
+.piles__slot { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+.piles__slot + .piles__slot { border-left: calc(var(--u) * 1.5) solid #111; }
+.piles__slot img { width: calc(var(--u) * 44); height: calc(var(--u) * 61); object-fit: cover; }
+.piles__count {
+  position: absolute; bottom: calc(var(--u) * 1); left: 50%; transform: translateX(-50%);
+  background: rgba(0, 0, 0, .7); color: #fff; border-radius: calc(var(--u) * 3);
+  font: bold calc(var(--u) * 7 * var(--tb)) Arial, sans-serif; padding: 0 calc(var(--u) * 3); white-space: nowrap;
+}
+
+/* Built walls: small card pictures with ×2 / ×3 badges */
+.walls-mine { left: calc(var(--u) * 6); top: calc(var(--u) * 171); width: calc(var(--u) * 190); height: calc(var(--u) * 40); }
+.wall { position: absolute; }
+.wall img { width: 100%; height: 100%; display: block; border-radius: calc(var(--u) * 1); }
+.wall__badge {
+  position: absolute; right: calc(var(--u) * -2); bottom: calc(var(--u) * 1);
+  background: #222; color: #fff; border-radius: calc(var(--u) * 3);
+  font: bold calc(var(--u) * 7) Arial, sans-serif; padding: 0 calc(var(--u) * 2);
+}
+.wall__badge--set { background: var(--gold); color: #2a1f00; }
+.wall img.wall__guard { position: absolute; top: calc(var(--u) * -3); right: calc(var(--u) * -3); width: 45%; height: auto; }
+.walls-none {
+  background: #f2f2f2; color: #888; border-radius: calc(var(--u) * 4);
+  font-weight: bold; font-size: calc(var(--u) * 11 * var(--tb));
+  display: flex; align-items: center; justify-content: center;
+}
+.walls-row { left: calc(var(--u) * 308); height: calc(var(--u) * 22); width: calc(var(--u) * 180); }
+.walls-row__tag {
+  position: absolute; left: 0; top: calc(var(--u) * 2); width: calc(var(--u) * 26); height: calc(var(--u) * 18);
+  background: #666; color: #fff; border-radius: calc(var(--u) * 4);
+  font-weight: bold; font-size: calc(var(--u) * 10 * var(--tb));
+  display: flex; align-items: center; justify-content: center;
+}
+.walls-row__tag--turn { background: #d8332d; }
+.walls-row__none {
+  position: absolute; left: calc(var(--u) * 30); top: calc(var(--u) * 4); width: calc(var(--u) * 80); height: calc(var(--u) * 14);
+  color: #aaa; font-weight: bold; font-size: calc(var(--u) * 9 * var(--tb));
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* The hand */
+.hand__title { left: calc(var(--u) * 200); top: calc(var(--u) * 200); width: calc(var(--u) * 100); text-align: center; font: 900 calc(var(--u) * 14) var(--font); }
+.hand {
+  left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 78);
+  border: calc(var(--u) * 1.5) solid #111;
+  display: flex; gap: calc(var(--u) * 11); align-items: flex-start;
+  padding: calc(var(--u) * 3) calc(var(--u) * 5) 0;
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-color: #d8332d #e6e6e6;
+}
+.hand__card {
+  flex: none; width: calc(var(--u) * 49); height: calc(var(--u) * 67);
+  padding: 0; border: 0; background: none; cursor: pointer; position: relative;
+}
+.hand__card img { width: 100%; height: 100%; display: block; }
+.hand__card:disabled { cursor: default; }
+.hand__card:focus-visible { outline: calc(var(--u) * 2) solid var(--gold); }
+.hand__card--pickable { outline: calc(var(--u) * 2) dashed var(--gold); }
+.hand__card--picked { outline: calc(var(--u) * 2.5) solid var(--red); transform: translateY(calc(var(--u) * -3)); }
+.hand__card--dim { opacity: .35; }
+.hand__card { touch-action: pan-x; }
+.hand--dragging .hand__card { cursor: grabbing; }
+.hand__card--dragging {
+  z-index: 5; cursor: grabbing; opacity: .95;
+  filter: drop-shadow(0 calc(var(--u) * 4) calc(var(--u) * 5) rgba(0, 0, 0, .5));
+}
+.hand__card--lifted { opacity: .3; }
+.hand__card--dragging img { transform: scale(1.08) translateY(calc(var(--u) * -3)); }
+.hand__hidden {
+  left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 78);
+  display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 10);
+  color: #999; font-weight: bold; font-size: calc(var(--u) * 12 * var(--tb));
+}
+.hand__hidden img { width: calc(var(--u) * 46); height: calc(var(--u) * 64); }
+
+/* Picking walls / the wall for a Man Hour */
+.pickbar {
+  left: calc(var(--u) * 5); top: calc(var(--u) * 299); width: calc(var(--u) * 464); height: calc(var(--u) * 28);
+  display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 10);
+  background: #fffbe6; border: 1px solid var(--gold); border-radius: calc(var(--u) * 6);
+  font-weight: bold; color: #7a1a16; font-size: calc(var(--u) * 11 * var(--tb));
+}
+
+/* Buttons on the right */
+.side { left: calc(var(--u) * 499); top: calc(var(--u) * 72); width: calc(var(--u) * 137); display: flex; flex-direction: column; gap: calc(var(--u) * 5); }
+.side .btw-button {
+  height: calc(var(--u) * 26); padding: 0; border-width: calc(var(--u) * 2.5); border-radius: calc(var(--u) * 8);
+  font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: calc(var(--u) * 13 * var(--tb));
+}
+
+/* The zoomed card */
+.zoom {
+  position: absolute; inset: 0; z-index: 50;
+  background: rgba(0, 0, 0, .7);
+}
+.zoom__card { position: absolute; left: calc(var(--u) * 211); top: calc(var(--u) * 12); width: calc(var(--u) * 218); height: calc(var(--u) * 303); }
+.zoom__close {
+  position: absolute; right: calc(var(--u) * 3); top: calc(var(--u) * 3); width: calc(var(--u) * 39); height: calc(var(--u) * 39);
+  padding: 0 !important; font-size: calc(var(--u) * 22) !important; border-radius: calc(var(--u) * 6) !important;
+}
+.zoom__text {
+  position: absolute; left: calc(var(--u) * 438); top: calc(var(--u) * 60); width: calc(var(--u) * 190);
+  color: #fff; font-size: calc(var(--u) * 10 * var(--tc)); line-height: 1.35;
+}
+.zoom__text h3 { margin: 0 0 calc(var(--u) * 6); font: 900 calc(var(--u) * 13 * var(--tc)) var(--font); }
+.zoom__note { margin-top: calc(var(--u) * 8); background: #fff3cd; color: #5a1210; border-radius: calc(var(--u) * 5); padding: calc(var(--u) * 4) calc(var(--u) * 6); font-weight: bold; }
+.zoom__buttons {
+  position: absolute; left: 0; right: 0; top: calc(var(--u) * 322);
+  display: flex; justify-content: center; gap: calc(var(--u) * 12);
+}
+.zoom__buttons .btw-button, .board-modal .btw-button {
+  height: calc(var(--u) * 29); padding: 0 calc(var(--u) * 10); min-width: calc(var(--u) * 120);
+  border-width: calc(var(--u) * 2.5); border-radius: calc(var(--u) * 8);
+  font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: calc(var(--u) * 12 * var(--tb));
+}
+
+/* Build menu and confirmations, inside the stage */
+.board-modal { position: absolute; inset: 0; z-index: 60; background: rgba(0, 0, 0, .6); display: flex; align-items: center; justify-content: center; }
+.board-modal__box {
+  background: #fff; border-radius: calc(var(--u) * 10); padding: calc(var(--u) * 12) calc(var(--u) * 16);
+  width: calc(var(--u) * 420); max-height: calc(var(--u) * 320); overflow: auto; text-align: center;
+  font-size: calc(var(--u) * 11 * var(--tb));
+}
+.board-modal__box h2 { margin: 0 0 calc(var(--u) * 8); font: 900 calc(var(--u) * 15) var(--font); color: var(--red); }
+.board-modal__list { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 6); margin-bottom: calc(var(--u) * 10); }
+.board-modal__list .btw-button { width: 100%; height: auto !important; min-height: calc(var(--u) * 29); padding: calc(var(--u) * 3) calc(var(--u) * 6) !important; font-size: calc(var(--u) * 10 * var(--tb)) !important; }
+.board-modal__row { display: flex; gap: calc(var(--u) * 10); justify-content: center; }
+
+/* The full game log */
+button.board__log { cursor: pointer; font-family: inherit; }
+.log { text-align: left; }
+.log h2 { text-align: center; }
+.log__list { margin: 0 0 calc(var(--u) * 10); padding-left: calc(var(--u) * 18); max-height: calc(var(--u) * 230); overflow-y: auto; }
+.log__list li { margin: calc(var(--u) * 1.5) 0; }
+.log__turn { list-style: none; margin-left: calc(var(--u) * -18) !important; margin-top: calc(var(--u) * 6) !important; font-weight: bold; color: var(--red); }
+
+/* A card tapped to see it full size: above the overlays too */
+.card-zoom { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, .7); display: flex; align-items: center; }
+.card-zoom__stage { background: none; }
+.card-zoom .zoom { background: none; }
+
+/* A card dragged out of the hand: it follows the pointer; where it can go lights up */
+.hand-ghost { position: absolute; z-index: 45; pointer-events: none; transform: translate(-50%, -60%) rotate(-4deg);
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .5)); border-radius: 4px; }
+.drop-zone { position: absolute; z-index: 44; pointer-events: none; border-radius: calc(var(--u) * 6);
+  border: calc(var(--u) * 2) dashed #999; background: rgba(0, 0, 0, .04); }
+.drop-zone--ok { border-color: #1a9c3a; background: rgba(26, 156, 58, .12); }
+.drop-zone--ok.drop-zone--over { border-style: solid; background: rgba(26, 156, 58, .28); }
+.drop-zone--no.drop-zone--over { border-color: var(--red); background: rgba(217, 52, 43, .15); }
+.drop-zone__label { position: absolute; left: 0; right: 0; top: calc(var(--u) * 2); text-align: center;
+  font: bold calc(var(--u) * 8) Arial, sans-serif; color: #1a6b2c; }
+.drop-zone--no .drop-zone__label { color: #888; }

@@ -1,0 +1,472 @@
+# Panels
+# 740 blocks, 15 costumes, 0 sounds
+
+when green flag clicked
+    set [Net Go] to (0)
+    set [Net Ask Pending] to (0)
+    forever
+        if <(Net Go) = (1)> then
+            set [Net Go] to (0)
+            set [View Player] to (My Seat)
+            broadcast [Start Turn]
+        end
+        if <(Net Ask Pending) = (1)> then
+            set [Net Ask Pending] to (0)
+            broadcast [Net Ask Show]
+        end
+    end
+
+when green flag clicked
+    set [Prefs Loaded] to (0)
+    wait until <(Boot Ready) = (1)>
+    wait (0.5) seconds
+    repeat until <not <(length of [AI Difficulty]) < (6)>>
+        add [Medium] to [AI Difficulty]
+    end
+    if <not <(btwlinks.prefGet K:[players]) = []>> then
+        set [Players] to (btwlinks.prefGet K:[players])
+    end
+    if <not <(btwlinks.prefGet K:[ai]) = []>> then
+        set [AI Players] to (btwlinks.prefGet K:[ai])
+    end
+    if <not <(btwlinks.prefGet K:[ending]) = []>> then
+        set [Ending] to (btwlinks.prefGet K:[ending])
+    end
+    if <not <(btwlinks.prefGet K:[times]) = []>> then
+        set [Ending Times] to (btwlinks.prefGet K:[times])
+    end
+    if <not <(btwlinks.prefGet K:[sound]) = []>> then
+        set [Sound Effects] to (btwlinks.prefGet K:[sound])
+    end
+    if <not <(btwlinks.prefGet K:[mode]) = []>> then
+        set [Game Mode] to (btwlinks.prefGet K:[mode])
+    end
+    if <not <(btwlinks.prefGet K:[music]) = []>> then
+        set [Music Mode] to (btwlinks.prefGet K:[music])
+    end
+    if <not <(btwlinks.prefGet K:[autojoin]) = []>> then
+        set [Auto Join] to (btwlinks.prefGet K:[autojoin])
+    end
+    if <not <(btwlinks.prefGet K:[ai1]) = []>> then
+        replace item (1) of [AI Difficulty] with (btwlinks.prefGet K:[ai1])
+    end
+    if <not <(btwlinks.prefGet K:[ai2]) = []>> then
+        replace item (2) of [AI Difficulty] with (btwlinks.prefGet K:[ai2])
+    end
+    if <not <(btwlinks.prefGet K:[ai3]) = []>> then
+        replace item (3) of [AI Difficulty] with (btwlinks.prefGet K:[ai3])
+    end
+    if <not <(btwlinks.prefGet K:[ai4]) = []>> then
+        replace item (4) of [AI Difficulty] with (btwlinks.prefGet K:[ai4])
+    end
+    if <not <(btwlinks.prefGet K:[ai5]) = []>> then
+        replace item (5) of [AI Difficulty] with (btwlinks.prefGet K:[ai5])
+    end
+    if <not <(btwlinks.prefGet K:[ai6]) = []>> then
+        replace item (6) of [AI Difficulty] with (btwlinks.prefGet K:[ai6])
+    end
+    if <not <(btwlinks.prefGet K:[tutor]) = []>> then
+        replace item (1) of [Tutor Seats] with (btwlinks.prefGet K:[tutor])
+    end
+    set [Prefs Loaded] to (1)
+    forever
+        set [Signed In] to (if <(btwlinks.signedIn) or <not <(btwlinks.saveGet KEY:[gname]) = []>>> then (1) else (0))
+        if <<<(Test Mode) = (0)> and <(Game Running) = (0)>> and <(Prefs Loaded) = (1)>> then
+            set [pf ch] to (0)
+            if <not <(join (Players) []) = (btwlinks.prefGet K:[players])>> then
+                btwlinks.prefSet K:[players] V:(Players)
+                set [pf ch] to (1)
+            end
+            if <not <(join (AI Players) []) = (btwlinks.prefGet K:[ai])>> then
+                btwlinks.prefSet K:[ai] V:(AI Players)
+                set [pf ch] to (1)
+            end
+            if <not <(join (Ending) []) = (btwlinks.prefGet K:[ending])>> then
+                btwlinks.prefSet K:[ending] V:(Ending)
+                set [pf ch] to (1)
+            end
+            if <not <(join (Ending Times) []) = (btwlinks.prefGet K:[times])>> then
+                btwlinks.prefSet K:[times] V:(Ending Times)
+                set [pf ch] to (1)
+            end
+            if <not <(join (Sound Effects) []) = (btwlinks.prefGet K:[sound])>> then
+                btwlinks.prefSet K:[sound] V:(Sound Effects)
+                set [pf ch] to (1)
+            end
+            if <not <(join (Game Mode) []) = (btwlinks.prefGet K:[mode])>> then
+                btwlinks.prefSet K:[mode] V:(Game Mode)
+                set [pf ch] to (1)
+            end
+            if <not <(join (Music Mode) []) = (btwlinks.prefGet K:[music])>> then
+                btwlinks.prefSet K:[music] V:(Music Mode)
+                set [pf ch] to (1)
+            end
+            if <not <(join (Auto Join) []) = (btwlinks.prefGet K:[autojoin])>> then
+                btwlinks.prefSet K:[autojoin] V:(Auto Join)
+                set [pf ch] to (1)
+            end
+            if <not <(join (item (1) of [AI Difficulty]) []) = (btwlinks.prefGet K:[ai1])>> then
+                btwlinks.prefSet K:[ai1] V:(item (1) of [AI Difficulty])
+                set [pf ch] to (1)
+            end
+            if <not <(join (item (2) of [AI Difficulty]) []) = (btwlinks.prefGet K:[ai2])>> then
+                btwlinks.prefSet K:[ai2] V:(item (2) of [AI Difficulty])
+                set [pf ch] to (1)
+            end
+            if <not <(join (item (3) of [AI Difficulty]) []) = (btwlinks.prefGet K:[ai3])>> then
+                btwlinks.prefSet K:[ai3] V:(item (3) of [AI Difficulty])
+                set [pf ch] to (1)
+            end
+            if <not <(join (item (4) of [AI Difficulty]) []) = (btwlinks.prefGet K:[ai4])>> then
+                btwlinks.prefSet K:[ai4] V:(item (4) of [AI Difficulty])
+                set [pf ch] to (1)
+            end
+            if <not <(join (item (5) of [AI Difficulty]) []) = (btwlinks.prefGet K:[ai5])>> then
+                btwlinks.prefSet K:[ai5] V:(item (5) of [AI Difficulty])
+                set [pf ch] to (1)
+            end
+            if <not <(join (item (6) of [AI Difficulty]) []) = (btwlinks.prefGet K:[ai6])>> then
+                btwlinks.prefSet K:[ai6] V:(item (6) of [AI Difficulty])
+                set [pf ch] to (1)
+            end
+            if <not <(join (item (1) of [Tutor Seats]) []) = (btwlinks.prefGet K:[tutor])>> then
+                btwlinks.prefSet K:[tutor] V:(item (1) of [Tutor Seats])
+                set [pf ch] to (1)
+            end
+            if <(pf ch) = (1)> then
+                broadcast [Account Save]
+            end
+        end
+        wait (0.5) seconds
+    end
+
+when green flag clicked
+    set [wm key] to []
+    forever
+        if <<<<(Watch Mode) = (1)> and <(Game Running) = (1)>> and <(Turn) > (0)>> and <(Dealing) = (0)>> then
+            if <not <(View Player) = (Turn)>> then
+                set [View Player] to (Turn)
+                set [wm key] to []
+            end
+            if <not <(join (join (join (Turn) (join [|] ([Hand P1] as text))) (join [|] (join ([Hand P2] as text) [|]))) (join (join ([Hand P3] as text) (join [|] ([Hand P4] as text))) (join (join [|] ([Hand P5] as text)) (join [|] ([Hand P6] as text))))) = (wm key)>> then
+                set [wm key] to (join (join (join (Turn) (join [|] ([Hand P1] as text))) (join [|] (join ([Hand P2] as text) [|]))) (join (join ([Hand P3] as text) (join [|] ([Hand P4] as text))) (join (join [|] ([Hand P5] as text)) (join [|] ([Hand P6] as text)))))
+                broadcast [Show Hand] and wait
+                change [Pen Epoch] by (1)
+            end
+        end
+        wait (0.15) seconds
+    end
+
+when green flag clicked
+    set [Net End Turn] to (0)
+    set [Net Left] to (0)
+    set [Banner] to []
+    forever
+        if <(Net End Turn) = (1)> then
+            set [Net End Turn] to (0)
+            if <<<<(Game Running) = (1)> and <(Button Mode) = []>> and <(FX Busy) = (0)>> and <(AI Busy) = (0)>> then
+                broadcast [Forced End]
+            end
+        end
+        if <(Net Left) > (0)> then
+            set [Left Seat Now] to (Net Left)
+            set [Net Left] to (0)
+            broadcast [Player Left]
+        end
+    end
+
+when green flag clicked
+    hide
+    switch costume to [none]
+
+when I receive [Account Load Done]
+    repeat until <not <(length of [AI Difficulty]) < (6)>>
+        add [Medium] to [AI Difficulty]
+    end
+    if <not <(btwlinks.prefGet K:[players]) = []>> then
+        set [Players] to (btwlinks.prefGet K:[players])
+    end
+    if <not <(btwlinks.prefGet K:[ai]) = []>> then
+        set [AI Players] to (btwlinks.prefGet K:[ai])
+    end
+    if <not <(btwlinks.prefGet K:[ending]) = []>> then
+        set [Ending] to (btwlinks.prefGet K:[ending])
+    end
+    if <not <(btwlinks.prefGet K:[times]) = []>> then
+        set [Ending Times] to (btwlinks.prefGet K:[times])
+    end
+    if <not <(btwlinks.prefGet K:[sound]) = []>> then
+        set [Sound Effects] to (btwlinks.prefGet K:[sound])
+    end
+    if <not <(btwlinks.prefGet K:[mode]) = []>> then
+        set [Game Mode] to (btwlinks.prefGet K:[mode])
+    end
+    if <not <(btwlinks.prefGet K:[music]) = []>> then
+        set [Music Mode] to (btwlinks.prefGet K:[music])
+    end
+    if <not <(btwlinks.prefGet K:[autojoin]) = []>> then
+        set [Auto Join] to (btwlinks.prefGet K:[autojoin])
+    end
+    if <not <(btwlinks.prefGet K:[ai1]) = []>> then
+        replace item (1) of [AI Difficulty] with (btwlinks.prefGet K:[ai1])
+    end
+    if <not <(btwlinks.prefGet K:[ai2]) = []>> then
+        replace item (2) of [AI Difficulty] with (btwlinks.prefGet K:[ai2])
+    end
+    if <not <(btwlinks.prefGet K:[ai3]) = []>> then
+        replace item (3) of [AI Difficulty] with (btwlinks.prefGet K:[ai3])
+    end
+    if <not <(btwlinks.prefGet K:[ai4]) = []>> then
+        replace item (4) of [AI Difficulty] with (btwlinks.prefGet K:[ai4])
+    end
+    if <not <(btwlinks.prefGet K:[ai5]) = []>> then
+        replace item (5) of [AI Difficulty] with (btwlinks.prefGet K:[ai5])
+    end
+    if <not <(btwlinks.prefGet K:[ai6]) = []>> then
+        replace item (6) of [AI Difficulty] with (btwlinks.prefGet K:[ai6])
+    end
+    if <not <(btwlinks.prefGet K:[tutor]) = []>> then
+        replace item (1) of [Tutor Seats] with (btwlinks.prefGet K:[tutor])
+    end
+
+when I receive [btn Back Page]
+    if <(Curent Page) > (1)> then
+        change [Curent Page] by (-1)
+    end
+
+when I receive [btn Instructions]
+    if <([costume name] of [Alerts and Buttons]) != [Alert Background]> then
+        broadcast [Alert] and wait
+        set [Button Mode] to [instructions]
+        set [Panel Close] to (0)
+        show
+        go to x: (0) y: (0)
+        go to [front] layer
+        set [Curent Page] to (1)
+        switch costume to [instr1]
+        repeat (4)
+            wait (0.05) seconds
+        end
+        set [X Clicked] to (0)
+        repeat until <<(X Clicked) = (1)> or <(Panel Close) = (1)>>
+            switch costume to (join [instr] (Curent Page))
+        end
+        hide
+        switch costume to [none]
+        hide variable [Back Page]
+        hide variable [Next Page]
+        broadcast [Hide Alert]
+    end
+
+when I receive [btn New Game]
+    set [Pending Start] to (1)
+    set [Panel Close] to (1)
+
+when I receive [btn Next Page]
+    if <(Curent Page) < (4)> then
+        change [Curent Page] by (1)
+    end
+
+when I receive [btn Players +]
+    if <(Players) < (6)> then
+        change [Players] by (1)
+    end
+
+when I receive [btn Players -]
+    if <(Players) > (2)> then
+        change [Players] by (-1)
+    end
+
+when I receive [btn Settings]
+    if <([costume name] of [Alerts and Buttons]) != [Alert Background]> then
+        broadcast [Alert] and wait
+        set [Button Mode] to [settings]
+        set [Panel Close] to (0)
+        show
+        go to x: (0) y: (0)
+        go to [front] layer
+        switch costume to [settings]
+        repeat (4)
+            wait (0.05) seconds
+        end
+        set [X Clicked] to (0)
+        repeat until <<(X Clicked) = (1)> or <(Panel Close) = (1)>>
+        end
+        hide
+        switch costume to [none]
+        hide variable [Players -]
+        hide variable [Player Count]
+        hide variable [Players +]
+        hide variable [New Game]
+        hide variable [Cards -]
+        hide variable [Cards Count]
+        hide variable [Cards +]
+        broadcast [Hide Alert]
+        wait (0.1) seconds
+        if <(Pending Start) = (1)> then
+            set [Pending Start] to (0)
+            broadcast [btn Start End]
+        end
+    end
+
+when I receive [btn Start End]
+    if <([costume name] of [Alerts and Buttons]) != [Alert Background]> then
+        broadcast [Alert] and wait
+        set [Button Mode] to [confirm]
+        set [Confirm Answer] to []
+        set [X Clicked] to (0)
+        if <(Game Running) = (1)> then
+            switch costume to [confirm_end]
+        else
+            switch costume to [confirm_start]
+        end
+        show
+        go to x: (0) y: (0)
+        go to [front] layer
+        wait until <<(Confirm Answer) != []> or <(X Clicked) = (1)>>
+        hide
+        switch costume to [none]
+        broadcast [Hide Alert]
+        if <(Confirm Answer) = [yes]> then
+            if <(Game Running) = (1)> then
+                btwlinks.netLeave
+                set [My Seat] to (1)
+                broadcast [End Game]
+            else
+                broadcast [Start Request]
+            end
+        end
+    end
+
+when I receive [Load Settings File]
+    set [Settings File] to (btwlinks.loadSettings)
+    if <not <(CFG Server URL) = []>> then
+        btwlinks.clearLocal
+        broadcast [Account Load]
+        broadcast [Apply Sign In]
+        broadcast [Load Cosmetics]
+    end
+    set [Amazon URL] to (join [https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ] (if <(CFG Amazon Tag) = []> then [] else (join [?tag=] (CFG Amazon Tag))))
+
+when I receive [Next Turn]
+    if <(Game Over) = (1)> then
+        stop [this script]
+    end
+    if <<(Final Round) = (1)> and <(((Turn) mod (Game Players)) + (1)) = (Final Stop)>> then
+        if <(Final Kind) = [deck]> then
+            set [Deck Done] to (1)
+        end
+        set [Final Done] to (1)
+        set [Final Round] to (0)
+        broadcast [Win Check] and wait
+        if <(Game Over) = (1)> then
+            stop [this script]
+        end
+    end
+    if <(Game Running) = (1)> then
+        set [Next Player] to ((Turn) + (1))
+        if <(Next Player) > (Game Players)> then
+            set [Next Player] to (1)
+        end
+        repeat (6)
+            if <(item (Next Player) of [Left Seats]) = (1)> then
+                change [Next Player] by (1)
+                if <(Next Player) > (Game Players)> then
+                    set [Next Player] to (1)
+                end
+            end
+        end
+        if <(Locked Game Mode) = [Pass'n'Play]> then
+            if <<(Next Player) > ((Game Players) - (Game AI))> or <((Game Players) - (Game AI)) = (1)>> then
+                set [Turn] to (Next Player)
+                set [View Player] to (if <(Next Player) > ((Game Players) - (Game AI))> then (0) else (Next Player))
+                change [Pen Epoch] by (1)
+                broadcast [Show Hand] and wait
+                broadcast [Start Turn]
+            else
+                wait until <(Button Mode) = []>
+                broadcast [Pass Device]
+            end
+        else
+            set [Turn] to (Next Player)
+            if <(if <(Next Player) > ((Game Players) - (Game AI))> then (1) else (Next Player)) = (My Seat)> then
+                broadcast [Start Turn]
+            end
+        end
+    end
+
+when I receive [No Wall Msg]
+    broadcast [Alert] and wait
+    set [Button Mode] to [msg]
+    set [Confirm Answer] to []
+    set [X Clicked] to (0)
+    switch costume to [msg_nowall]
+    go to x: (0) y: (0)
+    show
+    go to [front] layer
+    wait until <<(Confirm Answer) != []> or <(X Clicked) = (1)>>
+    hide
+    switch costume to [none]
+    broadcast [Hide Alert]
+
+when I receive [Pass Device]
+    if <([costume name] of [Alerts and Buttons]) != [Alert Background]> then
+        broadcast [Alert] and wait
+        set [Button Mode] to [pass]
+        set [Confirm Answer] to []
+        set [Next Player] to ((Turn) + (1))
+        if <(Next Player) > (Game Players)> then
+            set [Next Player] to (1)
+        end
+        set [Confirm Answer] to (btwlinks.passScreen KICK:[Turn over!] NAME:(item (Next Player) of [Player Names]) WHY:[Only they should look at the screen. Their cards appear after they tap the button.] COLOR:(item (Next Player) of [Name Colors]))
+        if <(Confirm Answer) = [ok]> then
+            set [Turn] to (Next Player)
+            set [View Player] to (Next Player)
+            broadcast [Show Hand] and wait
+            wait (0.1) seconds
+            hide
+            switch costume to [none]
+            broadcast [Hide Alert] and wait
+            broadcast [Start Turn]
+        else
+            hide
+            switch costume to [none]
+            broadcast [Hide Alert]
+        end
+    end
+
+when I receive [Rename]
+    if <<<<<<(Game Running) = (1)> and <(Button Mode) = []>> and <(AI Busy) = (0)>> and <(Turn) > (0)>> and <not <(Turn) > ((Game Players) - (Game AI))>>> and <<<(Locked Game Mode) = [Pass'n'Play]> and <(View Player) = (Turn)>> or <<not <(Locked Game Mode) = [Pass'n'Play]>> and <(Turn) = (My Seat)>>>> then
+        set [Rename Seat] to (Turn)
+        set [Ask Answer] to (btwlinks.inlineInput TITLE:[New name for this player, then press Enter] DEFAULT:(item (Turn) of [Player Names]) X:(-69) Y:(97) W:(110) H:(20) MAX:(20))
+        set [rn clean] to (btwlinks.cleanName TEXT:(Ask Answer))
+        if <<not <(rn clean) = []>> and <(Rename Seat) = (My Seat)>> then
+            if <(btwlinks.claimName NAME:(rn clean) SRV:(CFG Server URL)) = [taken]> then
+                set [Prompt] to [That name is taken by another player.]
+                set [rn clean] to []
+            end
+        end
+        if <not <(rn clean) = []>> then
+            set [Rename Candidate] to (rn clean)
+            broadcast [Make Rename Unique] and wait
+            set [rn clean] to (Unique Name)
+        end
+        if <not <(rn clean) = []>> then
+            if <(Rename Seat) = (My Seat)> then
+                btwlinks.saveSet KEY:[name] VAL:(rn clean)
+                broadcast [Account Save]
+            end
+            replace item (Rename Seat) of [Player Names] with (rn clean)
+            replace item (Rename Seat) of [Name Custom] with (1)
+            set [rn tag] to []
+            set [rn k] to (1)
+            repeat (4)
+                set [rn tag] to (join (rn tag) (letter (rn k) of (rn clean)))
+                change [rn k] by (1)
+            end
+            replace item (Rename Seat) of [Player Tags] with (rn tag)
+        end
+    end
+
+when I receive [Thumb]
+    hide

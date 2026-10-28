@@ -1,0 +1,669 @@
+## Stage
+  var  Actions Left                       = 3
+  var  Actions Per Turn                   = 3
+  var  AI Busy                            = 0
+  var  AI Log                             = ""
+  var  AI Log Card                        = 0
+  var  AI Players                         = 0
+  var  AI Slot                            = 0
+  var  AI Target                          = 0
+  var  AI Wall                            = ""
+  var  Amazon URL                         = ""
+  var  Ask Answer                         = ""
+  var  Auto Join                          = 0
+  var  Back Costume                       = "4"
+  var  Back Idx                           = 1
+  var  Back Page                          = 0
+  var  Banner                             = ""
+  var  bd last                            = ""
+  var  Blocked                            = 0
+  var  Board                              = ""   (UNUSED)
+  var  Boot Buttons                       = 0
+  var  Boot Ready                         = 0
+  var  Btn Click                          = 0
+  var  Build Card                         = 0
+  var  Build Done                         = 0
+  var  Build Free                         = 0
+  var  Build Player                       = 0
+  var  Build Slot                         = 0
+  var  Build Wall                         = 0
+  var  Button Mode                        = ""
+  var  Can Build                          = 0
+  var  Can Pick2                          = 0
+  var  Card Hight                         = 360
+  var  Card Kind                          = "other"
+  var  Card Width                         = 258
+  var  Cards +                            = 0
+  var  Cards -                            = 0
+  var  Cards Count                        = 0
+  var  Cards Per Turn                     = 3
+  var  CFG Amazon Tag                     = ""
+  var  CFG Currency                       = ""
+  var  CFG Donate URL                     = ""
+  var  CFG Feedback URL                   = ""   (UNUSED)
+  var  CFG Free Online Players            = 4   (UNUSED)
+  var  CFG Gold Price Lifetime            = 9.99
+  var  CFG Gold Price Month               = 2.99
+  var  CFG Gold Price Year                = 19.99
+  var  CFG Google Client ID               = ""
+  var  CFG Leaderboard Page URL           = ""   (UNUSED)
+  var  CFG Merch URL                      = ""
+  var  CFG PayPal Client ID               = ""
+  var  CFG PayPal Plan Month              = ""
+  var  CFG PayPal Plan Year               = ""
+  var  CFG Server URL                     = ""
+  var  Choice                             = ""
+  var  Chooser Sub                        = ""
+  var  Chooser Title                      = ""
+  var  Click Slot                         = 0
+  var  Click Stamp                        = 0
+  var  Color Idx                          = 1   (UNUSED)
+  var  Confirm Answer                     = ""
+  var  Curent Page                        = 0
+  var  Dealing                            = 0
+  var  Debt Card Slot                     = 0
+  var  Debt Done                          = 0
+  var  Debt Pick                          = ""
+  var  Debt Player                        = 0
+  var  Deck Done                          = 0
+  var  Device                             = 1
+  var  Dist No Self                       = 0
+  var  End Turn                           = 0
+  var  Ending                             = 1
+  var  Ending Times                       = 1
+  var  Exhaust Count                      = 0
+  var  Exhaust Flag                       = 0
+  var  Exhaust Pending                    = 0
+  var  Explain Card                       = 0
+  var  Final Done                         = "0"
+  var  Final Kind                         = ""
+  var  Final Reason                       = ""
+  var  Final Round                        = 0
+  var  Final Stop                         = 0
+  var  Force Popup                        = 0
+  var  Found Slot                         = 0
+  var  FX Busy                            = 0
+  var  FX Card                            = 0
+  var  FX Context                         = ""
+  var  FX OK                              = 0
+  var  FX Player                          = 0
+  var  FX Why                             = ""
+  var  Game AI                            = 0
+  var  Game Mode                          = "Pass'n'Play"
+  var  Game Over                          = 0
+  var  Game Players                       = 6
+  var  Game Running                       = 0
+  var  Game Version                       = "2026.09.27-2319"
+  var  Gold State                         = ""
+  var  Guard Pick                         = ""
+  var  Hand Scroll                        = 0
+  var  Has Manhour                        = 0
+  var  Has Wall                           = 0
+  var  Hit Found                          = ""
+  var  HP Armed                           = 0
+  var  HP Cancel OK                       = 0
+  var  HP Slot                            = 0
+  var  i                                  = 1
+  var  Instructions                       = 0
+  var  Is Owner                           = 0
+  var  Jail Release                       = 0
+  var  lbl s                              = 1
+  var  Left Seat Now                      = 0
+  var  Locked Game Mode                   = "Pass'n'Play"
+  var  Max Scroll                         = 0
+  var  Music Link                         = ""   (UNUSED)
+  var  Music Mode                         = "Cycle All"
+  var  My Name BG                         = ""
+  var  My Name Color                      = ""
+  var  My Seat                            = 1
+  var  My Star Color                      = "c9a227"
+  var  Net Ask Answer                     = ""
+  var  Net Ask Card                       = 0
+  var  Net Ask L1                         = ""
+  var  Net Ask L2                         = ""
+  var  Net Ask L3                         = ""
+  var  Net Ask Mode                       = ""
+  var  Net Ask Pending                    = 0
+  var  Net End Turn                       = 0
+  var  Net Go                             = 0
+  var  Net Left                           = 0
+  var  New Game                           = 0
+  var  Next Page                          = 0
+  var  Open Dropdown                      = ""
+  var  Pass Action                        = ""
+  var  Pay Done                           = 0
+  var  Pen Epoch                          = 0
+  var  Pending Start                      = 0
+  var  Pick Need                          = 0
+  var  Pick Result                        = ""
+  var  Play Answer                        = ""
+  var  Player Count                       = 0
+  var  Players                            = 6
+  var  Players +                          = 0
+  var  Players -                          = 0
+  var  Pool Done                          = 0
+  var  Pool Left                          = 0
+  var  Pool Need                          = 0
+  var  Pool Time                          = 0
+  var  Pool Title                         = ""
+  var  Popup Answer                       = ""
+  var  Popup Card                         = 0
+  var  Popup L1                           = ""
+  var  Popup L2                           = ""
+  var  Popup L3                           = ""
+  var  Popup Lock                         = 0
+  var  Prefs Loaded                       = 0
+  var  Prompt                             = ""
+  var  Prompt2                            = ""
+  var  Qual N                             = 0
+  var  Rename Candidate                   = ""
+  var  Rename Seat                        = 0
+  var  RI Card                            = 0
+  var  RI Slot                            = 0
+  var  Room Code                          = ""
+  var  Scan Card's QR Code                = 0
+  var  Scroll Dragging                    = 0
+  var  Selected Card                      = 0
+  var  Selected Slot                      = 0
+  var  Sets N                             = 0
+  var  Settings                           = 0
+  var  Settings Changed                   = 0
+  var  Settings File                      = ""
+  var  Signed In                          = 0
+  var  Sound Effects                      = 1
+  var  Test Mode                          = 0
+  var  Text Scale                         = 1
+  var  Tip Best                           = ""
+  var  Tip Best Card                      = 0
+  var  Tip Best Why                       = ""
+  var  Tip Mode                           = 0
+  var  Took                               = ""
+  var  Tour Champ                         = ""
+  var  Tour N                             = 3
+  var  Tour On                            = 0
+  var  Tour Played                        = 0
+  var  Tour Text                          = ""
+  var  TS Board                           = 1
+  var  TS Btn                             = 1
+  var  TS Card                            = 1
+  var  TS Hand                            = 1
+  var  TS Pop                             = 1
+  var  Turn                               = 0
+  var  Turn Count                         = 0
+  var  Tutor On                           = 0
+  var  Tutorial                           = 0
+  var  Unique Name                        = ""
+  var  Use a no Action Card               = 0
+  var  View Count                         = 0
+  var  View Player                        = 1
+  var  Watch Mode                         = 0
+  var  WC N                               = 0
+  var  Win L1                             = ""
+  var  Win L2                             = ""
+  var  Win L3                             = ""
+  var  Win Reason                         = ""
+  var  WP Cancel OK                       = 0
+  var  WP Result                          = ""
+  var  X                                  = 0
+  var  X Clicked                          = 0
+  var  Zoom +                             = 0
+  var  Zoom -                             = 0
+  var  Zoom =                             = 0
+  var  Zoom X                             = 0
+  var  Zoom Y                             = 0
+  var  Zoomed Card                        = 0
+  list Active Pack Cards                  = []
+  list Admin IDs                          = []
+  list Admin Names                        = []
+  list AI Cands                           = []
+  list AI Counts                          = []
+  list AI Difficulty                      = ["Easy", "Easy", "Easy", "Easy", "Easy"]
+  list AI Levels                          = []
+  list AI TypeCount                       = []
+  list All Walls                          = []
+  list Back Costumes                      = ["4", "HOLIDAY"]
+  list Back Names                         = ["Classic", "Holiday special (near holidays)"]
+  list Back Need                          = ["free", "gold"]
+  list Board Lines                        = []
+  list Board Parts                        = []
+  list Bot Names                          = ["Freedom", "Maverick", "Liberty", "Eagle", "Patriot", "Senator"]
+  list Build Hand                         = []
+  list Card Action Cost                   = [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1]
+  list Card Data URI High                 = ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs…(49 items)
+  list Card Help                          = ["Discard a Man Hour card.", "Give one of your built walls to another player.", "", "", "", "", "", "Hand out your whole hand around the table.", "", "Everyone gives a Wall/Trump card to the lowest bu…(49 items)
+  list Card Mini                          = ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs…(49 items)
+  list Card Names                         = ["Abduction", "Afghanistan Pull Out", "Assassin", "a card", "Chinese Spy Balloon", "Controlled Opposition", "Debt", "Deep State", "Democrat Border", "Fake News", "Freedom of the Press", "Lawfare", "Le…(49 items)
+  list Card QR Links                      = ["https://buildthatwallgame.com/card/abduction", "https://buildthatwallgame.com/card/afghanistan-pull-out", "https://buildthatwallgame.com/card/assassin", "", "https://buildthatwallgame.com/card/chine…(49 items)
+  list Card Thumb                         = ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAkGBwgHBgkIBwgKCgkLDRYPDQwMDRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5Ojf/2wBDAQoKCg0MDRoPDxo3JR8lNzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc…(49 items)
+  list Cards in Discard                   = []
+  list Cards in Draw                      = []
+  list Choice Cards                       = []
+  list Choice Labels                      = []
+  list Choice Values                      = []
+  list Color Hex                          = ["000000", "c9a227", "1f4fd8", "1e9e50", "7d3cc0", "b3122a"]   (UNUSED)
+  list Color Names                        = ["Black", "Gold", "Royal Blue", "Emerald", "Purple", "Crimson"]   (UNUSED)
+  list Color Need                         = ["free", "gold", "gold", "gold", "gold", "gold"]   (UNUSED)
+  list Debt Targets                       = []
+  list Deck Recipe                        = [1, 2, 3, 5, 6, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 21, 22, 23, 24, 27, 28, 7, 7, 7, 7, 7, 7, 7, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 19, 19, 19, 20, 20, 20, 20, 20, 26, 2…(107 items)
+  list Explain A                          = ["Play Immediately: when you draw it you must", "Play Immediately: give one of your built", "Build up to 2 Wall Sections from your hand", "", "Take all Trump and Trump Train cards from a", "Take 2 ran…(49 items)
+  list Explain B                          = ["discard a Man Hour. Self-Defense can block it.", "walls to another player (into their hand). Sets of 3 are safe.", "for free: no actions and no Man Hours.", "", "player, or remove a Trump Train from…(49 items)
+  list FC Types                           = []
+  list FN Mins                            = []
+  list FX Miles                           = []
+  list Hand P1                            = []
+  list Hand P2                            = []
+  list Hand P3                            = []
+  list Hand P4                            = []
+  list Hand P5                            = []
+  list Hand P6                            = []
+  list Hit V                              = []
+  list Hit X                              = []
+  list Hit Y                              = []
+  list HP Allowed                         = []
+  list Jail                               = []
+  list Left Seats                         = [0, 0, 0, 0, 0, 0]
+  list Limit Next                         = [0, 0, 0, 0, 0, 0]
+  list Miles                              = []
+  list Name BGs                           = ["", "", "", "", "", ""]
+  list Name Colors                        = ["", "", "", "", "", ""]
+  list Name Custom                        = [0, 0, 0, 0, 0, 0]
+  list Pack Card Id                       = [45, 46, 47, 48, 49, 45, 45, 46, 46, 47, 47, 48, 48, 49, 49]
+  list Pack Card Of                       = [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+  list Pack IDs                           = ["test_small", "test_full"]
+  list Pack Names                         = ["Test pack (5 cards)", "Test pack (10 cards)"]
+  list Pack Prices                        = [0.99, 1.49]   (UNUSED)
+  list Pack Sel                           = [0, 0]
+  list Pack Sizes                         = [5, 10]   (UNUSED)
+  list Picked Cards                       = []
+  list Picked Slots                       = []
+  list Player Names                       = ["Player 1", "Player 2", "Player 3", "Player 4", "Player 5", "Player 6"]
+  list Player Tags                        = ["P1", "P2", "P3", "P4", "P5", "P6"]
+  list Pool                               = []
+  list Pool Counts                        = []
+  list Pool Picks                         = []
+  list Pool Types                         = []
+  list Rank Labels                        = ["1st", "2nd", "3rd", "4th", "5th", "6th"]
+  list Rank Order                         = []
+  list RD Players                         = []
+  list Remove Slots                       = []
+  list Seat Packs                         = [0, 0, 0, 0, 0, 0]
+  list Seat Walls                         = [0, 0, 0, 0, 0, 0]
+  list Self Pile                          = []
+  list Skip By                            = [0, 0, 0, 0, 0, 0]
+  list Skip Next                          = [0, 0, 0, 0, 0, 0]
+  list Star Colors                        = ["", "", "", "", "", ""]
+  list Tip Card                           = []
+  list Tip Hand                           = []
+  list Tip Why                            = []
+  list Tips                               = []
+  list Tmp Pool                           = []
+  list Tmp Types                          = []
+  list Tour Wins                          = [0, 0, 0, 0, 0, 0]
+  list TP Types                           = []
+  list Train Guards                       = []
+  list Train Sets                         = []
+  list Tutor Seats                        = [0, 0, 0, 0, 0, 0]
+  list Wall Art                           = ["data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDQiIGhlaWdodD0iNzIiIHZpZXdCb3g9IjAgMCAyNiAxOCI+PHJlY3QgeD0iMC41IiB5PSIwLjUiIHdpZHRoPSIyNSIgaGVpZ2h0PSIxNyIg…(17 items)
+  list Wall Counts                        = []
+  list Work Hand                          = []
+  list WP Allowed                         = []
+
+## Alerts and Buttons
+  var  Found Wall                         = 0   (UNUSED)
+  var  kk                                 = 0
+  var  pp c                               = 0
+  var  pp k                               = 0
+  var  pp ok                              = 0   (UNUSED)
+  var  Wall Cards                         = 0
+  var  zd x                               = 0
+  var  zd y                               = 0
+
+## Buttons
+  var  Button Group                       = ""
+  var  Button ID                          = ""
+  var  Extra OK                           = 1
+  var  Field Dropdown                     = ""
+  var  Front Key                          = 0
+  var  Info Only                          = 0
+  var  Option Dropdown                    = ""
+  var  Option Value                       = ""
+  var  Shown                              = 0
+  var  Want Costume                       = 0
+
+## Cards
+  var  ad r                               = 0
+  var  ag best                            = 0
+  var  ag i                               = 0
+  var  ag v                               = 0
+  var  ai action                          = 0
+  var  ai best                            = 0
+  var  ai bestgain                        = 0
+  var  ai c                               = 0
+  var  ai cnt                             = 0
+  var  ai cost                            = 0
+  var  ai distinct                        = 0
+  var  ai gain                            = 0
+  var  ai guard                           = 0
+  var  ai j                               = 0
+  var  ai k                               = 0
+  var  ai lead                            = 0
+  var  ai lvl                             = 0
+  var  ai mh                              = 0
+  var  ai name                            = 0
+  var  ai others                          = 0
+  var  ai p1                              = 0
+  var  ai p2                              = 0
+  var  ai pay                             = 0
+  var  ai pick                            = 0
+  var  ai seat                            = 0
+  var  ai t                               = 0
+  var  ai threat                          = 0
+  var  ai train                           = 0
+  var  al k                               = 0
+  var  at best                            = 0
+  var  at q                               = 0
+  var  at s                               = 0
+  var  aw best                            = 0
+  var  aw i                               = 0
+  var  b j                                = 0
+  var  b m                                = 0
+  var  b mi                               = 0
+  var  bc k                               = 0
+  var  bc r                               = 0
+  var  bc x                               = 0
+  var  bc y                               = 0
+  var  bf n                               = 0
+  var  bm c                               = 0
+  var  bm i                               = 0
+  var  bm n                               = 0
+  var  bm v                               = 0
+  var  bm w                               = 0
+  var  Card Role                          = "deck"
+  var  ch gr                              = 0
+  var  ch i                               = 0
+  var  ch w                               = 0
+  var  ch x                               = 0   (UNUSED)
+  var  dc                                 = 0
+  var  Deal Card                          = 0
+  var  Deal Player                        = 0
+  var  Deal Start                         = 0
+  var  Dealt                              = 0
+  var  Deck Index                         = 0
+  var  dk hit                             = 0
+  var  dk i                               = 0   (UNUSED)
+  var  dn a                               = 0
+  var  dn r                               = 0
+  var  dr dname                           = 0
+  var  dr msg                             = 0
+  var  dr pass                            = 0
+  var  dr saved                           = 0
+  var  dr sv                              = 0
+  var  dr target                          = 0
+  var  dr tname                           = 0
+  var  dr wall                            = 0
+  var  dr wname                           = 0
+  var  ds guard                           = 0
+  var  ds r                               = 0
+  var  dt j                               = 0
+  var  dt k                               = 0
+  var  dt n                               = 0
+  var  dt v                               = 0
+  var  dvb                                = 0
+  var  el i                               = 0
+  var  el v                               = 0
+  var  fb r                               = 0
+  var  fc c                               = 0
+  var  fc i                               = 0
+  var  fc k                               = 0
+  var  fc n                               = 0
+  var  fc q                               = 0
+  var  fc t                               = 0   (UNUSED)
+  var  Found                              = 0   (UNUSED)
+  var  fx a                               = 0
+  var  fx b                               = 0
+  var  fx first                           = 0
+  var  fx hi                              = 0
+  var  fx k                               = 0
+  var  fx lo                              = 0
+  var  fx m                               = 0
+  var  fx n                               = 0
+  var  fx names                           = 0
+  var  fx q                               = 0
+  var  fx r                               = 0
+  var  fx t                               = 0
+  var  fx v                               = 0
+  var  gd c                               = 0
+  var  gd i                               = 0
+  var  gd k                               = 0
+  var  gd r                               = 0
+  var  Ghost Now                          = 0
+  var  Ghost Want                         = 0
+  var  gm i                               = 0
+  var  gm k                               = 0
+  var  ha i                               = 0
+  var  Hand Slot                          = 0
+  var  Hand X                             = 0   (UNUSED)
+  var  hb i                               = 0
+  var  hk                                 = 0
+  var  Is Clone                           = 0
+  var  k                                  = 0
+  var  lbc                                = 0
+  var  lbk                                = 0
+  var  ls b                               = 0
+  var  ls hm                              = 0
+  var  ls hn                              = 0
+  var  ls hw                              = 0
+  var  ls k                               = 0
+  var  ls wl                              = 0
+  var  mc m                               = 0
+  var  mc n                               = 0
+  var  mc q                               = 0
+  var  mc t                               = 0
+  var  Need                               = 0   (UNUSED)
+  var  No Glide                           = 0
+  var  om code                            = 0
+  var  om last                            = 0
+  var  om seat                            = 0
+  var  ow k                               = 0
+  var  ow n                               = 0
+  var  ow q                               = 0
+  var  pd c                               = 0
+  var  pd h                               = 0
+  var  pd i                               = 0
+  var  pd j                               = 0
+  var  pk bn                              = 0
+  var  pk c                               = 0
+  var  pk go                              = 0
+  var  pk i                               = 0
+  var  pk n                               = 0
+  var  pl c                               = 0
+  var  pl k                               = 0
+  var  pl n                               = 0
+  var  pp col                             = 0
+  var  pp i                               = 0
+  var  pp last                            = 0
+  var  pp row                             = 0
+  var  pp start                           = 0
+  var  pu gr                              = 0
+  var  pu w                               = 0
+  var  ri n                               = 0
+  var  sm c                               = 0
+  var  sm i                               = 0
+  var  sm k                               = 0
+  var  sm r                               = 0
+  var  tc i                               = 0
+  var  tc j                               = 0
+  var  tc n                               = 0
+  var  tc v                               = 0
+  var  ts j                               = 0
+  var  ts n                               = 0
+  var  ts t                               = 0
+  var  tt c                               = 0
+  var  tu best                            = 0
+  var  tu names                           = 0
+  var  tu need                            = 0
+  var  tu q                               = 0
+  var  un hit                             = 0
+  var  un k                               = 0
+  var  un n                               = 0
+  var  wn best                            = 0
+  var  wn end                             = 0
+  var  wn ms                              = 0
+  var  wn names                           = 0
+  var  wn q                               = 0
+  var  wn scores                          = 0
+  var  wn t                               = 0
+  var  wn ties                            = 0
+  var  wp hit                             = 0
+  var  wp i                               = 0   (UNUSED)
+  var  ws k                               = 0   (UNUSED)
+  var  ws n                               = 0
+
+## Discard Pile
+
+## Hand Counts
+  var  Count                              = 0
+  var  Row                                = 1
+
+## Hand Scrollbar
+  var  Part                               = ""
+
+## Loading
+  var  bt start                           = 0
+
+## Miles Counts
+  var  Row                                = 1
+
+## Panels
+  var  Next Player                        = 1
+  var  Panel Close                        = 0
+  var  pf ch                              = 0
+  var  rn ch                              = 0   (UNUSED)
+  var  rn clean                           = 0
+  var  rn k                               = 0
+  var  rn tag                             = 0
+  var  wm key                             = ""
+
+## Walls Display
+  var  best                               = 0
+  var  bp                                 = 0
+  var  ch w                               = 0   (UNUSED)
+  var  ci                                 = 0
+  var  count                              = 0
+  var  cx                                 = 0
+  var  cy                                 = 0
+  var  hi                                 = 0
+  var  i                                  = 0
+  var  Last Drawn                         = ""
+  var  lbl                                = 0
+  var  miles                              = 0
+  var  nm                                 = 0
+  var  Now                                = ""
+  var  owned                              = 0
+  var  p                                  = 0
+  var  pc                                 = 0
+  var  pr                                 = 0
+  var  prevm                              = 0
+  var  q                                  = 0
+  var  r                                  = 0
+  var  row                                = 0
+  var  step                               = 0
+  var  svg                                = 0   (UNUSED)
+  var  t                                  = 0
+  var  tp bc                              = 0
+  var  tp best                            = 0
+  var  tp c                               = 0
+  var  tp card                            = 0
+  var  tp cnt                             = 0
+  var  tp gain                            = 0
+  var  tp i                               = 0
+  var  tp lead                            = 0
+  var  tp lm                              = 0
+  var  tp mh                              = 0
+  var  tp nw                              = 0
+  var  tp set2                            = 0
+  var  tp v                               = 0
+  var  x                                  = 0
+  var  y                                  = 0
+  var  yy                                 = 0
+
+## Broadcasts (message: sent by -> received by)
+  Account Load                     Loading, Panels -> Cards
+  Account Load Done                Cards -> Panels
+  Account Save                     Cards, Panels -> Cards
+  AI Special                       Cards -> Cards
+  AI Turn                          Cards -> Cards
+  Alert                            Alerts and Buttons, Panels -> Alerts and Buttons
+  Apply Cosmetics                  Cards -> Cards
+  Apply Sign In                    Cards, Loading, Panels -> Cards
+  Board Click                      Stage -> Cards
+  btn Back Page                    Buttons -> Panels
+  btn Build Wall                   Buttons -> Alerts and Buttons
+  btn Donate                       Buttons, Cards -> Cards
+  btn End Turn                     Buttons -> Alerts and Buttons
+  btn Feedback                     Buttons -> Cards
+  btn Get Gold                     Buttons -> Cards
+  btn Instructions                 Buttons -> Panels
+  btn New Game                     Buttons -> Panels
+  btn Next Page                    Buttons -> Panels
+  btn Players +                    Buttons -> Panels
+  btn Players -                    Buttons -> Panels
+  btn Scan Card's QR Code          Buttons -> Alerts and Buttons
+  btn Settings                     Buttons -> Panels
+  btn Start End                    Buttons, Panels -> Panels
+  btn Tutorial                     Buttons -> Alerts and Buttons, Cards
+  btn Use a no Action Card         Buttons, Cards -> Alerts and Buttons, Cards
+  btn Zoom +                       Buttons -> Alerts and Buttons
+  btn Zoom -                       Buttons -> Alerts and Buttons
+  btn Zoom =                       Buttons -> Alerts and Buttons
+  Build Menu                       Alerts and Buttons -> Cards
+  Build Wall Now                   Alerts and Buttons, Cards -> Cards
+  Clear Hand View                  Cards -> Cards
+  Debt Resolve                     Cards -> Cards
+  Debt Start                       Alerts and Buttons -> Cards
+  Draw Chooser                     Cards -> Walls Display
+  Draw Pool                        Cards -> Walls Display
+  Draw Popup                       Cards -> Walls Display
+  End Game                         Cards, Panels -> Cards
+  End Other Turn                   Alerts and Buttons -> Cards
+  Explain Card                     Cards -> Cards
+  Forced End                       Panels -> Cards
+  Hide Alert                       Alerts and Buttons, Panels -> Alerts and Buttons
+  Holiday Hello                    Cards -> Cards
+  Host Left                        NOBODY -> Cards
+  Load Cosmetics                   Cards, Panels -> Cards
+  Load Settings File               Loading -> Panels
+  Load Work Hand                   Alerts and Buttons -> Cards
+  Make Rename Unique               Panels -> Cards
+  Need Sign In                     Buttons -> Cards
+  Net Ask Show                     Panels -> Cards
+  New Game                         Cards -> Cards
+  Next Turn                        Alerts and Buttons, Cards -> Panels
+  No Wall Msg                      NOBODY -> Panels
+  Owner Check                      Cards, Loading -> Cards
+  Owner Tools                      Cards -> Cards
+  Pack Store                       Cards -> Cards
+  Pass Device                      Panels -> Panels
+  Play Card                        Alerts and Buttons -> Cards
+  Play Popup                       Cards -> Alerts and Buttons
+  Player Left                      Panels -> Cards
+  Preview Ads                      Cards -> Cards
+  Record Result                    Cards -> Cards
+  Rename                           Buttons -> Panels
+  Reset My Name                    Cards -> Cards
+  Resolve Now                      Cards -> Cards
+  Show Ad                          Cards -> Cards
+  Show Hand                        Cards, Panels -> Cards
+  Show Leaderboards                Cards -> Cards
+  Show Winner                      NOBODY -> Cards
+  Special Start                    Alerts and Buttons, Cards -> Cards
+  Start Request                    Cards, Panels -> Cards
+  Start Turn                       Cards, Panels -> Cards
+  Thumb                            Stage -> Alerts and Buttons, Panels
+  Tip Think                        Walls Display -> Cards
+  Tour Update                      Cards -> Cards
+  Train Start                      Alerts and Buttons -> Cards
+  Trump Start                      Alerts and Buttons -> Cards
+  Watch Hello                      Cards -> Cards
+  Win Check                        Panels -> Cards
+  Your Turn Banner                 Cards -> Cards

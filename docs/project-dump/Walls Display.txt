@@ -1,0 +1,523 @@
+# Walls Display
+# 1313 blocks, 1 costumes, 0 sounds
+
+when green flag clicked
+    hide
+    set [Last Drawn] to []
+    btwlinks.paperHideAll
+    delete all of [Miles]
+    repeat (6)
+        add (0) to [Miles]
+    end
+    forever
+        if <not <<<<<<<<<<(Button Mode) = [dpass]> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <(Button Mode) = [dtrain]>> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>> then
+            btwlinks.paperHide NAME:[popup]
+        end
+        if <(Game Running) = (1)> then
+            if <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>> then
+                if <<(Button Mode) = [zoom]> or <(Button Mode) = [play]>> then
+                    btwlinks.paperHide NAME:[board]
+                else
+                    btwlinks.paperShow NAME:[board]
+                end
+            else
+                set [Tutor On] to (if <(item (View Player) of [Tutor Seats]) = (1)> then (1) else (0))
+                btwlinks.paperShow NAME:[board]
+                set [Now] to (join (join (join (join (join (join (join (join (join (join (View Player) [/]) (join (Turn) [/])) (join (join (Game Players) [/]) (join ([All Walls] as text) (join [/] (Pen Epoch))))) (join (join (join (join [|] ([Player Names] as text)) (join [|] (join (Actions Left) [|]))) (join (join (AI Log) (join [|] (AI Log Card))) (join [|] (join (length of [Hand P1]) [,])))) (join (join (join (length of [Hand P2]) [,]) (join (length of [Hand P3]) (join [,] (length of [Hand P4])))) (join (join [,] (join (length of [Hand P5]) [,])) (join (length of [Hand P6]) (join [|] (Game AI))))))) (join [|] (Button Mode))) (join [|] ([Train Guards] as text))) (join (join (join [|] (Prompt)) (join (Prompt2) [|])) (join (join ([Skip Next] as text) ([Limit Next] as text)) (join [|] (join (length of [Jail]) (Turn Count)))))) (join [|t] (Tutor On))) (join [|b] (join (Banner) ([Left Seats] as text)))) (join [|] (Tip Best)))
+                if <(Now) != (Last Drawn)> then
+                    all at once
+                        delete all of [Board Parts]
+                        delete all of [Hit X]
+                        delete all of [Hit Y]
+                        delete all of [Hit V]
+                        delete all of [Wall Counts]
+                        repeat (96)
+                            add (0) to [Wall Counts]
+                        end
+                        set [i] to (1)
+                        repeat (length of [All Walls])
+                            set [p] to ([floor] of ((item (i) of [All Walls]) / (100)))
+                            set [t] to (((item (i) of [All Walls]) mod (100)) - (28))
+                            replace item ((((p) - (1)) * (16)) + (t)) of [Wall Counts] with ((item ((((p) - (1)) * (16)) + (t)) of [Wall Counts]) + (1))
+                            change [i] by (1)
+                        end
+                        delete all of [Miles]
+                        set [p] to (1)
+                        repeat (6)
+                            set [miles] to (0)
+                            set [t] to (1)
+                            repeat (16)
+                                set [count] to (item ((((p) - (1)) * (16)) + (t)) of [Wall Counts])
+                                change [miles] by (if <(count) > (2)> then (16) else (if <(count) = (2)> then (8) else (if <(count) = (1)> then (3) else (0))))
+                                change [t] by (1)
+                            end
+                            add (miles) to [Miles]
+                            change [p] by (1)
+                        end
+                        set [owned] to (0)
+                        set [t] to (1)
+                        repeat (16)
+                            if <(item ((((View Player) - (1)) * (16)) + (t)) of [Wall Counts]) > (0)> then
+                                change [owned] by (1)
+                            end
+                            change [t] by (1)
+                        end
+                        if <<(owned) = (0)> and <(View Player) > (0)>> then
+                            call img (item (15) of [Wall Art]) x (-224) y (-11) w (150) h (20)
+                        else
+                            set [step] to (if <(owned) > (7)> then ((162) / ((owned) - (1))) else (27))
+                            set [x] to (-302)
+                            set [t] to (1)
+                            repeat (16)
+                                set [count] to (item ((((View Player) - (1)) * (16)) + (t)) of [Wall Counts])
+                                if <(count) > (0)> then
+                                    call img (item ((t) + (28)) of [Card Mini]) x (x) y (-12) w (24) h (34)
+                                    add (x) to [Hit X]
+                                    add (-12) to [Hit Y]
+                                    add (((View Player) * (100)) + ((t) + (28))) to [Hit V]
+                                    if <(count) > (1)> then
+                                        call img (item (if <(count) > (2)> then (14) else (13)) of [Wall Art]) x ((x) + (7)) y (-25) w (14) h (12)
+                                    end
+                                    change [x] by (step)
+                                end
+                                change [t] by (1)
+                            end
+                        end
+                        set [row] to (0)
+                        set [p] to (1)
+                        repeat (Game Players)
+                            if <(p) != (View Player)> then
+                                set [y] to ((74) - ((row) * (22)))
+                                call label (item (p) of [Player Tags]) x (1) y (y) w (26) h (18) size (10) color (if <<(p) = (Turn)> or <(item (p) of [Name BGs]) = []>> then [ffffff] else (if <(item (p) of [Name Colors]) = []> then (000000) else (item (p) of [Name Colors]))) bg (if <(p) = (Turn)> then [d8332d] else (if <(item (p) of [Name BGs]) = []> then (666666) else (item (p) of [Name BGs]))) stroke [] rx (4) anchor [middle] tx (13) maxc (3) fitw (23) font [Arial, Helvetica, sans-serif] weight [bold]
+                                set [owned] to (0)
+                                set [t] to (1)
+                                repeat (16)
+                                    if <(item ((((p) - (1)) * (16)) + (t)) of [Wall Counts]) > (0)> then
+                                        change [owned] by (1)
+                                    end
+                                    change [t] by (1)
+                                end
+                                if <(owned) = (0)> then
+                                    call img (item (16) of [Wall Art]) x (58) y (y) w (80) h (14)
+                                else
+                                    set [step] to (if <(owned) > (8)> then ((120) / ((owned) - (1))) else (17))
+                                    set [x] to (24)
+                                    set [t] to (1)
+                                    repeat (16)
+                                        set [count] to (item ((((p) - (1)) * (16)) + (t)) of [Wall Counts])
+                                        if <(count) > (0)> then
+                                            call img (item ((t) + (28)) of [Card Mini]) x (x) y (y) w (15) h (21)
+                                            add (x) to [Hit X]
+                                            add (y) to [Hit Y]
+                                            add (((p) * (100)) + ((t) + (28))) to [Hit V]
+                                            if <(count) > (1)> then
+                                                call img (item (if <(count) > (2)> then (14) else (13)) of [Wall Art]) x ((x) + (5)) y ((y) - (7)) w (10) h (9)
+                                            end
+                                            change [x] by (step)
+                                        end
+                                        change [t] by (1)
+                                    end
+                                end
+                                change [row] by (1)
+                            end
+                            change [p] by (1)
+                        end
+                        call draw board
+                        call draw train marks
+                        call draw debt marks
+                        call flush board
+                    end
+                    set [Last Drawn] to (Now)
+                end
+            end
+        else
+            if <(Last Drawn) != [off]> then
+                erase all
+                delete all of [Miles]
+                repeat (6)
+                    add (0) to [Miles]
+                end
+                btwlinks.paperHideAll
+                set [Last Drawn] to [off]
+            end
+        end
+    end
+
+when I receive [Draw Chooser]
+    call now Draw Chooser
+
+when I receive [Draw Pool]
+    call now Draw Pool
+
+when I receive [Draw Popup]
+    call now Draw Popup
+
+define draw board  (run without screen refresh)
+    set [Text Scale] to (TS Board)
+    call label [] x (-273.7) y (((108.6) + (((88.34) - (((Game Players) - (1)) * (12.945))) - (8))) / (2)) w (86) h ((108.6) - (((88.34) - (((Game Players) - (1)) * (12.945))) - (8))) size (10) color (000000) bg [ffffff] stroke (000000) rx (2) anchor [middle] tx (43) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+    call label [] x (-179.3) y (((108.6) + (((88.34) - (((Game Players) - (1)) * (12.945))) - (8))) / (2)) w (94) h ((108.6) - (((88.34) - (((Game Players) - (1)) * (12.945))) - (8))) size (10) color (000000) bg [ffffff] stroke (000000) rx (2) anchor [middle] tx (47) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+    call label [Miles of Wall] x (-273.7) y (100.5) w (80) h (14) size (11) color (000000) bg [] stroke [] rx (0) anchor [middle] tx (40) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+    call label [Cards in Hand] x (-179.3) y (100.5) w (88) h (14) size (11) color (000000) bg [] stroke [] rx (0) anchor [middle] tx (44) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+    if <(Turn) > (0)> then
+        call label (join (Actions Left) (if <(Actions Left) = (1)> then [ action left] else [ actions left])) x (-69) y (97) w (110) h (20) size (13) color (333333) bg [ffffff] stroke [cccccc] rx (6) anchor [middle] tx (55) maxc (22) fitw (104) font [Arial, Helvetica, sans-serif] weight [bold]
+    end
+    delete all of [Rank Order]
+    repeat (Game Players)
+        set [best] to (-1)
+        set [bp] to (0)
+        set [q] to (1)
+        repeat (Game Players)
+            if <<not <[Rank Order] contains (q)?>> and <(item (q) of [Miles]) > (best)>> then
+                set [best] to (item (q) of [Miles])
+                set [bp] to (q)
+            end
+            change [q] by (1)
+        end
+        add (bp) to [Rank Order]
+    end
+    set [r] to (1)
+    set [prevm] to (-1)
+    set [lbl] to []
+    repeat (Game Players)
+        set [q] to (item (r) of [Rank Order])
+        set [nm] to (item (q) of [Miles])
+        if <not <(nm) = (prevm)>> then
+            set [lbl] to (join (item (r) of [Rank Labels]) [:])
+        end
+        set [prevm] to (nm)
+        set [yy] to (((84.14) - (((r) - (1)) * (12.945))) + (4.2))
+        call label (lbl) x (-271.5) y (yy) w (82) h (12) size (10) color (000000) bg [ffffff] stroke [] rx (0) anchor [start] tx (1.5) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [normal]
+        call label (join (join (if <<(q) > ((Game Players) - (Game AI))> or <(item (q) of [Star Colors]) = []>> then [] else (join [] (join (item (q) of [Star Colors]) []))) (if <(q) > ((Game Players) - (Game AI))> then [BOT ] else [])) (join (if <<(q) > ((Game Players) - (Game AI))> and <not <(item (q) of [Name Custom]) = (1)>>> then (item (q) of [Bot Names]) else (item (q) of [Player Names])) (if <(item (q) of [Left Seats]) = (1)> then [ (left)] else []))) x (-271.5) y (yy) w (82) h (12) size (10) color (if <(q) = (Turn)> then [d8332d] else (if <(item (q) of [Name Colors]) = []> then (000000) else (item (q) of [Name Colors]))) bg [] stroke [] rx (0) anchor [start] tx (23) maxc (8) fitw (42) font [Times New Roman, Times, serif] weight [bold]
+        call label (nm) x (-271.5) y (yy) w (82) h (12) size (10) color (000000) bg [] stroke [] rx (0) anchor [end] tx (80.5) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [bold]
+        change [r] by (1)
+    end
+    set [q] to (1)
+    repeat (Game Players)
+        set [yy] to (((84.14) - (((q) - (1)) * (12.945))) + (4.2))
+        call label (join (join (if <<(q) > ((Game Players) - (Game AI))> or <(item (q) of [Star Colors]) = []>> then [] else (join [] (join (item (q) of [Star Colors]) []))) (if <(q) > ((Game Players) - (Game AI))> then [BOT ] else [])) (join (if <<(q) > ((Game Players) - (Game AI))> and <not <(item (q) of [Name Custom]) = (1)>>> then (item (q) of [Bot Names]) else (item (q) of [Player Names])) (if <(item (q) of [Left Seats]) = (1)> then [ (left)] else []))) x (-177) y (yy) w (90) h (12) size (10) color (if <(q) = (Turn)> then [d8332d] else (if <(item (q) of [Name Colors]) = []> then (000000) else (item (q) of [Name Colors]))) bg (if <(item (q) of [Name BGs]) = []> then [ffffff] else (item (q) of [Name BGs])) stroke [] rx (3) anchor [start] tx (2) maxc (8) fitw (46) font [Times New Roman, Times, serif] weight (if <(q) = (Turn)> then [bold] else [normal])
+        call label (join (if <(q) = (1)> then (length of [Hand P1]) else (if <(q) = (2)> then (length of [Hand P2]) else (if <(q) = (3)> then (length of [Hand P3]) else (if <(q) = (4)> then (length of [Hand P4]) else (if <(q) = (5)> then (length of [Hand P5]) else (if <(q) = (6)> then (length of [Hand P6]) else (0))))))) (if <(q) = (Turn)> then [ ◀] else [])) x (-177) y (yy) w (90) h (12) size (10) color (if <(q) = (Turn)> then [d8332d] else (000000)) bg [] stroke [] rx (0) anchor [end] tx (88) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [bold]
+        change [q] by (1)
+    end
+    if <not <(AI Log) = []>> then
+        call label (AI Log) x (-190) y (134) w (250) h (20) size (11) color [7a1a16] bg [ffffff] stroke [d8332d] rx (6) anchor [middle] tx (125) maxc (40) fitw (240) font [Arial, Helvetica, sans-serif] weight [bold]
+    end
+    if <(View Player) = (0)> then
+        if <(AI Log Card) > (0)> then
+            call img (item (AI Log Card) of [Card Thumb]) x (-270) y (-70) w (46) h (64)
+        end
+        call label [Hands are hidden while the computer plays] x (-40) y (-70) w (300) h (20) size (12) color (999999) bg [] stroke [] rx (0) anchor [middle] tx (150) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+    end
+    if <not <(Prompt) = []>> then
+        call label [] x (228) y (62) w (186) h (58) size (12) color (000000) bg [ffffff] stroke [d8332d] rx (8) anchor [middle] tx (93) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [normal]
+        call label (Prompt) x (228) y (72) w (186) h (20) size (12) color [7a1a16] bg [] stroke [] rx (0) anchor [middle] tx (93) maxc (28) fitw (180) font [Arial, Helvetica, sans-serif] weight [bold]
+        call label (Prompt2) x (228) y (52) w (186) h (18) size (10) color (777777) bg [] stroke [] rx (0) anchor [middle] tx (93) maxc (34) fitw (180) font [Arial, Helvetica, sans-serif] weight [bold]
+    end
+    if <(Button Mode) = [dwall]> then
+        set [hi] to (1)
+        repeat (length of [Hit V])
+            if <[WP Allowed] contains (item (hi) of [Hit V])?> then
+                call img [data:image/svg+xml;utf8,<svg xmlns='http…(213 chars)] x (item (hi) of [Hit X]) y (item (hi) of [Hit Y]) w (26) h (36)
+            end
+            change [hi] by (1)
+        end
+    end
+    if <(length of [Jail]) > (0)> then
+        call label (join (join [Jail: ] (length of [Jail])) (join [ cards (] (join ((Jail Release) - (Turn Count)) [ turns)]))) x (-70) y (84) w (96) h (12) size (9) color [ffffff] bg (555555) stroke [] rx (4) anchor [middle] tx (48) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+    end
+    set [q] to (1)
+    repeat (Game Players)
+        if <<(item (q) of [Skip Next]) = (1)> or <(item (q) of [Limit Next]) > (0)>> then
+            call label (if <(item (q) of [Skip Next]) = (1)> then [SKIP] else [1 ACT]) x (-161) y (((84.14) - (((q) - (1)) * (12.945))) + (4.2)) w (20) h (9) size (6.5) color [ffffff] bg [d8332d] stroke [] rx (3) anchor [middle] tx (10) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+        end
+        change [q] by (1)
+    end
+    if <(Tutor On) = (1)> then
+        call make tips
+        call label [] x (-82) y (-134) w (468) h (36) size (10) color (000000) bg [fffbe6] stroke [c9a227] rx (8) anchor [start] tx (0) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [normal]
+        call label [TUTORIAL TIP  (double-click a card to learn about it)] x (-82) y (-122) w (460) h (10) size (8) color [c9a227] bg [] stroke [] rx (0) anchor [start] tx (6) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+        set [tp card] to (if <not <(Tip Best) = []>> then (Tip Best Card) else (item (1) of [Tip Card]))
+        if <(tp card) > (0)> then
+            call img (item (tp card) of [Card Mini]) x (-305) y (-139) w (13) h (19)
+        end
+        call label (join [BEST MOVE: ] (if <not <(Tip Best) = []>> then (Tip Best) else (item (1) of [Tips]))) x (if <(tp card) > (0)> then (-70) else (-82)) y (-133) w (if <(tp card) > (0)> then (436) else (460)) h (12) size (10) color [7a1a16] bg [] stroke [] rx (0) anchor [start] tx (6) maxc (70) fitw (424) font [Arial, Helvetica, sans-serif] weight [bold]
+        call label (join [Why: ] (if <not <(Tip Best) = []>> then (Tip Best Why) else (if <(item (1) of [Tip Why]) = []> then (item (2) of [Tips]) else (item (1) of [Tip Why])))) x (if <(tp card) > (0)> then (-70) else (-82)) y (-145) w (if <(tp card) > (0)> then (436) else (460)) h (11) size (9) color (444444) bg [] stroke [] rx (0) anchor [start] tx (6) maxc (84) fitw (424) font [Arial, Helvetica, sans-serif] weight [bold]
+    end
+    if <not <(Banner) = []>> then
+        call label (Banner) x (0) y (150) w (296) h (40) size (16) color [ffffff] bg [c9a227] stroke [7a5c0a] rx (12) anchor [middle] tx (148) maxc (30) fitw (286) font [Arial, Helvetica, sans-serif] weight [bold]
+    end
+
+define draw debt marks  (run without screen refresh)
+    if <(Button Mode) = [dtarget]> then
+        set [hi] to (1)
+        repeat (length of [Hit V])
+            if <[Debt Targets] contains (item (hi) of [Hit V])?> then
+                call img [data:image/svg+xml;utf8,<svg xmlns='http…(213 chars)] x (item (hi) of [Hit X]) y (item (hi) of [Hit Y]) w (20) h (26)
+            end
+            change [hi] by (1)
+        end
+    end
+
+define draw train marks  (run without screen refresh)
+    set [hi] to (1)
+    repeat (length of [Hit V])
+        if <<(Button Mode) = [dguard]> and <[Train Sets] contains (item (hi) of [Hit V])?>> then
+            call img [data:image/svg+xml;utf8,<svg xmlns='http…(213 chars)] x (item (hi) of [Hit X]) y (item (hi) of [Hit Y]) w (26) h (36)
+        end
+        if <[Train Guards] contains (item (hi) of [Hit V])?> then
+            call img (item (25) of [Card Mini]) x ((item (hi) of [Hit X]) + (6)) y ((item (hi) of [Hit Y]) + (7)) w (9) h (13)
+        end
+        change [hi] by (1)
+    end
+
+define flush board  (run without screen refresh)
+    btwlinks.paperSet NAME:[board] URI:(join [data:image/svg+xml;utf8,<svg xmlns='http…(155 chars)] (join ([Board Parts] as text) [</svg>]))
+    delete all of [Board Parts]
+
+define flush popup  (run without screen refresh)
+    btwlinks.paperSet NAME:[popup] URI:(join [data:image/svg+xml;utf8,<svg xmlns='http…(155 chars)] (join ([Board Parts] as text) [</svg>]))
+    btwlinks.paperShow NAME:[popup]
+    delete all of [Board Parts]
+
+define img (U) x (X) y (Y) w (W) h (H)  (run without screen refresh)
+    add (join (join (join [] (join [<image xlink:href='] (U))) (join [' x='] (join (((X) + (320)) - ((W) / (2))) [' y=']))) (join (join (((180) - (Y)) - ((H) / (2))) (join [' width='] (W))) (join [' height='] (join (H) [' preserveAspectRatio='none'/>])))) to [Board Parts]
+
+define label (T) x (X) y (Y) w (W) h (H) size (S) color (C) bg (BG) stroke (ST) rx (RX) anchor (AN) tx (TX) maxc (MAXC) fitw (FITW) font (FONT) weight (WT)  (run without screen refresh)
+    set [lbl s] to ((S) * (Text Scale))
+    add (join (join (join (join (join [] [<svg x=']) (join (((X) + (320)) - ((W) / (2))) [' y='])) (join (join (((180) - (Y)) - ((H) / (2))) [' width=']) (join (W) [' height=']))) (join (join (join (H) [' viewBox='0 0 ]) (join (W) [ ])) (join (join (H) [' overflow='visible'>]) (join (if <(BG) = []> then [] else (join (join (join [<rect x='0.5' y='0.5' width='] ((W) - (1))) (join [' height='] (join ((H) - (1)) [' rx=']))) (join (join (RX) (join [' fill='%23] (BG))) (join [' stroke='] (join (if <(ST) = []> then [none] else (join [%23] (ST))) [' stroke-width='1'/>]))))) (join [<text x='] (TX)))))) (join (join (join (join [' y='] (((H) / (2)) + ((lbl s) * (0.36)))) (join [' font-family='] (FONT))) (join (join [' font-size='] (lbl s)) (join [' font-weight='] (WT)))) (join (join (join [' fill='%23] (C)) (join [' text-anchor='] (AN))) (join (join ['] (if <<(FITW) > (0)> and <((length of (T)) * ((lbl s) * (0.56))) > (FITW)>> then (join [ textLength='] (join (FITW) [' lengthAdjust='spacingAndGlyphs'])) else [])) (join [>] (join (btwlinks.xmlEsc TEXT:(T)) [</text></svg>])))))) to [Board Parts]
+
+define make tips  (run without screen refresh)
+    broadcast [Tip Think]
+    delete all of [Tips]
+    delete all of [Tip Why]
+    delete all of [Tip Card]
+    set [tp v] to (View Player)
+    set [tp lead] to (0)
+    set [tp lm] to (-1)
+    set [tp i] to (1)
+    repeat (Game Players)
+        if <<not <(tp i) = (tp v)>> and <(item (tp i) of [Miles]) > (tp lm)>> then
+            set [tp lm] to (item (tp i) of [Miles])
+            set [tp lead] to (tp i)
+        end
+        change [tp i] by (1)
+    end
+    if <(tp v) = (0)> then
+        if <(1) = (1)> then
+            add [The bots are playing. The header shows what they do.] to [Tips]
+            add [] to [Tip Why]
+            add (0) to [Tip Card]
+        end
+        if <(1) = (1)> then
+            add [Your hand comes back when it's your turn.] to [Tips]
+            add [] to [Tip Why]
+            add (0) to [Tip Card]
+        end
+    else
+        delete all of [Tip Hand]
+        set [tp i] to (1)
+        set [tp nw] to (0)
+        repeat (if <(tp v) = (1)> then (length of [Hand P1]) else (if <(tp v) = (2)> then (length of [Hand P2]) else (if <(tp v) = (3)> then (length of [Hand P3]) else (if <(tp v) = (4)> then (length of [Hand P4]) else (if <(tp v) = (5)> then (length of [Hand P5]) else (if <(tp v) = (6)> then (length of [Hand P6]) else (0)))))))
+            add (if <(tp v) = (1)> then (item (tp i) of [Hand P1]) else (if <(tp v) = (2)> then (item (tp i) of [Hand P2]) else (if <(tp v) = (3)> then (item (tp i) of [Hand P3]) else (if <(tp v) = (4)> then (item (tp i) of [Hand P4]) else (if <(tp v) = (5)> then (item (tp i) of [Hand P5]) else (if <(tp v) = (6)> then (item (tp i) of [Hand P6]) else [])))))) to [Tip Hand]
+            if <<(if <(tp v) = (1)> then (item (tp i) of [Hand P1]) else (if <(tp v) = (2)> then (item (tp i) of [Hand P2]) else (if <(tp v) = (3)> then (item (tp i) of [Hand P3]) else (if <(tp v) = (4)> then (item (tp i) of [Hand P4]) else (if <(tp v) = (5)> then (item (tp i) of [Hand P5]) else (if <(tp v) = (6)> then (item (tp i) of [Hand P6]) else [])))))) > (28)> and <(if <(tp v) = (1)> then (item (tp i) of [Hand P1]) else (if <(tp v) = (2)> then (item (tp i) of [Hand P2]) else (if <(tp v) = (3)> then (item (tp i) of [Hand P3]) else (if <(tp v) = (4)> then (item (tp i) of [Hand P4]) else (if <(tp v) = (5)> then (item (tp i) of [Hand P5]) else (if <(tp v) = (6)> then (item (tp i) of [Hand P6]) else [])))))) < (45)>> then
+                change [tp nw] by (1)
+            end
+            change [tp i] by (1)
+        end
+        set [tp mh] to (if <[Tip Hand] contains (14)?> then (1) else (0))
+        set [tp best] to (-1)
+        set [tp bc] to (0)
+        set [tp i] to (1)
+        repeat (length of [Tip Hand])
+            set [tp c] to (item (tp i) of [Tip Hand])
+            if <<(tp c) > (28)> and <(tp c) < (45)>> then
+                set [tp cnt] to (item ((((tp v) - (1)) * (16)) + ((tp c) - (28))) of [Wall Counts])
+                set [tp gain] to (if <(tp cnt) = (0)> then (3) else (if <(tp cnt) = (1)> then (5) else (if <(tp cnt) = (2)> then (8) else (0))))
+                if <(tp gain) > (tp best)> then
+                    set [tp best] to (tp gain)
+                    set [tp bc] to (tp c)
+                end
+            end
+            change [tp i] by (1)
+        end
+        set [tp set2] to (0)
+        set [tp i] to (29)
+        repeat (16)
+            if <<(item ((((tp v) - (1)) * (16)) + ((tp i) - (28))) of [Wall Counts]) = (2)> and <not <[Train Guards] contains (((tp v) * (100)) + (tp i))?>>> then
+                set [tp set2] to (tp i)
+            end
+            change [tp i] by (1)
+        end
+        if <not <(tp v) = (Turn)>> then
+            if <(1) = (1)> then
+                add (join [It's ] (join (join (if <(Turn) > ((Game Players) - (Game AI))> then [Bot ] else []) (if <<(Turn) > ((Game Players) - (Game AI))> and <not <(item (Turn) of [Name Custom]) = (1)>>> then (item (Turn) of [Bot Names]) else (item (Turn) of [Player Names]))) ['s turn. Plan your next move.])) to [Tips]
+                add [] to [Tip Why]
+                add (0) to [Tip Card]
+            end
+        else
+            if <(Actions Left) = (0)> then
+                if <(1) = (1)> then
+                    add [Click End Turn.] to [Tips]
+                    add [You have used all your actions; the next player draws their cards.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <<<(Actions Left) > (0)> and <(tp best) = (8)>> and <<(tp mh) = (1)> or <(tp nw) > (2)>>> then
+                if <(1) = (1)> then
+                    add (join [Build ] (join (item (tp bc) of [Card Names]) [ now: it finishes a set.])) to [Tips]
+                    add [A set of 3 matching walls is worth 16 miles and Debt can never take it.] to [Tip Why]
+                    add (tp bc) to [Tip Card]
+                end
+            end
+            if <<<(Actions Left) > (0)> and <<(tp best) = (3)> or <(tp best) = (5)>>> and <(tp mh) = (1)>> then
+                if <(1) = (1)> then
+                    add (join (join [Use your Man Hour to build ] (item (tp bc) of [Card Names])) (join [ (+] (join (tp best) [ miles).]))) to [Tips]
+                    add [Walls are the only way to score. Matching walls grow into sets worth far more.] to [Tip Why]
+                    add (tp bc) to [Tip Card]
+                end
+            end
+            if <<<<(Actions Left) > (0)> and <(tp best) > (0)>> and <(tp mh) = (0)>> and <(tp nw) > (2)>> then
+                if <(1) = (1)> then
+                    add (join [No Man Hour? Discard 2 other walls to build ] (join (item (tp bc) of [Card Names]) [.])) to [Tips]
+                    add [Two spare walls are worth less than a built one that counts for miles.] to [Tip Why]
+                    add (tp bc) to [Tip Card]
+                end
+            end
+            if <<<<[Tip Hand] contains (3)?> or <[Tip Hand] contains (13)?>> or <[Tip Hand] contains (28)?>> and <(tp nw) > (0)>> then
+                if <(1) = (1)> then
+                    add [Play Assassin, Legal Immigration or Voting Machine.] to [Tips]
+                    add [They build walls without needing a Man Hour, saving you actions.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <<[Tip Hand] contains (25)?> and <(tp set2) > (0)>> then
+                if <(1) = (1)> then
+                    add (join [Protect your pair of ] (join (item (tp set2) of [Card Names]) [ with Trump Train.])) to [Tips]
+                    add [A protected pair is safe from Debt, like a finished set.] to [Tip Why]
+                    add (tp set2) to [Tip Card]
+                end
+            end
+            if <<[Tip Hand] contains (7)?> and <(tp lead) > (0)>> then
+                if <(1) = (1)> then
+                    add (join (join [Debt can steal a wall from ] (join (if <(tp lead) > ((Game Players) - (Game AI))> then [Bot ] else []) (if <<(tp lead) > ((Game Players) - (Game AI))> and <not <(item (tp lead) of [Name Custom]) = (1)>>> then (item (tp lead) of [Bot Names]) else (item (tp lead) of [Player Names])))) (join [ (] (join (tp lm) [ miles).]))) to [Tips]
+                    add [Taking a wall from the leader helps you and hurts them at the same time.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <<<<[Tip Hand] contains (9)?> or <[Tip Hand] contains (16)?>> or <[Tip Hand] contains (17)?>> and <(tp lead) > (0)>> then
+                if <(1) = (1)> then
+                    add (join [Slow down the leader ] (join (join (if <(tp lead) > ((Game Players) - (Game AI))> then [Bot ] else []) (if <<(tp lead) > ((Game Players) - (Game AI))> and <not <(item (tp lead) of [Name Custom]) = (1)>>> then (item (tp lead) of [Bot Names]) else (item (tp lead) of [Player Names]))) [ with Quarantine, Puppeteer or Democrat Border.])) to [Tips]
+                    add [Fewer actions for the leader means fewer walls for them.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <<[Tip Hand] contains (26)?> or <[Tip Hand] contains (25)?>> then
+                if <(1) = (1)> then
+                    add [Play Trump to draw 3 cards.] to [Tips]
+                    add [More cards means more chances to find walls and Man Hours.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <<<[Tip Hand] contains (5)?> or <[Tip Hand] contains (6)?>> or <[Tip Hand] contains (21)?>> then
+                if <(1) = (1)> then
+                    add [Steal cards with Spy Balloon, Controlled Opposition or Stimulus Check.] to [Tips]
+                    add [Their cards become your walls and Man Hours.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <<(tp best) = (-1)> and <(tp mh) = (1)>> then
+                if <(1) = (1)> then
+                    add [Keep your Man Hour for later.] to [Tips]
+                    add [You need a Wall Section to use it; you will draw more next turn.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <<[Tip Hand] contains (19)?> or <[Tip Hand] contains (20)?>> then
+                if <(1) = (1)> then
+                    add [Hold on to Savings and Self-Defense.] to [Tips]
+                    add [They protect you when someone attacks, so never waste them.] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+        end
+        if <(tp v) = (Turn)> then
+            if <<<(Actions Left) > (0)> and <(tp best) = (-1)>> and <(tp mh) = (0)>> then
+                if <(1) = (1)> then
+                    add [No wall to build yet: play a card like Trump to draw more, or click End Turn.] to [Tips]
+                    add [] to [Tip Why]
+                    add (0) to [Tip Card]
+                end
+            end
+            if <(1) = (1)> then
+                add [Click a card in your hand to see your options.] to [Tips]
+                add [Each card shows what it can do. Right-click to zoom in on it.] to [Tip Why]
+                add (0) to [Tip Card]
+            end
+            if <(1) = (1)> then
+                add [Use all 3 actions, then click End Turn.] to [Tips]
+                add [Every action you skip is a wall you could have built.] to [Tip Why]
+                add (0) to [Tip Card]
+            end
+        end
+        if <(1) = (1)> then
+            add [Aim for matching walls.] to [Tips]
+            add [1 wall = 3 miles, 2 matching = 8, 3 matching = 16. The most miles wins.] to [Tip Why]
+            add (0) to [Tip Card]
+        end
+    end
+
+define now Draw Chooser  (run without screen refresh)
+    set [Text Scale] to (TS Pop)
+    delete all of [Board Parts]
+    call img [data:image/svg+xml;base64,PHN2ZyB4bWxucz…(202 chars)] x (0) y (0) w (2000) h (2000)
+    call label [] x (0) y (0) w (420) h (330) size (12) color (000000) bg [ffffff] stroke [d8332d] rx (10) anchor [middle] tx (210) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [normal]
+    if <(Popup Card) > (0)> then
+        call img (item (Popup Card) of [Card Thumb]) x (-160) y (40) w (70) h (98)
+    end
+    set [cx] to (if <(Popup Card) > (0)> then (45) else (0))
+    call label (Chooser Title) x (cx) y (130) w (300) h (24) size (17) color [7a1a16] bg [] stroke [] rx (0) anchor [middle] tx (150) maxc (28) fitw (294) font [Arial, Helvetica, sans-serif] weight [bold]
+    call label (Chooser Sub) x (cx) y (104) w (300) h (20) size (12) color (333333) bg [] stroke [] rx (0) anchor [middle] tx (150) maxc (44) fitw (294) font [Arial, Helvetica, sans-serif] weight [bold]
+    set [ci] to (1)
+    repeat (length of [Choice Labels])
+        set [cy] to ((if <(length of [Choice Labels]) > (10)> then (80) else (70)) - ((if <(length of [Choice Labels]) > (10)> then (18) else (22)) * ((ci) - (1))))
+        call label (item (ci) of [Choice Labels]) x (cx) y (cy) w (296) h (17) size (11) color (if <(item (ci) of [Choice Values]) = [cancel]> then [7a1a16] else [ffffff]) bg (if <(item (ci) of [Choice Values]) = [cancel]> then [ffffff] else [d8332d]) stroke [5a1210] rx (6) anchor [middle] tx (148) maxc (44) fitw (288) font [Arial, Helvetica, sans-serif] weight [bold]
+        if <(item (ci) of [Choice Cards]) > (0)> then
+            call img (item (item (ci) of [Choice Cards]) of [Card Mini]) x ((cx) - (157)) y (cy) w (12) h (17)
+        end
+        change [ci] by (1)
+    end
+    call flush popup
+
+define now Draw Pool  (run without screen refresh)
+    set [Text Scale] to (TS Pop)
+    delete all of [Board Parts]
+    call img [data:image/svg+xml;base64,PHN2ZyB4bWxucz…(202 chars)] x (0) y (0) w (2000) h (2000)
+    call label [] x (0) y (0) w (470) h (336) size (12) color (000000) bg [ffffff] stroke [d8332d] rx (10) anchor [middle] tx (235) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [normal]
+    call label (Pool Title) x (0) y (146) w (440) h (22) size (15) color [7a1a16] bg [] stroke [] rx (0) anchor [middle] tx (220) maxc (50) fitw (430) font [Arial, Helvetica, sans-serif] weight [bold]
+    call label (join (join [Picked ] (join (length of [Pool Picks]) [ of ])) (join (Pool Need) (join (if <(Pool Time) > (0)> then (join [     ·     ] (join (Pool Left) [ seconds left])) else []) [     ·     click a card to take it]))) x (0) y (124) w (440) h (18) size (11) color (555555) bg [] stroke [] rx (0) anchor [middle] tx (220) maxc (70) fitw (430) font [Arial, Helvetica, sans-serif] weight [bold]
+    set [ci] to (1)
+    repeat (length of [Pool Types])
+        set [pc] to (((ci) - (1)) mod (11))
+        set [pr] to ([floor] of (((ci) - (1)) / (11)))
+        set [cx] to ((-200) + ((40) * (pc)))
+        set [cy] to ((80) - ((58) * (pr)))
+        call img (item (item (ci) of [Pool Types]) of [Card Thumb]) x (cx) y (cy) w (34) h (48)
+        if <(item (ci) of [Pool Counts]) = (0)> then
+            call label [] x (cx) y (cy) w (34) h (48) size (1) color [ffffff] bg [ffffff] stroke [] rx (2) anchor [start] tx (0) maxc (99) fitw (0) font [Times New Roman, Times, serif] weight [normal]
+        end
+        call label (join [x] (item (ci) of [Pool Counts])) x ((cx) + (10)) y ((cy) + (19)) w (16) h (11) size (8) color [ffffff] bg (333333) stroke [] rx (3) anchor [middle] tx (8) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+        change [ci] by (1)
+    end
+    call flush popup
+
+define now Draw Popup  (run without screen refresh)
+    set [Text Scale] to (if <(Popup Card) > (0)> then (TS Card) else (TS Pop))
+    delete all of [Board Parts]
+    call img [data:image/svg+xml;base64,PHN2ZyB4bWxucz…(202 chars)] x (0) y (0) w (2000) h (2000)
+    call label [] x (0) y (5) w (380) h (170) size (12) color (000000) bg [ffffff] stroke [d8332d] rx (10) anchor [middle] tx (190) maxc (99) fitw (0) font [Arial, Helvetica, sans-serif] weight [bold]
+    if <(Popup Card) > (0)> then
+        call img (item (Popup Card) of [Card Thumb]) x (-128) y (28) w (80) h (112)
+    end
+    call label (Popup L1) x (if <(Popup Card) > (0)> then (45) else (0)) y (64) w (260) h (24) size (17) color [7a1a16] bg [] stroke [] rx (0) anchor [middle] tx (130) maxc (24) fitw (254) font [Arial, Helvetica, sans-serif] weight [bold]
+    call label (Popup L2) x (if <(Popup Card) > (0)> then (45) else (0)) y (34) w (260) h (20) size (12) color (333333) bg [] stroke [] rx (0) anchor [middle] tx (130) maxc (36) fitw (254) font [Arial, Helvetica, sans-serif] weight [bold]
+    call label (Popup L3) x (if <(Popup Card) > (0)> then (45) else (0)) y (12) w (260) h (20) size (12) color (333333) bg [] stroke [] rx (0) anchor [middle] tx (130) maxc (36) fitw (254) font [Arial, Helvetica, sans-serif] weight [bold]
+    call flush popup

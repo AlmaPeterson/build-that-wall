@@ -1,0 +1,40 @@
+/* Build That Wall look: the old game's red, navy and gold. Every colour and size the screens use is a token here. */
+:root {
+  --red: #d9342b;
+  --red-dark: #5a1210;
+  --navy: #1e2fd0;
+  --navy-dark: #0e1a7a;
+  --gold: #c9a227;
+  --gold-dark: #7a5c0a;
+  --ink: #1a1a1a;
+  --paper: #ffffff;
+  --muted: #666666;
+  --overlay: rgba(0, 0, 0, 0.65);
+
+  --font: 'Arial Black', Arial, Helvetica, sans-serif;
+  --font-body: Arial, Helvetica, sans-serif;
+  --radius: 14px;
+
+  /* Text sizes: the Text Size settings scale these per part of the game (ui/screens/settings) */
+  --text-menu: 1;
+  --text-board: 1;
+  --text-cards: 1;
+  --text-popups: 1;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow-x: hidden; background: var(--paper); color: var(--ink); font-family: var(--font-body); }
+#app { height: 100%; }
+button { font: inherit; }
+
+/* The game is laid out on a 16:9 stage (640×360 units, like the old game) scaled to fit the window. */
+.stage {
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  overflow: hidden;
+  container-type: size;
+}
+/* 1 stage unit = 1/640 of the stage width, so layouts can use the old game's coordinates */
+.stage { --u: calc(100cqw / 640); }

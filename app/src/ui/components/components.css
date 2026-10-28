@@ -1,0 +1,32 @@
+.btw-button {
+  font-family: var(--font);
+  font-size: calc(1.4rem * var(--text-menu));
+  color: #fff;
+  padding: 0.35em 1.2em;
+  border-radius: var(--radius);
+  border: 4px solid;
+  cursor: pointer;
+}
+.btw-button:disabled { opacity: 0.5; cursor: default; }
+.btw-button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.btw-button--red { background: var(--red); border-color: var(--red-dark); }
+.btw-button--navy { background: var(--navy); border-color: var(--navy-dark); }
+.btw-button--gold { background: var(--gold); border-color: var(--gold-dark); }
+.btw-button--plain { background: #f4f4f4; border-color: #aaa; color: var(--ink); }
+
+.btw-modal {
+  position: fixed; inset: 0; z-index: 1000;
+  background: var(--overlay);
+  display: flex; align-items: center; justify-content: center;
+}
+.btw-modal__box {
+  background: var(--paper);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  width: min(92vw, 520px);
+  max-height: 92vh;
+  overflow: auto;
+  text-align: center;
+  font-size: calc(1rem * var(--text-popups));
+}
+.btw-modal__title { font-family: var(--font); color: var(--red); margin: 0 0 12px; }

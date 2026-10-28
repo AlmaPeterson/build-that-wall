@@ -1,0 +1,50 @@
+# Stage (stage)
+# 65 blocks, 3 costumes, 0 sounds
+# comment: Configuration for 'Category Ordering' Addon / You can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings. / ["motion","looks","sound","events","control","sensing","operators","pmOperatorsExpansion","variables","DICandSPmonitorsPlus","shovelcss","lists","myBlocks"]--Category_Order_ADDON-config
+# comment: Configuration for https://penguinmod.com/ / You can move, resize, and minimize this comment, but don't edit it by hand. This comment can be deleted to remove the stored settings. / {"framerate":60,"runtimeOptions":{"maxClones":Infinity,"miscLimits":false,"fencing":false,"disableDirectionClamping":true},"width":640} // _twconfig_
+# comment: OWNER SETTINGS (see OWNER_GUIDE.md) /  / 1: game server URL (saves accounts, checks payments, 1 free trial per account) / 2: Google Client ID (real sign-in on your website; empty = simple sign-in) / 3: Amazon Associates tag / 4-5: Donate / Merch links (empty = hidden) / 6: PayPal client ID (empty = TEST MODE) / 7-9: Gold prices (life / month / year) / 10-11: PayPal plan IDs for monthly / yearly renewals / 12: currency
+
+when green flag clicked
+    wait (0.3) seconds
+    set [bd last] to []
+    forever
+        if <not <(bd last) = (Game Running)>> then
+            set [bd last] to (Game Running)
+            if <(Game Running) = (1)> then
+                switch backdrop to [Page Idle]
+            else
+                switch backdrop to [Page]
+            end
+        end
+        wait (0.2) seconds
+    end
+
+when green flag clicked
+    switch backdrop to [Page]
+
+when green flag clicked
+    set [CFG Server URL] to []
+    set [CFG Google Client ID] to []
+    set [CFG Amazon Tag] to []
+    set [CFG Donate URL] to []
+    set [CFG Merch URL] to []
+    set [CFG PayPal Client ID] to []
+    set [CFG Gold Price Lifetime] to (9.99)
+    set [CFG Gold Price Month] to (2.99)
+    set [CFG Gold Price Year] to (19.99)
+    set [CFG PayPal Plan Month] to []
+    set [CFG PayPal Plan Year] to []
+    set [CFG Currency] to [USD]
+    set [Amazon URL] to (join [https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ] (if <(CFG Amazon Tag) = []> then [] else (join [?tag=] (CFG Amazon Tag))))
+
+when stage clicked
+    if <<([abs] of (mouse x)) < (150)> and (if <(Game Running) = (1)> then <<(mouse y) < (-158)> and <(mouse y) > (-179)>> else <<(mouse y) < (-152)> and <(mouse y) > (-178)>>)> then
+        btwlinks.openTab URL:(if <(Amazon URL) = []> then [https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ] else (Amazon URL))
+    end
+
+when stage clicked
+    broadcast [Board Click]
+
+when stop clicked
+    switch backdrop to [Thumb]
+    broadcast [Thumb]
