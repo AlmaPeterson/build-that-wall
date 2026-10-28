@@ -47,6 +47,9 @@
   font: inherit; min-height: 44px; padding: 6px 10px; border: 2px solid #7a1a16; border-radius: 10px; background: #fff; max-width: 100%;
 }
 .settings__hint { color: var(--muted); font-size: 0.9em; }
+.settings__saved { font-weight: bold; color: #fff; animation: settings-saved 1.2s ease-out; }
+@keyframes settings-saved { from { color: #ffd84d; transform: scale(1.12); } to { color: #fff; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .settings__saved { animation: none; } }
 .settings__notice { background: #fff3cd; border: 1px solid var(--gold); border-radius: 8px; padding: 8px; }
 .settings__section { font-family: var(--font); color: var(--red); margin: 20px 0 4px; }
 .settings__text { padding: 10px 0; border-bottom: 2px solid #f3e7e5; }

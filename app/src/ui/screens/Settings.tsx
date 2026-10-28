@@ -1,6 +1,7 @@
 // Settings (docs/game-rules.md section 2): game mode, players, bots and their difficulty, how the game
 // ends, sound, music, names and text sizes. Changes are saved straight away (menus/prefs.ts).
 import type { ComponentChildren } from 'preact';
+import { useRef } from 'preact/hooks';
 import type { Ending } from '../../game';
 import { controller, screen, settings, type AnimSpeed, type TextArea, type UiSettings, goBack } from '../app-state';
 import { Button } from '../components/Button';
@@ -51,9 +52,18 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
   );
 }
 
+/** How many times `value` has changed since the screen opened. */
+function useChangeCount<T>(value: T): number {
+  const count = useRef(0);
+  const last = useRef(value);
+  if (value !== last.current) { last.current = value; count.current++; }
+  return count.current;
+}
+
 export function SettingsScreen() {
   initSettingsPersistence();
   const s = useStore(settings);
+  const saves = useChangeCount(s);
   const running = useStore(controller)?.state;
   const g = s.game;
   const humans = g.players - g.bots;
@@ -61,7 +71,7 @@ export function SettingsScreen() {
     <div class="page">
       <header class="page__head"><h1>Settings</h1></header>
       <main class="page__main settings">
-        {running && !running.over && <p class="settings__notice">A game is running: changes take effect in your next game.</p>}
+        {running && !running.over && <p class="settings__notice">A game is running: changes to players, bots and how the game ends start with your next game. Everything else changes now.</p>}
 
         <Row label="Game Mode" id="set-mode">
           <select id="set-mode" value={s.gameMode} onChange={e => set({ gameMode: (e.currentTarget.value as UiSettings['gameMode']) })}>
@@ -137,7 +147,11 @@ export function SettingsScreen() {
         ))}
         <Button color="plain" onClick={() => set({ textSizes: { menu: 1, board: 1, cards: 1, popups: 1 } })}>Reset text sizes to normal</Button>
       </main>
-      <footer class="page__foot"><Button onClick={goBack}>Back</Button></footer>
+      <footer class="page__foot">
+        {/* Saved as you go: say so, and show it each time something changes */}
+        <span class="settings__saved" key={saves} aria-live="polite">{saves ? '✓ Saved' : '✓ Changes are saved as you make them'}</span>
+        <Button onClick={goBack}>Done</Button>
+      </footer>
     </div>
   );
 }
