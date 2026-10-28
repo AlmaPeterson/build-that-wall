@@ -1,0 +1,19 @@
+# Miles Counts
+# 45 blocks, 258 costumes, 0 sounds
+
+when green flag clicked
+    hide
+    delete clones of [_myself_]
+    switch costume to [blank]
+    set [Row] to (1)
+    go to x: (-275) y: (84.14)
+
+when I start as a clone
+    hide
+    forever
+        if <<<(Row) > (Game Players)> or <(Game Running) = (0)>> or <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> then
+            switch costume to [blank]
+        else
+            switch costume to (join [m] (item (Row) of [Miles]))
+        end
+    end

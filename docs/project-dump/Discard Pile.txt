@@ -1,0 +1,15 @@
+# Discard Pile
+# 42 blocks, 49 costumes, 0 sounds
+
+when green flag clicked
+    hide
+    go to x: (-45.5) y: (25)
+    set size to (7) %
+    forever
+        if <<<(length of [Cards in Discard]) = (0)> or <(Game Running) = (0)>> or <<(Button Mode) = [zoom]> or <<<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>> or <(Button Mode) = [pass]>>>> then
+            hide
+        else
+            switch costume to (item (length of [Cards in Discard]) of [Cards in Discard])
+            show
+        end
+    end

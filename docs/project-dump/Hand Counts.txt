@@ -1,0 +1,37 @@
+# Hand Counts
+# 70 blocks, 217 costumes, 0 sounds
+
+when green flag clicked
+    hide
+    delete clones of [_myself_]
+    switch costume to [blank]
+    set [Row] to (1)
+    go to x: (-185) y: (84.14)
+
+when I start as a clone
+    hide
+    forever
+        if <<<(Row) > (Game Players)> or <(Game Running) = (0)>> or <<(Button Mode) = [zoom]> or <<<<<(Button Mode) = [play]> or <(Button Mode) = [dpass]>> or <(Button Mode) = [dask]>> or <(Button Mode) = [dmsg]>> or <<<<<<<(Button Mode) = [dtrain]> or <(Button Mode) = [dchoose]>> or <(Button Mode) = [ddef]>> or <(Button Mode) = [dpool]>> or <(Button Mode) = [dtgrid]>> or <(Button Mode) = [dlobby]>> or <(Button Mode) = [dwait]>>>>> then
+            switch costume to [blank]
+        else
+            if <(Row) = (1)> then
+                set [Count] to (length of [Hand P1])
+            end
+            if <(Row) = (2)> then
+                set [Count] to (length of [Hand P2])
+            end
+            if <(Row) = (3)> then
+                set [Count] to (length of [Hand P3])
+            end
+            if <(Row) = (4)> then
+                set [Count] to (length of [Hand P4])
+            end
+            if <(Row) = (5)> then
+                set [Count] to (length of [Hand P5])
+            end
+            if <(Row) = (6)> then
+                set [Count] to (length of [Hand P6])
+            end
+            switch costume to (join (if <(Row) = (Turn)> then [r] else [n]) (Count))
+        end
+    end

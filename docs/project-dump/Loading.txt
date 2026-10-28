@@ -1,0 +1,47 @@
+# Loading
+# 68 blocks, 6 costumes, 0 sounds
+
+when green flag clicked
+    set [Boot Ready] to (0)
+    go to x: (0) y: (0)
+    switch costume to [load0]
+    show
+    set [bt start] to ((days since 2000) * (86400))
+    wait (0.1) seconds
+    if <not (btwlinks.extOk)> then
+        switch costume to [loaderr]
+        stop [this script]
+    end
+    broadcast [Load Settings File]
+    btwlinks.paperPrepare
+    switch costume to [load1]
+    btwlinks.paperSet NAME:[board] URI:[data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='2' height='2'></svg>]
+    btwlinks.paperSet NAME:[popup] URI:[data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='2' height='2'></svg>]
+    wait until <<(btwlinks.paperReady NAME:[board]) and (btwlinks.paperReady NAME:[popup])> or <(((days since 2000) * (86400)) - (bt start)) > (2.5)>>
+    switch costume to [load2]
+    wait until <<(Boot Buttons) = (1)> or <(((days since 2000) * (86400)) - (bt start)) > (4)>>
+    switch costume to [load3]
+    broadcast [Apply Sign In]
+    broadcast [Owner Check]
+    broadcast [Account Load]
+    switch costume to [load4]
+    wait (0.15) seconds
+    btwlinks.paperHideAll
+    set [Boot Ready] to (1)
+    hide
+
+when green flag clicked
+    set [Boot Ready] to (0)
+    repeat until <(Boot Ready) = (1)>
+        go to [front] layer
+    end
+
+when green flag clicked
+    wait (8) seconds
+    if <not <(Boot Ready) = (1)>> then
+        if <not <(costume [number]) = (6)>> then
+            btwlinks.paperHideAll
+            set [Boot Ready] to (1)
+            hide
+        end
+    end
