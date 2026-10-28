@@ -74,7 +74,18 @@ export interface EndTurnMsg {
   to: number;
 }
 
-export type GameMsg = StateMsg | AskMsg | AnswerMsg | EndTurnMsg;
+/**
+ * Anything else a game version wants to send (the TypeScript game uses it for per-player snapshots and
+ * actions). Host -> one player travels on that player's own topic; player -> host on /up. Older clients ignore it.
+ */
+export interface DataMsg {
+  t: 'x';
+  to: number;
+  from: number;
+  data: unknown;
+}
+
+export type GameMsg = StateMsg | AskMsg | AnswerMsg | EndTurnMsg | DataMsg;
 
 // ---- player -> host (on /up)
 

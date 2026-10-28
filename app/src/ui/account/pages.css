@@ -1,0 +1,29 @@
+/* Account & Store, Leaderboard and Online screens: a red header like the main menu, then cards. */
+.btw-page { min-height: 100vh; display: flex; flex-direction: column; background: #f6f2ec; font-size: calc(1rem * var(--text-menu)); }
+.btw-page__head {
+  background: var(--red); color: #fff; display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; position: sticky; top: 0; z-index: 2;
+}
+.btw-page__head h1 { font-family: var(--font); font-size: calc(1.6rem * var(--text-menu)); margin: 0; flex: 1; text-align: center; }
+.btw-page__head .btw-button { font-size: calc(1rem * var(--text-menu)); padding: 0.25em 0.9em; }
+.btw-page__spacer { width: 90px; }
+.btw-page__body { width: min(100%, 760px); margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+.btw-card { background: var(--paper); border: 3px solid var(--red-dark); border-radius: var(--radius); padding: 14px 16px; }
+.btw-card h2 { font-family: var(--font); color: var(--red); font-size: calc(1.2rem * var(--text-menu)); margin: 0 0 8px; }
+.btw-card p { margin: 6px 0; line-height: 1.4; }
+.btw-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.btw-row .btw-button { font-size: calc(1rem * var(--text-menu)); padding: 0.3em 0.9em; }
+.btw-input { font: inherit; padding: 8px 10px; border: 2px solid #ccc; border-radius: 10px; min-width: 0; flex: 1 1 160px; }
+.btw-input:focus { outline: none; border-color: var(--red); }
+.btw-muted { color: var(--muted); font-size: 0.9em; }
+.btw-msg { padding: 8px 12px; border-radius: 10px; font-weight: bold; margin: 0; }
+.btw-msg--ok { background: #fdf6dc; border: 2px solid var(--gold); color: #5a4400; }
+.btw-msg--bad { background: #fdecea; border: 2px solid var(--red); color: var(--red-dark); }
+.btw-gold { color: var(--gold-dark); font-weight: bold; }
+.btw-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.btw-tab { font: inherit; font-weight: bold; padding: 6px 12px; border-radius: 18px; border: 2px solid var(--red-dark); background: #fff; color: var(--red-dark); cursor: pointer; }
+.btw-tab[aria-pressed='true'] { background: var(--red); color: #fff; }
+.btw-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; }
+.btw-list li { padding: 6px 10px; border-radius: 8px; background: #faf7f2; display: flex; justify-content: space-between; gap: 10px; }
+.btw-code { font-family: var(--font); font-size: calc(2.4rem * var(--text-menu)); letter-spacing: 0.15em; color: var(--navy); text-align: center; margin: 4px 0; }
+textarea.btw-input { width: 100%; min-height: 90px; font-family: monospace; font-size: 12px; }

@@ -3,7 +3,7 @@
 //
 // Online play (ui/online) plugs in by giving a different `humanDecider`/`startGame`; the board doesn't care.
 import {
-  createLocalGame, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decision,
+  createLocalGame, redactEvent, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decider, type Decision,
   type Game, type GameEvent, type GameSettings, type GameState, type Seat,
 } from '../game';
 import { createStore, type Store } from './store';
@@ -32,6 +32,13 @@ export interface ControllerOptions {
   learn?: boolean;
   /** Pass'n'Play with 2+ humans: show the pass-the-device screen before each human turn. */
   passScreen?: boolean;
+  /**
+   * Online host: the only seat shown on this device. Its hand is the one on screen, and other players'
+   * drawn cards are hidden in `events`. Default: every human seat on this device (Pass'n'Play).
+   */
+  localSeat?: Seat;
+  /** Online host: who answers for a human seat that isn't on this device. null = ask on this device. */
+  remoteDecider?: (seat: Seat) => Decider | null;
 }
 
 export class GameController {
@@ -45,6 +52,9 @@ export class GameController {
 
   get state(): Readonly<GameState> | null { return this.game?.state ?? null; }
 
+  /** Every event this game, unredacted (the online host redacts them per player). */
+  get allEvents(): readonly GameEvent[] { return this.events; }
+
   /** Start a game on this device. Resolves when the game is over (or the first human decision is needed and so on). */
   start(settings: GameSettings, seed = Math.floor(Math.random() * 2 ** 31)): Promise<void> {
     this.events = [];
@@ -52,7 +62,7 @@ export class GameController {
     const humans = settings.players - settings.bots;
     this.game = createLocalGame({
       settings, seed, memory: this.opts.memory, learn: this.opts.learn,
-      humanDecider: () => ({ decide: d => this.ask(d) }),
+      humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { this.events.push(e); this.publish(); },
       beforeTurn: this.opts.passScreen !== false && humans >= 2 ? seat => this.passTo(seat) : undefined,
     });
@@ -104,6 +114,7 @@ export class GameController {
   /** The seat whose hand is shown: whoever is being asked something, else the current human, else the last one shown. */
   private viewer(): Seat {
     const s = this.game?.state;
+    if (this.opts.localSeat !== undefined) return this.opts.localSeat;
     if (!s) return 0;
     const asked = this.prompts[0]?.decision.seat;
     if (asked !== undefined) return asked;
@@ -118,7 +129,7 @@ export class GameController {
     this.snapshot.set({
       view: s ? viewFor(s, viewer) : null,
       viewer,
-      events: this.events.slice(),
+      events: this.opts.localSeat !== undefined ? this.events.map(e => redactEvent(e, viewer)) : this.events.slice(),
       prompt: passTo === null ? this.prompts[0] ?? null : null,
       passTo,
     });
