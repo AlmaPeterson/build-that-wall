@@ -124,6 +124,7 @@ export function Board({ controller }: { controller: GameController }) {
   const running = !view.over;
 
   return (
+    <>
     <div class="stage board">
       <div class="board__header" style={{ backgroundImage: `url(${HEADER_IMAGE})` }} role="banner" aria-label="Build That Wall" />
       {running && <ActionLog events={snap.events} />}
@@ -135,7 +136,7 @@ export function Board({ controller }: { controller: GameController }) {
 
       {handSeat !== null
         ? <Hand cards={hand} onCard={onCard} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
-        : <HiddenHand lastCard={botEvent?.card ?? null} />}
+        : <HiddenHand lastCard={view.turn < 0 ? null : botEvent?.card ?? null} dealing={view.turn < 0} />}
 
       {picking && (
         <div class="at pickbar" role="status">
@@ -157,10 +158,6 @@ export function Board({ controller }: { controller: GameController }) {
         <Button onClick={() => screen.set('instructions')}>Instructions</Button>
       </div>
 
-      <div class="board__footer">
-        <a href={AMAZON} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
-        <small>™ &amp; ® 2024 Beacon Political</small>
-      </div>
 
       {open !== null && hand[open] !== undefined && (
         <CardPopup card={hand[open]!} actions={cardActions(api, snap, open, busy)} onChoose={choose} onClose={() => setOpen(null)} />
@@ -169,5 +166,11 @@ export function Board({ controller }: { controller: GameController }) {
       {confirm && <ConfirmEnd onYes={endGame} onNo={() => setConfirm(false)} />}
       <FlightLayer animator={animator} />
     </div>
+    {/* At the bottom of the window, however tall it is */}
+    <footer class="board__footer">
+      <a href={AMAZON} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
+      <small>™ &amp; ® 2024 Beacon Political</small>
+    </footer>
+    </>
   );
 }

@@ -106,3 +106,76 @@ describe('Animator', () => {
     expect(anim.state.get().snap.prompt).toBe(prompt);
   });
 });
+
+describe('blocking', () => {
+  /** The bot (seat 1) plays Controlled Opposition (6) on seat 0, who holds Self-Defense (20). */
+  function attack() {
+    const a = base();
+    a.seats[0]!.hand = [29, 20];
+    a.seats[1]!.hand = [6, 30];
+    const b = clone(a);
+    b.seats[1]!.hand = [30];                   // the card is in the air: in no pile yet
+    const play: GameEvent = { type: 'play', seat: 1, card: 6, target: 0, text: 'Bot played Controlled Opposition on Player 1.' };
+    return { a, b, play, prev: snap(a, []), next: snap(b, [play]) };
+  }
+
+  it('a card that can still be blocked waits halfway to its target', () => {
+    const { prev, next } = attack();
+    const plan = planStep(prev, next, 1)!;
+    expect(plan.held).toMatchObject({ card: 6, target: 0 });
+    const keys = plan.flights[0]!.keys;
+    expect(keys.at(-1)).toMatchObject(plan.held!.rect);   // ends where it waits
+    expect(plan.held!.rect.x).toBeLessThan(CENTER.x);       // on its way to seat 0's walls on the left
+  });
+
+  it('blocked: the Self-Defense flies onto the waiting card, then both go to the discard pile', () => {
+    const { b, play, next } = attack();
+    const held = planStep(snap(attack().a, []), next, 1)!.held!;
+    const c = clone(b);
+    c.seats[0]!.hand = [29];
+    c.discard = [20, 6];
+    const blocked: GameEvent = { type: 'blocked', seat: 0, target: 1, card: 6, text: 'Player 1 blocked Controlled Opposition with Self-Defense.' };
+    const plan = planStep(next, snap(c, [play, blocked]), 1, undefined, held)!;
+    expect(plan.caption).toBe(blocked.text);
+    const card = plan.flights.find(f => f.card === 6)!, sd = plan.flights.find(f => f.card === 20)!;
+    expect(card.keys[0]).toMatchObject(held.rect);                       // starts where it waited
+    expect(sd.keys[1]!.x).toBeCloseTo(held.rect.x + held.rect.w * 0.12);  // lands on top of it
+    expect(sd.keys[2]!.t).toBe(card.keys[1]!.t);                          // they leave together
+    expect(card.keys.at(-1)!.x).toBe(sd.keys.at(-1)!.x);                  // for the discard pile
+    expect(plan.held).toBeNull();
+  });
+
+  it('not blocked: the waiting card goes on to where it ended up', () => {
+    const { b, play, next } = attack();
+    const held = planStep(snap(attack().a, []), next, 1)!.held!;
+    const c = clone(b);
+    c.discard = [6];
+    c.seats[0]!.hand = [20];
+    c.seats[1]!.hand = [30, 29];
+    const took: GameEvent = { type: 'cardMoved', seat: 1, target: 0, card: 6, text: 'Bot took 1 card(s) from Player 1.' };
+    const plan = planStep(next, snap(c, [play, took]), 1, undefined, held)!;
+    const card = plan.flights.find(f => f.card === 6)!;
+    expect(card.keys[0]).toMatchObject(held.rect);
+    expect(plan.flights).toHaveLength(2);                                 // the card, and the card taken
+  });
+});
+
+describe('dealing and drawing', () => {
+  it('deals one card to each player in turn, all face down, even your own', () => {
+    const a = base();
+    a.seats[0]!.hand = [];
+    a.seats[1]!.hand = [];
+    a.turn = -1;
+    a.draw = [14, 29, 30, 31];
+    const b = clone(a);
+    b.seats[0]!.hand = [31, 29];
+    b.seats[1]!.hand = [30, 14];
+    b.draw = [];
+    const deal: GameEvent = { type: 'deal', seat: 0, cards: [31, 29], text: '' };
+    const plan = planStep(snap(a, []), snap(b, [deal]), 1)!;
+    expect(plan.flights.map(f => f.card)).toEqual([4, 4, 4, 4]);
+    const lands = plan.flights.map(f => f.keys.at(-1)!);
+    expect(lands[0]!.x).not.toBe(lands[1]!.x);                            // seat 0, then seat 1, ...
+    expect(lands[0]!.x).toBe(lands[2]!.x);
+  });
+});

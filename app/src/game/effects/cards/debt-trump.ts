@@ -11,9 +11,11 @@ export async function debt(ctx: EffectContext): Promise<boolean> {
   const targets = debtTargets(ctx, ctx.player);
   const w = await askWall(ctx, ctx.player, targets, true);
   if (!w) return false;
-  ctx.discard(7);
+  // Discarded after the owner's Savings answer, so the Debt is seen flying at them first
   const savings = findInHand(ctx, w.seat, 19);
-  if (savings >= 0 && await ctx.decide({ kind: 'paySavings', seat: w.seat, attacker: ctx.player })) {
+  const paid = savings >= 0 && await ctx.decide({ kind: 'paySavings', seat: w.seat, attacker: ctx.player });
+  ctx.discard(7);
+  if (paid) {
     ctx.discard(ctx.takeFromHand(w.seat, findInHand(ctx, w.seat, 19)));
     ctx.emit({ type: 'savings', seat: w.seat, target: ctx.player, card: 19, text: seatName(ctx, w.seat) + ' paid the Debt with a Savings card.' });
     return true;

@@ -4,6 +4,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
+import { settings } from '../app-state';
+
+// These test the board and overlays, not the card animations (ui/anim has its own tests)
+settings.update(s => ({ ...s, animSpeed: 'off' }));
 import type { CardId } from '../../data/cards';
 import { DEFAULT_SETTINGS } from '../../game';
 import { GameController, type GameSnapshot } from '../controller';
@@ -166,6 +170,8 @@ describe('board-state', () => {
     expect(shownHand(snap({}))).toBe(0);
     expect(shownHand(snap({ view: { ...v, turn: 1 } }))).toBeNull();
     expect(shownHand(snap({ viewer: 1 }))).toBeNull();
+    expect(shownHand(snap({ passTo: 0 }))).toBeNull();                    // the pass screen slides over the board
+    expect(shownHand(snap({ view: { ...v, turn: -1 } }))).toBeNull();     // dealing
   });
 
   it('ranking shares a place on equal miles', () => {

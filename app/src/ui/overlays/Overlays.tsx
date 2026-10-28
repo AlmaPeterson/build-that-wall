@@ -46,8 +46,8 @@ export function Overlays({ controller }: { controller: GameController }) {
         if (lines.length) setRecap({ lines, myTurn: true });
         continue;
       }
-      // A Play Immediately card is already shown in the middle with its caption while it moves
-      if (e.type === 'immediate' && settings.get().animSpeed !== 'off') continue;
+      // Play Immediately cards and blocks are already shown, with their caption, while the cards move
+      if ((e.type === 'immediate' || e.type === 'blocked') && settings.get().animSpeed !== 'off') continue;
       const t = toastFor(e);
       if (t) newToasts.push({ id: ++toastId.current, ...t });
     }

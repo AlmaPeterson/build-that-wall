@@ -46,6 +46,10 @@ export interface ControllerOptions {
 
 const forever = new Promise<never>(() => {});
 
+const createdHooks: ((c: GameController) => void)[] = [];
+/** Run `fn` for every controller as it's made, before its game starts (the board's animator must see the deal). */
+export function onControllerCreated(fn: (c: GameController) => void): void { createdHooks.push(fn); }
+
 export class GameController {
   readonly snapshot: Store<GameSnapshot> = createStore<GameSnapshot>({ view: null, viewer: 0, events: [], prompt: null, passTo: null });
   private game: Game | null = null;
@@ -58,7 +62,9 @@ export class GameController {
   private stopped = false;
   private pace: (() => Promise<void>) | null = null;
 
-  constructor(private readonly opts: ControllerOptions = {}) {}
+  constructor(private readonly opts: ControllerOptions = {}) {
+    for (const fn of createdHooks) fn(this);
+  }
 
   get state(): Readonly<GameState> | null { return this.game?.state ?? null; }
 
@@ -77,7 +83,8 @@ export class GameController {
       settings, seed, memory: this.opts.memory, learn: this.opts.learn,
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
-      beforeTurn: this.passing() ? seat => this.passTo(seat) : undefined,
+      // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
+      beforeTurn: seat => (this.passing() ? this.passTo(seat) : Promise.resolve()),
       beforeBotAction: async () => {
         // Let the board finish showing what just happened, then pause so people can follow
         if (this.pace) await this.pace();

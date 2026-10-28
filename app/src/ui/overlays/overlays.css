@@ -79,7 +79,9 @@
 .btw-big-sub { font-weight: bold; color: #333; padding: 6px 20px 18px; text-align: center; }
 
 /* Pass the device */
-.btw-pass { background: radial-gradient(circle at 50% 30%, #2a2ffa, #0e1a7a); }
+.btw-pass { background: radial-gradient(circle at 50% 30%, #2a2ffa, #0e1a7a); animation: btw-pass-in 0.55s cubic-bezier(.2, .8, .3, 1); }
+@keyframes btw-pass-in { from { transform: translateX(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .btw-pass { animation: none; } }
 .btw-pass-card { text-align: center; color: #fff; padding: 20px; max-width: 640px; animation: btw-pop 0.35s ease-out; }
 .btw-pass-kick { font: 900 0.95em var(--font); letter-spacing: 3px; color: #ffd84d; text-transform: uppercase; }
 .btw-pass-hand { width: 160px; height: 90px; margin: 10px auto; display: block; }
@@ -147,3 +149,11 @@
 @media (prefers-reduced-motion: reduce) {
   .btw-pass-hand .dev, .btw-pass-card, .btw-win-body, .btw-win-brick, .btw-toast { animation: none; }
 }
+
+/* A pickable card with a magnifier to see it full size */
+.btw-ov-cardwrap { position: relative; display: inline-block; }
+.btw-ov-zoom {
+  position: absolute; left: 2px; top: 2px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(0, 0, 0, .65); color: #fff; font-size: 18px; line-height: 26px; cursor: zoom-in;
+}
+.btw-ov-zoom:focus-visible { outline: 3px solid var(--gold); }

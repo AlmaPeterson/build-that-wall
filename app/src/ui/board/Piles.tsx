@@ -2,6 +2,7 @@
 import type { GameState } from '../../game';
 import { CARD_BACK_IMAGE, cardImage } from '../assets';
 import { cardById } from '../../data/cards';
+import { zoomProps } from '../components/zoom';
 
 export function Piles({ state }: { state: GameState }) {
   const top = state.discard.at(-1);
@@ -25,7 +26,7 @@ export function Piles({ state }: { state: GameState }) {
             <span class="piles__count">{state.draw.length}</span>
           </div>
           <div class="piles__slot" aria-label={`Discard pile, ${state.discard.length} cards`}>
-            {top !== undefined && <img src={cardImage(top, 'thumb')} alt={cardById(top).name} title={cardById(top).name} />}
+            {top !== undefined && <img src={cardImage(top, 'thumb')} alt={cardById(top).name} {...zoomProps(top)} />}
             {state.discard.length > 0 && <span class="piles__count">{state.discard.length}</span>}
           </div>
         </div>

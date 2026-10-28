@@ -99,7 +99,7 @@ describe('Chinese Spy Balloon (5)', () => {
     const s = makeState([{ hand: [5] }, { hand: [26, 20] }]);
     await play(s, 5, { block: [true] });
     expect(s.seats[1]!.hand).toEqual([26]);
-    expect(s.discard).toEqual([5, 20]);
+    expect(s.discard).toEqual([20, 5]);   // the blocked card is discarded after the Self-Defense
   });
 
   it('removes a Trump Train from a guarded opponent pair', async () => {

@@ -426,3 +426,46 @@ describe('the play event', () => {
     expect(events.find(e => e.type === 'play')!.target).toBeUndefined();
   });
 });
+
+describe('blocking', () => {
+  // Plays card 6 on seat 1, who holds Self-Defense; discards it after the block answer, like the real effects
+  function blockGame(block: boolean) {
+    let eventsWhenAsked = -1;
+    const rules = stubRules({
+      6: async ctx => {
+        const target = (await ctx.decide({ kind: 'chooseSeat', seat: 0, card: 6, options: [1], cancellable: false }))!;
+        const blocked = await ctx.defend(target, 0, 6);
+        ctx.discard(6);
+        if (!blocked) ctx.emit({ type: 'cardMoved', seat: 0, target, card: 6, text: 'took cards' });
+        return true;
+      },
+    });
+    const t = setup({
+      rules, draw: filler(20),
+      answer: d => {
+        if (d.kind === 'chooseSeat') return 1;
+        if (d.kind === 'block') { eventsWhenAsked = t.events.length; return block; }
+        return null;
+      },
+    });
+    return { ...t, asked: () => eventsWhenAsked };
+  }
+
+  it('the target sees the card played on them before being asked to block', async () => {
+    const t = blockGame(true);
+    await begin(t.game, t.state, [[6], [20, MH]]);
+    await t.game.act(0, { type: 'play', slot: 0 });
+    expect(t.events.slice(0, t.asked()).at(-1)).toMatchObject({ type: 'play', card: 6, target: 1 });
+  });
+
+  it('"blocked" is announced once the blocked card is in the discard pile too', async () => {
+    const t = blockGame(true);
+    const discardWhenBlocked: number[][] = [];
+    const game = t.game as unknown as { emitFn: (e: { type: string }) => void };
+    const emit = game.emitFn;
+    game.emitFn = e => { if (e.type === 'blocked') discardWhenBlocked.push([...t.state.discard]); emit(e); };
+    await begin(t.game, t.state, [[6], [20, MH]]);
+    await t.game.act(0, { type: 'play', slot: 0 });
+    expect(discardWhenBlocked).toEqual([[20, 6]]);
+  });
+});

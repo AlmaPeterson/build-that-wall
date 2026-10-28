@@ -2,6 +2,7 @@
 // cards that can be picked are clickable.
 import { cardById, type CardId } from '../../data/cards';
 import { cardImage } from '../assets';
+import { zoomProps } from '../components/zoom';
 
 export interface HandPicking {
   pickable: number[];   // slots that can be picked
@@ -37,13 +38,13 @@ export function Hand({ cards, onCard, picking }: Props) {
 }
 
 /** Shown instead of the hand while a bot plays (and in watch mode), with the last card a bot played. */
-export function HiddenHand({ lastCard }: { lastCard: CardId | null }) {
+export function HiddenHand({ lastCard, dealing = false }: { lastCard: CardId | null; dealing?: boolean }) {
   return (
     <>
       <div class="at hand__title">Your Hand</div>
       <div class="at hand__hidden" aria-live="polite">
-        {lastCard !== null && <img src={cardImage(lastCard, 'thumb')} alt={cardById(lastCard).name} />}
-        <span>Hands are hidden while the computer plays</span>
+        {lastCard !== null && <img src={cardImage(lastCard, 'thumb')} alt={cardById(lastCard).name} {...zoomProps(lastCard)} />}
+        <span>{dealing ? 'Dealing the cards…' : 'Hands are hidden while the computer plays'}</span>
       </div>
     </>
   );

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { CardId, Decision, GameState, Seat, WallRef } from '../../game';
 import { CardImage } from '../components/CardImage';
+import { showCard } from '../components/zoom';
 import type { Prompt } from '../controller';
 import { cardName, optionLabel, promptTitle, seatName } from './text';
 
@@ -107,7 +108,7 @@ function Shell(props: {
       <div class="btw-ov-box" role="dialog" aria-modal="true" aria-label={title} ref={box}>
         <div class="btw-ov-head">{seatName(view, d.seat)}</div>
         <div class="btw-ov-body">
-          {card !== undefined && <CardImage id={card} size="thumb" class="btw-ov-cause" />}
+          {card !== undefined && <CardImage id={card} size="thumb" class="btw-ov-cause" zoomable />}
           <div class="btw-ov-main">
             <h2 class="btw-ov-title">{title}</h2>
             {sub && <p class="btw-ov-sub">{sub}</p>}
@@ -129,10 +130,14 @@ function Choice({ plain, onClick, children }: { plain?: boolean; onClick: () => 
 
 function CardButton({ id, onClick, badge }: { id: CardId; onClick: () => void; badge?: string }) {
   return (
-    <button type="button" class="btw-ov-card" onClick={onClick} aria-label={cardName(id) + (badge ? ', ' + badge : '')}>
-      <CardImage id={id} size="thumb" aria-hidden="true" />
-      {badge && <span class="btw-ov-badge">{badge}</span>}
-    </button>
+    <span class="btw-ov-cardwrap">
+      <button type="button" class="btw-ov-card" onClick={onClick} aria-label={cardName(id) + (badge ? ', ' + badge : '')}>
+        <CardImage id={id} size="thumb" aria-hidden="true" />
+        {badge && <span class="btw-ov-badge">{badge}</span>}
+      </button>
+      {/* Tapping the card picks it; the magnifier shows it full size */}
+      <button type="button" class="btw-ov-zoom" aria-label={'See ' + cardName(id) + ' full size'} onClick={() => showCard(id)}>⌕</button>
+    </span>
   );
 }
 

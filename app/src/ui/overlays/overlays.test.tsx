@@ -2,6 +2,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { settings } from '../app-state';
+
+// These test the board and overlays, not the card animations (ui/anim has its own tests)
+settings.update(s => ({ ...s, animSpeed: 'off' }));
 import { createGame, type Decision, type GameEvent, type GameState } from '../../game';
 import { GameController, type Prompt } from '../controller';
 import { Overlays } from './Overlays';

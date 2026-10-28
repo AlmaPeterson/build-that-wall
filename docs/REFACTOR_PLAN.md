@@ -154,6 +154,12 @@ How to build it:
   The board can't be used, and prompts don't appear, until it has caught up.
 - Settings → Card animations: Slow / Normal / Fast / Off (Off by default with reduced motion). Tap to skip a step.
 - The log line top left opens the whole game's log.
+- Follow-ups (owner, 2026-10-28): the deal is animated (always face down: cards off the draw pile are never
+  shown), then the pass screen slides in; no hand is shown while dealing or behind the pass screen; drawn cards
+  arrive after the turn starts. A card that can be blocked waits halfway to its target; if blocked, the
+  Self-Defense lands on it and both go to the discard pile. Any face-up card can be tapped to see it full size.
+  The footer sits at the bottom of the window. Fixed: the second Man Hour in a hand couldn't build a wall;
+  a new Pass'n'Play game skipped the first pass screen.
 
 Not done yet: video ads for non-Gold players, owner tools UI, online spectators, confetti; online play not yet tried against the real MQTT broker.
 

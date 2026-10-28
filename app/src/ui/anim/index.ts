@@ -1,7 +1,7 @@
 // One animator per game controller, shared by the board and the overlays. The controller's bots wait
 // for it, so the game never runs ahead of what the board shows.
 import { ANIM_FACTOR, settings } from '../app-state';
-import type { GameController } from '../controller';
+import { onControllerCreated, type GameController } from '../controller';
 import { cards } from '../../data/cards';
 import { cardImage } from '../assets';
 import { Animator } from './animator';
@@ -27,6 +27,9 @@ function preloadCards(): void {
   preloaded = true;
   for (const c of cards) new Image().src = cardImage(c.id, 'thumb');
 }
+
+// Every game gets its animator before it starts, so the deal is animated too
+onControllerCreated(c => { animatorFor(c); });
 
 export { Animator, planStep, type AnimState, type Flight } from './animator';
 export { FlightLayer } from './FlightLayer';
