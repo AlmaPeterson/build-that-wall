@@ -136,6 +136,33 @@ export function buildMenu(api: GameApi | null, snap: GameSnapshot, busy = false)
   return out;
 }
 
+/** Where a card from the hand can be dropped: the discard pile plays it, your walls build it. */
+export type DropZone = 'discard' | 'walls';
+
+/** What dropping a card does: a popup choice to carry out, open the card's popup (to ask how), or why not. */
+export type DropResult = { choice: CardChoice } | { open: true } | { reason: string };
+
+/** Dropping the card in `slot` of the viewer's hand on `zone` (the drag-and-drop shortcut for the popup's buttons). */
+export function dropAction(api: GameApi | null, snap: GameSnapshot, slot: number, zone: DropZone, busy = false): DropResult {
+  const card = snap.view?.seats[snap.viewer]?.hand[slot];
+  if (card === undefined) return { reason: '' };
+  const { buttons, note } = cardActions(api, snap, slot, busy);
+  const builds = isWall(card) || card === MAN_HOUR;
+  if (zone === 'discard') {
+    if (builds) return { reason: card === MAN_HOUR ? 'Drop a Man Hour on your walls to build with it.' : 'Wall Sections are built: drop it on your walls.' };
+    const play = buttons.find(b => b.choice.kind === 'play');
+    return play ? { choice: play.choice } : { reason: note || "That card can't be played now." };
+  }
+  if (!builds) {
+    const play = BUILD_CARDS.includes(card) ? buttons.find(b => b.choice.kind === 'play') : undefined;
+    if (play) return { choice: play.choice };
+    return { reason: BUILD_CARDS.includes(card) ? note || "That card can't be played now." : 'Only Wall Sections (and cards that build them) go on your walls. Drop it on the discard pile to play it.' };
+  }
+  if (buttons.length === 1) return { choice: buttons[0]!.choice };
+  if (buttons.length > 1) return { open: true };                // a Man Hour or 2 walls: let them pick
+  return { reason: note || "That card can't be built now." };
+}
+
 /** Wall cards in the hand a Man Hour can build: every one of them, whichever Man Hour was picked. */
 export function manHourWalls(hand: readonly CardId[]): number[] {
   return hand.flatMap((c, i) => (isWall(c) ? [i] : []));
