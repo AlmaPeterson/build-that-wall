@@ -494,6 +494,7 @@ function price_(item) {
   const p = (k, d) => Number(props.getProperty(k) || d);
   if (item === 'gold:month') return p('PRICE_GOLD_MONTH', 2.99);
   if (item === 'gold:year') return p('PRICE_GOLD_YEAR', 19.99);
+  if (item === 'gold:lifetime') return p('PRICE_GOLD_LIFETIME', 9.99);
   if (item.startsWith('pack:')) return (safeJson_(props.getProperty('PACK_PRICES')) || {})[item.slice(5)] || 0.99;
   if (item.startsWith('donate:')) return 0.01;
   return Infinity;                                  // anything else can't be bought
@@ -505,13 +506,17 @@ function paypalConfirm_(sheet, row, body) {
   const orders = ordersSheet_();
   if (orders.getRange('A:A').createTextFinder(orderID).matchEntireCell(true).findNext()) return { error: 'used' };
   let order = paypal_('get', '/v2/checkout/orders/' + encodeURIComponent(orderID));
-  if (order.code === 200 && order.body.status === 'APPROVED') order = paypal_('post', '/v2/checkout/orders/' + encodeURIComponent(orderID) + '/capture', {});
-  if (order.code >= 300 || order.body.status !== 'COMPLETED') return { error: 'notpaid' };
+  if (order.code >= 300) return { error: 'notpaid' };
+  // Check the amount before capturing, so a wrong price never takes the player's money
   const amount = Number(((order.body.purchase_units || [])[0] || {}).amount ? order.body.purchase_units[0].amount.value : 0);
   if (!(amount >= price_(item) - 0.001)) return { error: 'amount' };
+  if (order.body.status === 'APPROVED') order = paypal_('post', '/v2/checkout/orders/' + encodeURIComponent(orderID) + '/capture', {});
+  if (order.code >= 300 || order.body.status !== 'COMPLETED') return { error: 'notpaid' };
   orders.appendRow([orderID, sheet.getRange(row, C.sub).getValue(), item, amount, new Date()]);
-  if (item === 'gold:month' || item === 'gold:year') {
-    const gold = readJson_(sheet, row, C.gold, null);
+  const gold = readJson_(sheet, row, C.gold, null);
+  const lifetime = gold && gold.exp === 0;
+  if (item === 'gold:lifetime') writeJson_(sheet, row, C.gold, { plan: 'lifetime', exp: 0 });
+  if ((item === 'gold:month' || item === 'gold:year') && !lifetime) {   // never shorten Lifetime Gold
     const start = gold && gold.exp > now_() ? gold.exp : now_();
     writeJson_(sheet, row, C.gold, { plan: item.slice(5), exp: start + (item === 'gold:year' ? 365 : 30) * DAY });
   }
@@ -525,6 +530,8 @@ function paypalSubscribed_(sheet, row, body) {
   if (sub.code >= 300 || !/^(ACTIVE|APPROVED)$/.test(sub.body.status)) return { error: 'notpaid' };
   const next = Date.parse((sub.body.billing_info || {}).next_billing_time || '') / 1000;
   const plan = body.plan === 'year' ? 'year' : 'month';
+  const gold = readJson_(sheet, row, C.gold, null);
+  if (gold && gold.exp === 0) return entitlements_(sheet, row, false);   // already has Lifetime Gold
   writeJson_(sheet, row, C.gold, { plan: plan, sub: id, exp: (next || now_() + (plan === 'year' ? 365 : 30) * DAY) + DAY });
   return entitlements_(sheet, row, false);
 }
