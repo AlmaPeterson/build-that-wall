@@ -5,11 +5,11 @@ import type { GameEvent, GameState, Seat } from '../types';
 /** The card back (card 4), shown in place of hidden cards. */
 export const CARD_BACK = 4;
 
-export function viewFor(state: GameState, viewer: Seat): GameState {
+export function viewFor(state: GameState, viewer: Seat, allHands = false): GameState {
   const v = JSON.parse(JSON.stringify(state)) as GameState;
   v.rng = 0;
   v.draw = v.draw.map(() => CARD_BACK);
-  v.seats.forEach((s, i) => { if (i !== viewer) s.hand = s.hand.map(() => CARD_BACK); });
+  if (!allHands) v.seats.forEach((s, i) => { if (i !== viewer) s.hand = s.hand.map(() => CARD_BACK); });
   return v;
 }
 

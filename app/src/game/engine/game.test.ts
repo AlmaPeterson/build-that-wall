@@ -388,6 +388,15 @@ describe('what each player sees', () => {
     expect(state.seats[0]!.hand).not.toContain(CARD_BACK);   // the real state is untouched
   });
 
+  it('can show every hand (a bots-only game), still hiding the draw order and the seed', async () => {
+    const { game, state } = setup({ seed: 3 });
+    await game.start();
+    const v = viewFor(state, 1, true);
+    expect(v.seats.map(s => s.hand)).toEqual(state.seats.map(s => s.hand));
+    expect(v.draw).toEqual(state.draw.map(() => CARD_BACK));
+    expect(v.rng).toBe(0);
+  });
+
   it('hides which cards others drew', () => {
     const e = { type: 'draw' as const, seat: 0, cards: [29, 30], text: 'Player 1 drew 2 cards.' };
     expect(redactEvent(e, 1).cards).toEqual([4, 4]);
