@@ -8,11 +8,13 @@ import { controller as controllerStore, screen, settings } from '../app-state';
 import { playSfx } from '../audio';
 import { Button } from '../components/Button';
 import type { GameController } from '../controller';
+import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
 import {
   buildMenu, canInteract, cardActions, payableWalls, shownHand, type CardChoice,
 } from './board-state';
 import { BuildMenu, ConfirmEnd } from './BoardModal';
+import { ActionLog } from './ActionLog';
 import { CardPopup } from './CardPopup';
 import { Hand, HiddenHand } from './Hand';
 import { Piles } from './Piles';
@@ -22,7 +24,7 @@ import './board.css';
 
 const AMAZON = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
 const HEADER_IMAGE = 'assets/stage/page.svg';
-const QUIET: readonly string[] = ['deal', 'draw', 'turnStart', 'turnEnd', 'gameStart'];
+const QUIET: readonly string[] = ['deal', 'draw', 'turnStart', 'turnEnd', 'gameStart'];   // not shown in the hidden hand
 
 /** Picking cards from the hand after choosing "Pick 2 Walls to Discard" or "Use On Wall". */
 type Picking =
@@ -41,7 +43,8 @@ function lastBotEvent(state: GameState, events: readonly GameEvent[]): GameEvent
 }
 
 export function Board({ controller }: { controller: GameController }) {
-  const snap = useStore(controller.snapshot);
+  const animator = animatorFor(controller);
+  const { snap, idle } = useStore(animator.state);
   const { tutorial } = useStore(settings);
   const [open, setOpen] = useState<number | null>(null);
   const [menu, setMenu] = useState(false);
@@ -51,7 +54,8 @@ export function Board({ controller }: { controller: GameController }) {
   const [message, setMessage] = useState('');
 
   const view = snap.view;
-  const live = canInteract(snap, busy);
+  // Only once the board has caught up: the hand on screen must be the real one before a card is tapped
+  const live = idle && canInteract(snap, busy);
   const handSeat = shownHand(snap);
   const hand: readonly CardId[] = handSeat !== null ? view?.seats[handSeat]?.hand ?? [] : [];
 
@@ -121,7 +125,7 @@ export function Board({ controller }: { controller: GameController }) {
   return (
     <div class="stage board">
       <div class="board__header" style={{ backgroundImage: `url(${HEADER_IMAGE})` }} role="banner" aria-label="Build That Wall" />
-      {running && botEvent && <div class="at board__log" aria-live="polite">{botEvent.text}</div>}
+      {running && <ActionLog events={snap.events} />}
 
       <Scoreboard state={view} />
       <Piles state={view} />
@@ -162,6 +166,7 @@ export function Board({ controller }: { controller: GameController }) {
       )}
       {menu && <BuildMenu options={buildMenu(api, snap, busy)} onChoose={choose} onClose={() => setMenu(false)} />}
       {confirm && <ConfirmEnd onYes={endGame} onNo={() => setConfirm(false)} />}
+      <FlightLayer animator={animator} />
     </div>
   );
 }

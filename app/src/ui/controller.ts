@@ -56,6 +56,7 @@ export class GameController {
   /** Pass'n'Play: the human holding the device now (the last one who tapped "I'm ready"). */
   private holder: Seat | null = null;
   private stopped = false;
+  private pace: (() => Promise<void>) | null = null;
 
   constructor(private readonly opts: ControllerOptions = {}) {}
 
@@ -77,7 +78,12 @@ export class GameController {
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       beforeTurn: this.passing() ? seat => this.passTo(seat) : undefined,
-      beforeBotAction: () => this.stopped ? forever : delay > 0 ? new Promise(r => setTimeout(r, delay)) : Promise.resolve(),
+      beforeBotAction: async () => {
+        // Let the board finish showing what just happened, then pause so people can follow
+        if (this.pace) await this.pace();
+        if (this.stopped) return forever;
+        if (delay > 0) await new Promise(r => setTimeout(r, delay));
+      },
     });
     this.publish();
     return this.game.start();
@@ -100,6 +106,9 @@ export class GameController {
     this.prompts = [];
     this.passResolve = null;
   }
+
+  /** Bots wait for this before each action: the board's animator, so the game never runs ahead of what's shown. */
+  setPace(pace: (() => Promise<void>) | null): void { this.pace = pace; }
 
   /** The engine's read-only questions (canPlay, buildOptions, ...) for the board's menus. */
   get api(): Game | null { return this.game; }

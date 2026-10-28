@@ -75,7 +75,7 @@ tutorial, animations.
   tutorial, store. Port the existing DOM panels from BTW Links.
 - Match the 640×360 layout first; responsive improvements after parity.
 
-### Phase 2b — Follow every action (animations)
+### Phase 2b — Follow every action (animations) (done)
 Owner's request (2026-10-28): every move must be easy to follow, bots' turns included. Nothing
 should just appear or disappear; every card visibly travels from where it was to where it goes.
 
@@ -141,8 +141,21 @@ How to build it:
 - `?demo`, `?demo=watch`, `?demo=<seed>` start a game straight away (dev helper).
 - Build: ~90 KB gzipped JS + a 90 KB gzipped MQTT chunk loaded only for online play (old game: ~16 MB).
 
-Not done yet: video ads for non-Gold players, owner tools UI, online spectators, card movement
-animations (planned in Phase 2b), confetti; online play not yet tried against the real MQTT broker.
+## Phase 2b results
+
+- `app/src/ui/anim/`: `moves.ts` compares what the viewer saw before and after each event and lists the
+  cards that moved (hidden cards stay face down), `animator.ts` queues the steps and plans each one,
+  `layout.ts` says where every place is on the stage, `FlightLayer.tsx` flies the cards (Web Animations API).
+- Comparing views instead of adding from/to to every event: every card effect is covered without touching
+  it, and online clients animate the same way from the snapshots they receive.
+- Played cards stop in the middle face up with a caption; cards played on someone go to that player first
+  (their row lights up). The 'play' event now names the target ("played Debt on Bot Freedom").
+- Bots wait until the board has shown their last move, then pause 0.35 s (0.7 s watching).
+  The board can't be used, and prompts don't appear, until it has caught up.
+- Settings → Card animations: Slow / Normal / Fast / Off (Off by default with reduced motion). Tap to skip a step.
+- The log line top left opens the whole game's log.
+
+Not done yet: video ads for non-Gold players, owner tools UI, online spectators, confetti; online play not yet tried against the real MQTT broker.
 
 ## Phase 1 results
 

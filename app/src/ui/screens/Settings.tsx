@@ -2,7 +2,7 @@
 // ends, sound, music, names and text sizes. Changes are saved straight away (menus/prefs.ts).
 import type { ComponentChildren } from 'preact';
 import type { Ending } from '../../game';
-import { controller, screen, settings, type TextArea, type UiSettings, goBack } from '../app-state';
+import { controller, screen, settings, type AnimSpeed, type TextArea, type UiSettings, goBack } from '../app-state';
 import { Button } from '../components/Button';
 import {
   ENDING_NAMES, initSettingsPersistence, MAX_PLAYERS, MIN_PLAYERS, TEXT_STEPS, updateSettings, type BotLevel,
@@ -112,6 +112,14 @@ export function SettingsScreen() {
         </Row>
         <Row label="Auto Join"><Toggle label="Auto Join" on={s.autoJoin} onChange={autoJoin => set({ autoJoin })} /></Row>
         <Row label="Tutorial tips"><Toggle label="Tutorial tips" on={s.tutorial} onChange={tutorial => set({ tutorial })} /></Row>
+        <Row label="Card animations" id="set-anim">
+          <select id="set-anim" value={s.animSpeed} onChange={e => set({ animSpeed: e.currentTarget.value as AnimSpeed })}>
+            <option value="slow">Slow</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Fast</option>
+            <option value="off">Off</option>
+          </select>
+        </Row>
 
         <h2 class="settings__section">Text size</h2>
         {TEXT_AREAS.map(({ area, title, about }) => (

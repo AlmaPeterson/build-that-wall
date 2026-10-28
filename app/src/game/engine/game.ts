@@ -424,8 +424,19 @@ export class Game implements GameApi {
     };
   }
 
-  private decide<D extends Decision>(d: D): Promise<Answer<D>> {
-    return this.opts.deciderFor(d.seat).decide(d, this.state);
+  private async decide<D extends Decision>(d: D): Promise<Answer<D>> {
+    const a = await this.opts.deciderFor(d.seat).decide(d, this.state);
+    // The player picked someone for the card they're playing: the 'play' event names them
+    const p = this.pendingPlay;
+    if (p && p.seat === d.seat && p.target === undefined && a !== null) {
+      const target = d.kind === 'chooseSeat' && d.options.includes(a as Seat) ? a as Seat
+        : d.kind === 'chooseWall' && d.options.some(o => o.seat === (a as WallRef).seat) ? (a as WallRef).seat : undefined;
+      if (target !== undefined && target !== p.seat) {
+        p.target = target;
+        p.text = this.name(p.seat) + ' played ' + cardName(p.card!) + ' on ' + this.name(target) + '.';
+      }
+    }
+    return a;
   }
 
   /** `draw cards`: reshuffles the discard pile in when the draw pile is empty. (Exhaust is counted by check exhaust.) */

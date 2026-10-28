@@ -7,6 +7,23 @@ const settings = (players: number, bots: number) => ({
 });
 
 describe('GameController', () => {
+  it('bots wait for the board to finish showing each move', async () => {
+    const c = new GameController();
+    let release: () => void = () => {};
+    let waits = 0;
+    c.setPace(() => { waits++; return new Promise(r => { release = r; }); });
+    const done = c.start(settings(2, 2), 5);
+    await new Promise(r => setTimeout(r, 0));
+    const before = c.snapshot.get().events.length;
+    await new Promise(r => setTimeout(r, 5));
+    expect(c.snapshot.get().events.length).toBe(before);     // stuck until the board is ready
+    expect(waits).toBe(1);
+    c.setPace(null);
+    release();
+    await done;
+    expect(c.snapshot.get().view?.over).not.toBeNull();
+  });
+
   it('a bots-only game runs to the end and publishes the result', async () => {
     const c = new GameController();
     await c.start(settings(3, 3), 11);
