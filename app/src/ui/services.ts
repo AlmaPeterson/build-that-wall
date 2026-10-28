@@ -10,7 +10,7 @@ import { Leaderboard, mqttWorldBoard } from '../services/leaderboard';
 import { connectMqtt, type Connect } from '../services/online';
 import { PayPalCheckout, Purchases, type BuyResult, type Checkout, type PriceInfo } from '../services/payments';
 import { SaveStore, browserStorage, type KeyValueStorage } from '../services/storage';
-import { controller as currentGame } from './app-state';
+import { controller as currentGame, gameOptions } from './app-state';
 import type { GameController } from './controller';
 import { OnlineClientController } from './online/client';
 import { HostController } from './online/host';
@@ -215,6 +215,9 @@ export const services: AppServices = createServices({
   toast: domToast,
   location: typeof location !== 'undefined' ? location : undefined,
 });
+// Bots on this device remember how each human plays (saved between visits)
+gameOptions.memory = services.botMemory;
+
 
 /** The human seats played on this device: online, just this player's seat; Pass'n'Play, every human. */
 export function localSeats(c: GameController): number[] {

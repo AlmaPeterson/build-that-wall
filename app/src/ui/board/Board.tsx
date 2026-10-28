@@ -110,6 +110,7 @@ export function Board({ controller }: { controller: GameController }) {
 
   function endGame() {
     setConfirm(false);
+    controllerStore.get()?.stop();
     controllerStore.set(null);
     screen.set('menu');
   }

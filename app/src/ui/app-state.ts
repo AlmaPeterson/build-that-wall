@@ -1,6 +1,6 @@
 // App-wide state: which screen is showing, the player's settings, and the running game.
 import { DEFAULT_SETTINGS, type GameSettings } from '../game';
-import { GameController } from './controller';
+import { GameController, type ControllerOptions } from './controller';
 import { createStore } from './store';
 
 export type Screen = 'menu' | 'settings' | 'instructions' | 'game' | 'account' | 'online' | 'leaderboard';
@@ -28,9 +28,13 @@ export const screen = createStore<Screen>('menu');
 export const settings = createStore<UiSettings>(DEFAULT_UI_SETTINGS);
 export const controller = createStore<GameController | null>(null);
 
+/** How games on this device run: bots pause so people can follow them; services add the bots' saved memory. */
+export const gameOptions: ControllerOptions = { passScreen: true, botDelay: 600, watchDelay: 1100 };
+
 /** Start a game on this device with the current settings and show the board. */
 export function startLocalGame(game: GameSettings = settings.get().game): GameController {
-  const c = new GameController({ passScreen: true });
+  controller.get()?.stop();
+  const c = new GameController(gameOptions);
   controller.set(c);
   screen.set('game');
   void c.start(game);
