@@ -111,9 +111,14 @@ How to build it:
 6. **Tests:** queue order and waiting with fake timers (happy-dom can't measure positions);
    a headless-browser screenshot run of `?demo=watch` to check by eye.
 
-### Phase 3 — Parity and switch-over
-- Side-by-side play-testing against the PenguinMod version, checklist in `docs/parity.md`.
-- Switch GitHub Pages to the new build; keep the old build at `/classic/` for a while.
+### Phase 3 — Parity and switch-over (done 2026-10-28)
+- The owner played both versions side by side and approved the switch.
+- The old game moved to `classic/` (served at `/classic/`). `.github/workflows/pages.yml` tests and builds
+  `app/` on every push to `main` and publishes it at the site root with `/classic/`, `privacy.html` and
+  `terms.html` (Pages source: GitHub Actions). One settings file now: `app/public/game-settings.json`
+  (copied to `/classic/` for the old game).
+- Went live without video ads, owner tools, online spectators and confetti (owner's call); online play
+  still to be tried against the real broker.
 
 ### Phase 4 — Server tidy-up
 - Split `game-server.gs` into files (`config`, `sheets`, `feedback`, `accounts`, `paypal`),

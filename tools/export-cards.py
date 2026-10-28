@@ -12,7 +12,7 @@ import re
 import sys
 from collections import Counter
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else 'assets/project.json'
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'classic/assets/project.json'
 ASSETS = sys.argv[2] if len(sys.argv) > 2 else 'app/src/data/assets.json'
 OUT = sys.argv[3] if len(sys.argv) > 3 else 'app/src/data/cards.json'
 
