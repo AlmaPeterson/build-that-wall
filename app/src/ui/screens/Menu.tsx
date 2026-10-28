@@ -1,4 +1,4 @@
-// The main menu: red header with the logo, Donate and Gold Membership, the five main buttons, and the
+// The main menu: red header with the logo, the five main buttons, and the
 // disclaimer footer with the Amazon link (like the old game's title screen).
 import { useEffect, useState } from 'preact/hooks';
 import { loadSettings } from '../../services/config';
@@ -33,9 +33,7 @@ export function MenuScreen() {
   return (
     <div class="menu">
       <header class="menu__head">
-        <Button color="navy" class="menu__corner" onClick={() => screen.set('account')}>Donate</Button>
         <img class="menu__logo" src={logo} alt="Build That Wall: Trump's political card-game" />
-        <Button color="gold" class="menu__corner" onClick={() => screen.set('account')}>Gold Membership</Button>
       </header>
       <main class="menu__main">
         <Button class="menu__big" onClick={start}>Start Game</Button>
