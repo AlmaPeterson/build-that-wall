@@ -2,6 +2,7 @@
 // and board/Walls.tsx; keep them in step when the board layout changes.
 import type { GameState, Seat } from '../../game';
 import { wallKinds } from '../board/board-state';
+import { displayIndex } from '../board/hand-order';
 import type { Place } from './moves';
 
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -48,7 +49,11 @@ export function seatRect(view: GameState, seating: Seating, seat: Seat): Rect {
 export function placeRect(place: Place, view: GameState, seating: Seating): Rect {
   switch (place.at) {
     case 'hand':
-      if (place.seat === seating.hand) return { x: Math.max(5, Math.min(11.5 + place.slot * 60 - handScroll, HAND_RIGHT)), y: 222.5, w: 49, h: 67 };
+      if (place.seat === seating.hand) {
+        // Where you've arranged that card (hand-order.ts), not its slot in the game
+        const at = displayIndex(place.seat, view.seats[place.seat]?.hand ?? [], place.slot);
+        return { x: Math.max(5, Math.min(11.5 + at * 60 - handScroll, HAND_RIGHT)), y: 222.5, w: 49, h: 67 };
+      }
       if (place.seat === seating.mine) return HIDDEN_HAND;
       return seatRect(view, seating, place.seat);
     case 'walls': return wallRect(view, seating, place.seat, place.kind);
