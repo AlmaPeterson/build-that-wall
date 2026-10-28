@@ -15,6 +15,7 @@ import {
 } from './board-state';
 import { BuildMenu, ConfirmEnd } from './BoardModal';
 import { ActionLog } from './ActionLog';
+import { resetHandOrders } from './hand-order';
 import { CardPopup } from './CardPopup';
 import { Hand, HiddenHand } from './Hand';
 import { Piles } from './Piles';
@@ -58,6 +59,9 @@ export function Board({ controller }: { controller: GameController }) {
   const live = idle && canInteract(snap, busy);
   const handSeat = shownHand(snap);
   const hand: readonly CardId[] = handSeat !== null ? view?.seats[handSeat]?.hand ?? [] : [];
+
+  // A new game: hands are shown in the order they were dealt
+  useEffect(() => { resetHandOrders(); }, [controller]);
 
   // Anything half-done is dropped when it's no longer the viewer's move (or the hand changed under it)
   useEffect(() => {
@@ -135,7 +139,7 @@ export function Board({ controller }: { controller: GameController }) {
       <OtherWalls state={view} viewer={view.seats[snap.viewer]?.bot ? -1 : snap.viewer} />
 
       {handSeat !== null
-        ? <Hand cards={hand} onCard={onCard} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
+        ? <Hand seat={handSeat} cards={hand} onCard={onCard} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
         : <HiddenHand lastCard={view.turn < 0 || snap.turnBanner != null ? null : botEvent?.card ?? null}
             message={view.turn < 0 ? 'Dealing the cards…' : snap.turnBanner != null || snap.passTo !== null ? 'Your cards are coming up…' : undefined} />}
 

@@ -138,6 +138,13 @@
 .hand__card--pickable { outline: calc(var(--u) * 2) dashed var(--gold); }
 .hand__card--picked { outline: calc(var(--u) * 2.5) solid var(--red); transform: translateY(calc(var(--u) * -3)); }
 .hand__card--dim { opacity: .35; }
+.hand__card { touch-action: pan-x; }
+.hand--dragging .hand__card { cursor: grabbing; }
+.hand__card--dragging {
+  z-index: 5; cursor: grabbing; opacity: .95;
+  filter: drop-shadow(0 calc(var(--u) * 4) calc(var(--u) * 5) rgba(0, 0, 0, .5));
+}
+.hand__card--dragging img { transform: scale(1.08) translateY(calc(var(--u) * -3)); }
 .hand__hidden {
   left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 78);
   display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 10);
