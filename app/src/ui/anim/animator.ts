@@ -108,7 +108,7 @@ export class Animator {
     if (speed <= 0 || !prev.view || prev.viewer !== next.viewer || next.events.length < prev.events.length) held = null;
     const plan = speed > 0 ? planStep(prev, next, speed, () => this.nextId++, held) : null;
     if (!plan) { this.show(next, held); return; }
-    this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null }, flights: plan.flights, duration: plan.duration,
+    this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null, turnBanner: null }, flights: plan.flights, duration: plan.duration,
       caption: plan.caption, target: plan.target, held: null });
     await new Promise<void>(resolve => {
       const done = () => { clearTimeout(timer); this.skipNow = null; resolve(); };
@@ -279,7 +279,7 @@ function grow(r: Rect): Rect {
 }
 
 function same(a: GameSnapshot, b: GameSnapshot): boolean {
-  return a.viewer === b.viewer && a.prompt === b.prompt && a.passTo === b.passTo
+  return a.viewer === b.viewer && a.prompt === b.prompt && a.passTo === b.passTo && (a.turnBanner ?? null) === (b.turnBanner ?? null)
     && a.events.length === b.events.length && JSON.stringify(a.view) === JSON.stringify(b.view);
 }
 

@@ -98,6 +98,15 @@ function Fig({ id, label, tone }: { id: number; label: string; tone: 'lost' | 'g
 }
 
 /** A big tilted headline, e.g. FINAL ROUND (`bigNotice`). */
+/** "Player 1's turn", sliding across for a moment before a turn starts (one person playing: no pass screen). */
+export function TurnBanner({ name }: { name: string }) {
+  return (
+    <div class="btw-turn" role="status" aria-live="assertive">
+      <div class="btw-turn-band"><span class="btw-turn-name">{name}</span>'s turn</div>
+    </div>
+  );
+}
+
 export function BigNotice({ head, title, sub, onClose }: { head: string; title: string; sub: string; onClose: () => void }) {
   const ref = useKeys(onClose, true);
   return (

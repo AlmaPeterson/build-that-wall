@@ -136,7 +136,8 @@ export function Board({ controller }: { controller: GameController }) {
 
       {handSeat !== null
         ? <Hand cards={hand} onCard={onCard} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
-        : <HiddenHand lastCard={view.turn < 0 ? null : botEvent?.card ?? null} dealing={view.turn < 0} />}
+        : <HiddenHand lastCard={view.turn < 0 || snap.turnBanner != null ? null : botEvent?.card ?? null}
+            message={view.turn < 0 ? 'Dealing the cards…' : snap.turnBanner != null || snap.passTo !== null ? 'Your cards are coming up…' : undefined} />}
 
       {picking && (
         <div class="at pickbar" role="status">

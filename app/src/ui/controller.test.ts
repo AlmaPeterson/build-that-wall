@@ -45,6 +45,19 @@ describe('GameController', () => {
     }
   });
 
+  it("one person playing: shows \"Player 1's turn\" for a moment, with the hand hidden, before the turn starts", async () => {
+    const c = new GameController({ turnBanner: 30 });
+    void c.start(settings(2, 1), 3);
+    await new Promise(r => setTimeout(r, 0));
+    const during = c.snapshot.get();
+    expect(during.turnBanner).toBe(0);
+    expect(during.events.some(e => e.type === 'turnStart')).toBe(false);   // the turn hasn't started yet
+    await new Promise(r => setTimeout(r, 50));
+    expect(c.snapshot.get().turnBanner).toBeNull();
+    expect(c.snapshot.get().events.some(e => e.type === 'turnStart' && e.seat === 0)).toBe(true);
+    c.stop();
+  });
+
   it('shows the pass-the-device screen between two humans', async () => {
     const c = new GameController({ passScreen: true });
     void c.start(settings(2, 0), 5);
