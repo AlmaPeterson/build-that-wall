@@ -70,7 +70,7 @@ tutorial, animations.
 - Unit tests for every card effect and win condition, written from `docs/game-rules.md`.
 - One serialisable state makes online sync simple: the host sends state/actions over MQTT.
 
-### Phase 2 — UI
+### Phase 2 — UI (screens done; parity testing next)
 - Screens: menu, game board, hand, walls display, panels, pass screen, win screen, settings,
   tutorial, store. Port the existing DOM panels from BTW Links.
 - Match the 640×360 layout first; responsive improvements after parity.
@@ -92,6 +92,21 @@ tutorial, animations.
   `tools/export-assets.py` → `app/public/assets/` (896 files) + `app/src/data/assets.json`.
 - Old behaviour kept as-is is marked `// NOTE:` in the code; bugs found in the blocks are in
   `docs/game-rules.md` section 15.
+
+## Phase 2 results
+
+- Preact screens in `app/src/ui/`: `controller.ts` (runs a game for the screens), `board/` (in-game screen),
+  `overlays/` (every decision prompt, pass screen, recap, win screen, tips), `menus/` + `screens/`
+  (menu, settings with the old pref keys, instructions/guide), `services.ts` + `account/` + `online/`
+  (Account & Store, leaderboards, feedback, sound and music, online host/client games).
+- Pass'n'Play hands the device to whoever must decide (e.g. Self-Defense mid-turn) and back again;
+  other players' hands and drawn cards are never on screen. Online, each player only receives their own hand.
+- Bots pause 0.6 s per action (1.1 s in watch mode). Local bots use the saved bot memory.
+- `?demo`, `?demo=watch`, `?demo=<seed>` start a game straight away (dev helper).
+- Build: ~90 KB gzipped JS + a 90 KB gzipped MQTT chunk loaded only for online play (old game: ~16 MB).
+
+Not done yet: video ads for non-Gold players, owner tools UI, online spectators, card movement
+animations, confetti; online play not yet tried against the real MQTT broker.
 
 ## Phase 1 results
 

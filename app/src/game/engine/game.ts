@@ -18,6 +18,8 @@ export interface GameOptions {
   emit?: Emit;
   /** Called before a turn starts, e.g. to show the pass-the-device screen in Pass'n'Play. */
   beforeTurn?(seat: Seat): Promise<void>;
+  /** Called before each bot action, e.g. to pace bots so people can follow what they do. */
+  beforeBotAction?(seat: Seat): Promise<void>;
 }
 
 const MAN_HOUR = 14, SELF_DEFENSE = 20, TRUMP_TRAIN = 25, QUARANTINE = 17;
@@ -228,6 +230,8 @@ export class Game implements GameApi {
   private async botTurn(seat: Seat): Promise<void> {
     const s = this.state;
     for (let i = 0; i < BOT_ACTION_LIMIT && !s.over && s.turn === seat && s.actionsLeft >= 1; i++) {
+      if (this.opts.beforeBotAction) await this.opts.beforeBotAction(seat);
+      if (s.over || s.turn !== seat) break;
       const action = this.opts.bot.nextAction(this, seat);
       if (action.type === 'endTurn') break;
       const r = await this.perform(seat, action);
