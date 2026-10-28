@@ -7,6 +7,7 @@ import { App } from '../app';
 import { controller, DEFAULT_UI_SETTINGS, screen, settings } from '../app-state';
 import { MenuScreen } from '../screens/Menu';
 import { SettingsScreen } from '../screens/Settings';
+import { GameController } from '../controller';
 import {
   clampSettings, initSettingsPersistence, loadUiSettings, resetSettingsPersistenceForTests, saveUiSettings,
 } from './prefs';
@@ -99,6 +100,19 @@ describe('settings', () => {
     act(() => { (root.querySelector('[aria-label="Players more"]') as HTMLButtonElement).click(); });
     expect(settings.get().game.players).toBe(DEFAULT_UI_SETTINGS.game.players + 1);
     expect(store.prefGet('players')).toBe(String(DEFAULT_UI_SETTINGS.game.players + 1));
+  });
+
+  it('saves changes made during a game too, and says so', () => {
+    const store = fresh();
+    initSettingsPersistence(store);
+    controller.set(new GameController());
+    act(() => { render(<SettingsScreen />, root); });
+    expect(root.querySelector('.page__foot')?.textContent).toContain('Changes are saved as you make them');
+    expect([...root.querySelectorAll('.page__foot button')].map(b => b.textContent)).toEqual(['Done']);
+    act(() => { (root.querySelector('[aria-label="Sound Effects"]') as HTMLButtonElement).click(); });
+    expect(store.prefGet('sound')).toBe('0');
+    expect(root.querySelector('.settings__saved')?.textContent).toBe('✓ Saved');
+    controller.set(null);
   });
 
   it('hides Ending Times when the game ends on 3 sets', () => {

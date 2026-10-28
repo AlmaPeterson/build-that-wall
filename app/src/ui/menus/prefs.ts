@@ -2,7 +2,7 @@
 // new version keep their settings (docs/game-rules.md section 2, Panels › when green flag clicked).
 import type { Difficulty, Ending } from '../../game';
 import { browserStorage, SaveStore } from '../../services/storage';
-import { controller, settings, type TextArea, type UiSettings } from '../app-state';
+import { settings, type TextArea, type UiSettings } from '../app-state';
 
 export type BotLevel = Difficulty | 'random';
 
@@ -108,18 +108,15 @@ let started = false;
 let stop: (() => void) | null = null;
 
 /**
- * Load saved settings into the settings store once, then save every change made while no game is
- * running (the old game only saved between games). Safe to call many times.
+ * Load saved settings into the settings store once, then save every change straight away. (The old game
+ * only saved between games, so changes made during a game could be lost; the running game keeps its own
+ * copy of the game settings, so saving them mid-game is safe.) Safe to call many times.
  */
 export function initSettingsPersistence(store: SaveStore = new SaveStore(browserStorage())): void {
   if (started) return;
   started = true;
   settings.set(loadUiSettings(store, settings.get()));
-  stop = settings.subscribe(s => {
-    const game = controller.get()?.state;
-    if (!game || game.over) saveUiSettings(store, s);
-    else if (store.prefGet('anim') !== s.animSpeed) store.prefSet('anim', s.animSpeed);   // a new setting: saved mid-game too
-  });
+  stop = settings.subscribe(s => saveUiSettings(store, s));
 }
 
 /** For tests: forget that persistence was started. */
