@@ -23,6 +23,14 @@ HELD = {9, 16, 17, 11, 27}                          # define special run: pay ca
 OPP = 'chosenOpponent'
 WALL_IDS = list(WALLS)
 
+# Card texts that contradicted what the game does, rewritten to match the code (owner decision,
+# docs/REFACTOR_PLAN.md). The old text is kept in a comment.
+EXPLAIN_OVERRIDES = {
+    # was: "Build pairs or triples of matching walls from your hand for 1 action per set. No Man Hours."
+    23: "Build pairs or triples of matching walls from your hand. The first set comes with this card's "
+        "action; each extra set costs 1 more action. No Man Hours.",
+}
+
 # id -> (structured effects, plain-English effect)
 EFFECTS = {
     1: ([{'kind': 'discardFromHand', 'cardIds': [14], 'count': 1, 'who': 'self'}],
@@ -158,6 +166,7 @@ def main():
         costume_name, costume = by_number[i]
         effects, text = WALL_EFFECT if i in WALLS else EFFECTS.get(i, ([], ''))
         explain = ' '.join(s.strip() for s in (L['Explain A'][i - 1], L['Explain B'][i - 1]) if s.strip())
+        explain = EXPLAIN_OVERRIDES.get(i, explain)
         in_packs = [{'pack': pid, 'copies': n} for (cid, pid), n in sorted(pack_copies.items()) if cid == i]
         cards.append({
             'id': i,

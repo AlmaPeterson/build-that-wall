@@ -729,7 +729,7 @@
    "blockable": false,
    "heldUntilResolved": false,
    "help": "",
-   "explain": "Build pairs or triples of matching walls from your hand for 1 action per set. No Man Hours.",
+   "explain": "Build pairs or triples of matching walls from your hand. The first set comes with this card's action; each extra set costs 1 more action. No Man Hours.",
    "effect": "Build every copy of one matching kind (2 or 3) from your hand. The first set is covered by this card's action; each further set costs 1 action. No Man Hours.",
    "effects": [
     {
