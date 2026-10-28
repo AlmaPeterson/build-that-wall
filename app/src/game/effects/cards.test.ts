@@ -302,6 +302,7 @@ describe('pile picks: Freedom of the Press (11), Supreme Court Nominee (22), Vot
     expect(s.seats[0]!.hand).toEqual([7, 7]);
     expect(s.discard).toEqual([W1, 27]);
     expect(s.draw).toEqual([14]);
+    expect(ctx.discardAtEmit[0]).toContain(27);    // already on the pile when it's announced (so it's seen going there)
   });
 
   it('Freedom of the Press: up to 4 from both piles into jail, with the card; release in 3 rounds; draw shuffled', async () => {

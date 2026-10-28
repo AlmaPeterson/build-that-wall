@@ -237,3 +237,16 @@ describe('reading cards', () => {
     } finally { vi.useRealTimers(); }
   });
 });
+
+describe('a played card with nowhere to go yet', () => {
+  it("stays in the middle instead of flying to the player's own side", () => {
+    const a = base();
+    a.turn = 0;
+    a.seats[0]!.hand = [27, 29];
+    const b = clone(a);
+    b.seats[0]!.hand = [29];                                     // in no pile yet
+    const play: GameEvent = { type: 'play', seat: 0, card: 27, text: 'Player 1 played Vote Recount.' };
+    const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
+    expect(plan.flights[0]!.keys.at(-1)).toMatchObject(CENTER);
+  });
+});
