@@ -144,6 +144,7 @@
   z-index: 5; cursor: grabbing; opacity: .95;
   filter: drop-shadow(0 calc(var(--u) * 4) calc(var(--u) * 5) rgba(0, 0, 0, .5));
 }
+.hand__card--lifted { opacity: .3; }
 .hand__card--dragging img { transform: scale(1.08) translateY(calc(var(--u) * -3)); }
 .hand__hidden {
   left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 78);
@@ -217,3 +218,15 @@ button.board__log { cursor: pointer; font-family: inherit; }
 .card-zoom { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, .7); display: flex; align-items: center; }
 .card-zoom__stage { background: none; }
 .card-zoom .zoom { background: none; }
+
+/* A card dragged out of the hand: it follows the pointer; where it can go lights up */
+.hand-ghost { position: absolute; z-index: 45; pointer-events: none; transform: translate(-50%, -60%) rotate(-4deg);
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .5)); border-radius: 4px; }
+.drop-zone { position: absolute; z-index: 44; pointer-events: none; border-radius: calc(var(--u) * 6);
+  border: calc(var(--u) * 2) dashed #999; background: rgba(0, 0, 0, .04); }
+.drop-zone--ok { border-color: #1a9c3a; background: rgba(26, 156, 58, .12); }
+.drop-zone--ok.drop-zone--over { border-style: solid; background: rgba(26, 156, 58, .28); }
+.drop-zone--no.drop-zone--over { border-color: var(--red); background: rgba(217, 52, 43, .15); }
+.drop-zone__label { position: absolute; left: 0; right: 0; top: calc(var(--u) * 2); text-align: center;
+  font: bold calc(var(--u) * 8) Arial, sans-serif; color: #1a6b2c; }
+.drop-zone--no .drop-zone__label { color: #888; }

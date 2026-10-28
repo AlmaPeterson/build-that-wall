@@ -12,7 +12,7 @@ import type { CardId } from '../../data/cards';
 import { DEFAULT_SETTINGS } from '../../game';
 import { GameController, type GameSnapshot } from '../controller';
 import { Board } from './Board';
-import { canInteract, ranking, shownHand } from './board-state';
+import { canInteract, dropAction, ranking, shownHand } from './board-state';
 
 const tick = () => new Promise(r => setTimeout(r, 0));
 let root: HTMLElement | null = null;
@@ -110,6 +110,23 @@ describe('Board', () => {
     // Tapping the Man Hour (now third) opens the Man Hour
     await click(card('Man Hour'));
     expect($('.zoom h3')?.textContent).toBe('Man Hour');
+  });
+
+  it('dropping a card: the discard pile plays it, your walls build it, anything else says why', async () => {
+    const c = await setup([26, 29, 14, 30, 31, 20, 3]);
+    const drop = (slot: number, zone: 'discard' | 'walls') => dropAction(c.api, c.snapshot.get(), slot, zone);
+    expect(drop(0, 'discard')).toEqual({ choice: { kind: 'play', slot: 0 } });                 // Trump: play it
+    expect(drop(1, 'walls')).toEqual({ open: true });                                          // Man Hour or 2 walls: ask
+    expect(drop(2, 'walls')).toEqual({ choice: { kind: 'manHourOnWall', manHour: 2 } });       // Man Hour: pick the wall
+    expect(drop(6, 'walls')).toEqual({ choice: { kind: 'play', slot: 6 } });                   // Assassin builds for free
+    expect(drop(1, 'discard')).toEqual({ reason: 'Wall Sections are built: drop it on your walls.' });
+    expect(drop(0, 'walls')).toMatchObject({ reason: expect.stringMatching(/discard pile to play it/) });
+    expect(drop(5, 'discard')).toMatchObject({ reason: expect.stringMatching(/block an attack/) });  // Self-Defense
+  });
+
+  it('a wall with only one way to pay is built straight away', async () => {
+    const c = await setup([29, 14]);
+    expect(dropAction(c.api, c.snapshot.get(), 0, 'walls')).toEqual({ choice: { kind: 'build', slot: 0, manHour: 1 } });
   });
 
   it('playable cards show their cost; unplayable ones say why', async () => {

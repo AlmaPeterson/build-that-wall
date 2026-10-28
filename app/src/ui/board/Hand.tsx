@@ -21,21 +21,29 @@ interface Props {
   cards: readonly CardId[];
   onCard(slot: number): void;
   picking?: HandPicking | null;
+  /**
+   * A card pulled up out of the hand follows the pointer around the board (to drop it on the discard pile or
+   * your walls): called as it moves ('move'), when it's let go ('drop') and if the drag is cut off ('cancel').
+   * x, y are viewport pixels. Without it, cards only move along the hand.
+   */
+  onLift?(slot: number, x: number, y: number, phase: 'move' | 'drop' | 'cancel'): void;
 }
 
 const DRAG_START_PX = 6;      // a mouse press that moves further than this is a drag, not a tap
 const TOUCH_HOLD_MS = 250;    // on a touch screen, hold this long before dragging (a quick swipe scrolls)
 const EDGE_PX = 24;           // dragging near either end scrolls the hand
+const LIFT_PX = 30;           // pulling a card this far up takes it out of the hand
 
 interface Drag { from: number; to: number; dx: number }
 
-export function Hand({ seat, cards, onCard, picking }: Props) {
+export function Hand({ seat, cards, onCard, picking, onLift }: Props) {
   const row = useRef<HTMLDivElement>(null);
   useStore(handOrderVersion);
   const [drag, setDragState] = useState<Drag | null>(null);
   const dragNow = useRef<Drag | null>(null);           // the latest, for pointerup (state may not have re-rendered yet)
   const setDrag = (d: Drag | null) => { dragNow.current = d; setDragState(d); };
-  const press = useRef<{ x: number; from: number; id: number; active: boolean; scroll0: number; timer?: ReturnType<typeof setTimeout> } | null>(null);
+  const press = useRef<{ x: number; y: number; from: number; id: number; active: boolean; free: boolean; scroll0: number; timer?: ReturnType<typeof setTimeout> } | null>(null);
+  const [lifted, setLifted] = useState<number | null>(null);
   const swallowClick = useRef(false);
   const order = displayOrder(seat, cards);
   /** Width of one card plus the gap, in pixels. */
@@ -52,7 +60,7 @@ export function Hand({ seat, cards, onCard, picking }: Props) {
 
   function down(e: PointerEvent, from: number) {
     if (picking || e.button > 0) return;
-    const p = { x: e.clientX, from, id: e.pointerId, active: false, scroll0: row.current?.scrollLeft ?? 0 } as NonNullable<typeof press.current>;
+    const p = { x: e.clientX, y: e.clientY, from, id: e.pointerId, active: false, free: false, scroll0: row.current?.scrollLeft ?? 0 } as NonNullable<typeof press.current>;
     if (e.pointerType === 'touch') {
       p.timer = setTimeout(() => {
         p.active = true;
@@ -66,13 +74,20 @@ export function Hand({ seat, cards, onCard, picking }: Props) {
   function move(e: PointerEvent) {
     const p = press.current, el = row.current;
     if (!p || e.pointerId !== p.id || !el) return;
-    const dx0 = e.clientX - p.x;
+    const dx0 = e.clientX - p.x, dy0 = e.clientY - p.y;
     if (!p.active) {
-      if (e.pointerType === 'touch') { if (Math.abs(dx0) > DRAG_START_PX) { clearTimeout(p.timer); press.current = null; } return; }
-      if (Math.abs(dx0) < DRAG_START_PX) return;
+      if (e.pointerType === 'touch') { if (Math.hypot(dx0, dy0) > DRAG_START_PX) { clearTimeout(p.timer); press.current = null; } return; }
+      if (Math.hypot(dx0, dy0) < DRAG_START_PX) return;
       p.active = true;
     }
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    // Pulled up out of the hand: it follows the pointer around the board
+    if (!p.free && onLift && -dy0 > LIFT_PX && -dy0 > Math.abs(dx0)) {
+      p.free = true;
+      setDrag(null);
+      setLifted(order[p.from]!);
+    }
+    if (p.free) { onLift?.(order[p.from]!, e.clientX, e.clientY, 'move'); return; }
     const box = el.getBoundingClientRect();
     if (e.clientX < box.left + EDGE_PX) el.scrollLeft -= 8;
     else if (e.clientX > box.right - EDGE_PX) el.scrollLeft += 8;
@@ -86,6 +101,12 @@ export function Hand({ seat, cards, onCard, picking }: Props) {
     if (!p || e.pointerId !== p.id) return;
     clearTimeout(p.timer);
     press.current = null;
+    if (p.free) {
+      swallowClick.current = true;
+      setLifted(null);
+      onLift?.(order[p.from]!, e.clientX, e.clientY, e.type === 'pointercancel' ? 'cancel' : 'drop');
+      return;
+    }
     if (p.active) {
       swallowClick.current = true;                         // the click that follows a drag isn't a tap
       const d = dragNow.current;
@@ -133,7 +154,7 @@ export function Hand({ seat, cards, onCard, picking }: Props) {
           const picked = picking?.picked.includes(slot) ?? false;
           const dragging = drag !== null && order[drag.from] === slot;
           const cls = ['hand__card', picking && pickable && !picked ? 'hand__card--pickable' : '', picked ? 'hand__card--picked' : '',
-            picking && !pickable ? 'hand__card--dim' : '', dragging ? 'hand__card--dragging' : ''].join(' ');
+            picking && !pickable ? 'hand__card--dim' : '', dragging ? 'hand__card--dragging' : '', lifted === slot ? 'hand__card--lifted' : ''].join(' ');
           return (
             <button type="button" role="listitem" class={cls} key={slot} disabled={!pickable} data-slot={slot}
               // the dragged card follows the pointer from wherever it has been put in the row
