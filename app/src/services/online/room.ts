@@ -1,0 +1,482 @@
+// ---- online play: host/join with a room code, through a public MQTT relay.
+// The host's device is the hub: players talk to the host, and the host relays to everyone.
+// Whoever's turn it is sends the whole game state whenever it changes.
+import {
+  ALL_ROOMS, codeFromTopic, parseMsg, parseRoomInfo, topics,
+  type AskMsg, type DownMsg, type GameMsg, type RoomInfo,
+} from './protocol';
+import type { Connect, Transport } from './transport';
+
+/** What the room needs from the game. The game core doesn't know about rooms. */
+export interface GameHooks {
+  /** The whole shared state, JSON-serialisable. */
+  getState(): unknown;
+  /** Replace the shared state with one from another device. */
+  applyState(state: unknown): void;
+  isRunning(): boolean;
+  /** Whose turn it is (seat 1-6, bots included). */
+  turn(): number;
+  /** The seat whose device plays the current turn: bots and empty seats are played by the host (see seatOwner). */
+  turnOwner(): number;
+}
+
+/** Things that happen to this device. All optional. */
+export interface RoomEvents {
+  /** This device's seat changed (1 = host or offline, 0 = spectator). */
+  onSeat?(seat: number): void;
+  /** Another device just passed the turn to this one. */
+  onMyTurn?(): void;
+  /** Another device asked this one to end its turn. */
+  onEndTurn?(): void;
+  /** A player left mid-game (host: from its own heartbeat check; players: told by the host). */
+  onPlayerLeft?(seat: number): void;
+  /** The host left or stopped answering. wasPlaying: a game was running. */
+  onHostLost?(wasPlaying: boolean): void;
+  /** Another player asks this device a question; resolve with the answer. */
+  onAsk?(ask: AskMsg): Promise<string>;
+  /** Progress text for the player ("Looking for an online game..."). */
+  onStatus?(text: string): void;
+}
+
+export type Role = '' | 'host' | 'client';
+
+export interface HostOptions {
+  /** 2 to 6, default 6 */
+  max?: number;
+  /** Gold rooms: late or extra people can watch */
+  spectators?: boolean;
+  /** Listed for quick match */
+  world?: boolean;
+}
+
+export interface AskQuestion {
+  l1: string;
+  l2: string;
+  l3: string;
+  card: number;
+  mode: string;
+}
+
+const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';     // no I, L, O, 0 or 1: easy to read out
+const TICK_MS = 120;
+const BEAT_MS = 4000;
+const GONE_MS = 20000;            // no heartbeat for this long: the player or host has gone
+const ROOM_WAIT_MS = 2500;
+const ROOM_STALE_MS = 40000;
+const JOIN_WAIT_MS = 9000;
+const SCAN_MS = 2000;
+const QUICK_FRESH_MS = 30000;
+const ASK_TIMEOUT_MS = 45000;
+
+const ERRORS: Record<string, string> = {
+  'peer-unavailable': 'No game with that code is open.',
+  network: 'Could not reach the online service (check your internet).',
+  'server-error': 'The online service is busy. Try again.',
+  'socket-error': 'The online service is busy. Try again.',
+  'unavailable-id': 'That room code is already in use.',
+  'browser-incompatible': 'This browser cannot play online.',
+  timeout: 'The other player did not answer in time.',
+  found: 'Found a game but could not connect (your network may block online play).',
+  hostleft: 'The host left the game.',
+  load: 'Could not load the online library (check internet).',
+};
+
+/**
+ * The seat whose device plays turn `turn`: bots (the last `ai` seats) and seats whose player
+ * left are played by the host (seat 1). leftSeats[i] is 1 when seat i+1's player left.
+ */
+export function seatOwner(turn: number, players: number, ai: number, leftSeats: ReadonlyArray<number | string>): number {
+  const t = +turn || 0;
+  if (+(leftSeats[t - 1] ?? 0) === 1) return 1;
+  return t > (+players || 0) - (+ai || 0) ? 1 : t;
+}
+
+/** A player name: control characters become spaces, at most 20 characters, trimmed. */
+export function cleanName(text: string): string {
+  const chars = Array.from(String(text)).map((c) => (c.charCodeAt(0) < 32 ? ' ' : c)).join('').trim();
+  return Array.from(chars).slice(0, 20).join('').trim();
+}
+
+function randomCode(random: () => number, prefix = ''): string {
+  let code = prefix;
+  for (let i = 0; i < 5; i++) code += LETTERS[Math.floor(random() * LETTERS.length)];
+  return code;
+}
+
+export class OnlineRoom {
+  private transport: Transport | null = null;
+  private _role: Role = '';
+  private _code = '';
+  private _seat = 1;
+  private _err = '';
+  private max = 6;
+  private spectators = false;
+  private world = false;
+  private cid = '';
+  private conns = new Map<number, { cid: string }>();     // host: seat -> player
+  private cid2seat = new Map<string, number>();
+  private seen = new Map<number, number>();               // host: seat -> last heard from
+  private lastSeen = 0;                                   // player: last heard from the host
+  private last = '';                                      // the state we last sent or got
+  private was = false;                                    // it was our turn on the last tick
+  private joining = false;
+  private askId = 0;
+  private asks = new Map<string, (answer: string) => void>();
+  private scan: Map<string, RoomInfo> | null = null;
+  private roomWait: ((info: RoomInfo | null) => void) | null = null;
+  private joinDone: ((seat: number) => void) | null = null;
+  private tickTimer: ReturnType<typeof setInterval> | null = null;
+  private beatTimer: ReturnType<typeof setInterval> | null = null;
+
+  constructor(
+    private readonly connectTransport: Connect,
+    private readonly game: GameHooks,
+    private readonly events: RoomEvents = {},
+    private readonly random: () => number = Math.random,
+  ) {}
+
+  get role(): Role { return this._role; }
+  get seat(): number { return this._seat; }
+  get code(): string { return this._code; }
+  /** Last problem code, e.g. "timeout" ("" = none). */
+  get error(): string { return this._err; }
+  /** The last problem in words for the player. */
+  get errorMessage(): string {
+    const e = this._err;
+    return ERRORS[e] ?? (e ? 'Online problem: ' + e : '');
+  }
+  /** Players connected, the host included. */
+  get count(): number {
+    return this._role === 'host' ? 1 + this.conns.size : this._role ? 1 : 0;
+  }
+
+  /** Opens a room. Resolves the room code, or "" if the relay couldn't be reached. */
+  async host(opts: HostOptions = {}): Promise<string> {
+    // NOTE: the PenguinMod "host ... code [CODE]" block accepted a wanted code, but the MQTT version
+    // always ignored it and made a random one. Kept that way.
+    this.leave();
+    if (!(await this.connect())) return '';
+    this.openAsHost(randomCode(this.random), opts.max, !!opts.spectators, !!opts.world);
+    await this.sub(topics(this._code).up);
+    this.roomInfo();
+    this.startTimers();
+    return this._code;
+  }
+
+  /** Joins a room. Resolves the seat (2-6), -1 for a spectator, or 0 if it failed (see error). */
+  async join(code: string, wait = JOIN_WAIT_MS): Promise<number> {
+    this.leave();
+    const clean = String(code).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!clean) return 0;
+    if (!(await this.connect())) return 0;
+    return this.joinCode(clean, wait);
+  }
+
+  /** Quick match: join the fullest open world room, or open one if none is free. Resolves the seat. */
+  async quick(max = 6): Promise<number> {
+    this.leave();
+    this.events.onStatus?.('Connecting to the online service...');
+    if (!(await this.connect())) return 0;
+    this.events.onStatus?.('Looking for an online game...');
+    this.scan = new Map();
+    await this.sub(ALL_ROOMS);
+    await new Promise((r) => setTimeout(r, SCAN_MS));
+    this.unsub(ALL_ROOMS);
+    const now = Date.now();
+    const rooms = [...this.scan.entries()]
+      .filter(([, i]) => i && i.world && i.open && !i.running && i.players < i.max && now - i.ts < QUICK_FRESH_MS)
+      .sort((x, y) => y[1].players - x[1].players);
+    this.scan = null;
+    for (const [code] of rooms) {
+      this.events.onStatus?.('Joining an online game...');
+      const seat = await this.joinCode(code, JOIN_WAIT_MS);
+      if (seat > 0) return seat;
+    }
+    // nobody waiting: open a world room on the same connection
+    // NOTE: a failed join above leaves its error (e.g. "timeout") set even though hosting worked.
+    this.openAsHost(randomCode(this.random, 'W'), max, false, true);
+    await this.sub(topics(this._code).up);
+    this.roomInfo();
+    this.startTimers();
+    return 1;
+  }
+
+  leave(): void {
+    const tr = this.transport;
+    if (tr) {
+      const t = topics(this._code);
+      if (this._role === 'host') { tr.publish(t.room, '', true); this.pubTo(tr, t.down, { t: 'end' }); }
+      else if (this._role === 'client') this.pubTo(tr, t.up, { t: 'bye', cid: this.cid });
+      this.transport = null;
+      setTimeout(() => tr.end(), 300);     // let the goodbye go out first
+    }
+    this._role = ''; this._code = ''; this._seat = 1; this.was = false; this.last = '';
+    this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.joining = false;
+    this.stopTimers();
+    this.events.onSeat?.(1);
+  }
+
+  /** Ends the current turn, on whichever device plays it. */
+  endTurn(): void {
+    if (!this._role) return;
+    const to = this.game.turnOwner();
+    if (to === this._seat) { this.events.onEndTurn?.(); return; }
+    this.send({ t: 'endturn', to });
+  }
+
+  /** Asks another seat's device a question. Resolves its answer, or "no" if it can't answer. */
+  ask(seat: number, q: AskQuestion): Promise<string> {
+    if (!this._role) return Promise.resolve('no');
+    const id = ++this.askId + '-' + this._seat;
+    return new Promise((res) => {
+      this.asks.set(id, res);
+      const m: AskMsg = { t: 'ask', to: +seat, from: this._seat, id, l1: String(q.l1), l2: String(q.l2), l3: String(q.l3), card: +q.card || 0, mode: String(q.mode) };
+      if (this._role === 'host') {
+        if (this.conns.has(m.to)) this.pub(topics(this._code).down, m);
+        else { this.asks.delete(id); res('no'); return; }
+      } else this.send(m);
+      setTimeout(() => { if (this.asks.has(id)) { this.asks.delete(id); res('no'); } }, ASK_TIMEOUT_MS);
+    });
+  }
+
+  // ---- connection
+
+  private async connect(): Promise<boolean> {
+    let tr: Transport | null;
+    try { tr = await this.connectTransport(); } catch { this._err = 'load'; return false; }
+    if (!tr) { this._err = 'network'; return false; }
+    this.transport = tr;
+    tr.onMessage((topic, payload) => { if (this.transport === tr) this.handle(topic, payload); });
+    tr.onClose(() => { if (this.transport === tr) this.lost(); });
+    return true;
+  }
+
+  private pubTo(tr: Transport, topic: string, msg: object | string, retain?: boolean): void {
+    tr.publish(topic, typeof msg === 'string' ? msg : JSON.stringify(msg), retain);
+  }
+  private pub(topic: string, msg: object | string, retain?: boolean): void {
+    if (this.transport) this.pubTo(this.transport, topic, msg, retain);
+  }
+  private sub(topic: string): Promise<void> {
+    return this.transport ? this.transport.subscribe(topic) : Promise.resolve();
+  }
+  private unsub(topic: string): void {
+    this.transport?.unsubscribe(topic);
+  }
+
+  /** Host: to everyone (but the seat it came from). Player: to the host. */
+  private send(msg: GameMsg, exceptSeat?: number): void {
+    const t = topics(this._code);
+    if (this._role === 'host') this.pub(t.down, exceptSeat !== undefined ? { ...msg, _except: exceptSeat } : { ...msg });
+    else if (this._role === 'client') this.pub(t.up, { ...msg, cid: this.cid });
+  }
+
+  private openAsHost(code: string, max: number | undefined, spectators: boolean, world: boolean): void {
+    this._code = code; this._role = 'host'; this._seat = 1;
+    this.max = Math.max(2, Math.min(6, +(max ?? 6) || 6));
+    this.spectators = spectators; this.world = world;
+    this.conns.clear(); this.cid2seat.clear(); this.seen.clear();
+    this.events.onSeat?.(1);
+  }
+
+  private async joinCode(code: string, wait: number): Promise<number> {
+    this._code = code; this.cid = 'c' + this.random().toString(36).slice(2, 12); this._err = '';
+    const t = topics(code);
+    const info = await new Promise<RoomInfo | null>((res) => {
+      this.roomWait = res;
+      void this.sub(t.room);
+      setTimeout(() => res(null), ROOM_WAIT_MS);
+    });
+    this.roomWait = null; this.unsub(t.room);
+    if (!info || !info.open || Date.now() - (info.ts || 0) > ROOM_STALE_MS) { this._err = 'peer-unavailable'; return 0; }
+    await this.sub(t.down); await this.sub(t.client(this.cid));
+    this.joining = true;
+    const seat = await new Promise<number>((res) => {
+      this.joinDone = (s) => { this.joinDone = null; res(s); };
+      this.pub(t.up, { t: 'hello', cid: this.cid });
+      setTimeout(() => { if (this.joinDone) { this._err = 'timeout'; this.joinDone = null; res(0); } }, wait);
+    });
+    this.joining = false;
+    if (seat !== 0) { this._role = 'client'; this.lastSeen = Date.now(); this.startTimers(); return seat; }
+    this.unsub(t.down); this.unsub(t.client(this.cid));
+    return 0;
+  }
+
+  // ---- incoming
+
+  private handle(topic: string, payload: string): void {
+    if (topic.endsWith('/room')) {
+      const code = codeFromTopic(topic);
+      const info = parseRoomInfo(payload);
+      if (this.scan) { if (info) this.scan.set(code, info); else this.scan.delete(code); }
+      if (this.roomWait && code === this._code) this.roomWait(info);
+      return;
+    }
+    const d = parseMsg(payload);
+    if (!d) return;
+    this.lastSeen = Date.now();
+    const t = topics(this._code);
+    if (this._role === 'host' && topic === t.up) {
+      if (!('cid' in d) || typeof d.cid !== 'string') return;
+      if (d.t === 'hello') { this.hostHello(d.cid); return; }
+      const s = this.cid2seat.get(d.cid);
+      if (d.t === 'bye') { if (s) this.gone(s); return; }
+      if (!s) return;
+      this.seen.set(s, Date.now());
+      if (d.t === 'hb') return;
+      this.onMsg(d as DownMsg, s);
+      return;
+    }
+    if (this._role === 'client' || this.joining) {
+      if (d.t === 'hb') return;
+      if (d.t === 'end') { this.lost(); return; }
+      if ('_except' in d && d._except !== undefined && d._except === this._seat) return;
+      this.onMsg(d as DownMsg, 1);
+    }
+  }
+
+  private hostHello(cid: string): void {
+    const to = topics(this._code).client(cid);
+    const known = this.cid2seat.get(cid);
+    if (known) { this.pub(to, { t: 'welcome', seat: known }); return; }
+    let seat = 0;
+    for (let s = 2; s <= this.max; s++) if (!this.conns.has(s)) { seat = s; break; }
+    if (!seat || this.game.isRunning()) {
+      if (this.spectators) {
+        this.pub(to, { t: 'welcome', seat: 0, spectator: true });
+        this.pub(to, { t: 'state', data: this.game.getState(), from: 1 });
+      } else this.pub(to, { t: 'full' });
+      return;
+    }
+    this.conns.set(seat, { cid }); this.cid2seat.set(cid, seat); this.seen.set(seat, Date.now());
+    this.pub(to, { t: 'welcome', seat });
+    this.roomInfo();
+  }
+
+  private onMsg(d: DownMsg, fromSeat: number): void {
+    const host = this._role === 'host';
+    if (host && fromSeat !== 1) {                        // host relays everything from players
+      if (d.t === 'state') this.send(d, fromSeat);
+      if ((d.t === 'ask' || d.t === 'answer') && d.to !== 1 && this.conns.has(d.to)) this.pub(topics(this._code).down, d);
+    }
+    switch (d.t) {
+      case 'welcome':
+        this._seat = d.seat; this.events.onSeat?.(d.seat);
+        this.joinDone?.(d.spectator ? -1 : d.seat);
+        break;
+      case 'full':
+        this.joinDone?.(0);
+        break;
+      case 'state':
+        this.applyIncoming(d.data);
+        break;
+      case 'ask':
+        if (d.to === this._seat) this.answerAsk(d);
+        break;
+      case 'answer': {
+        const done = d.to === this._seat ? this.asks.get(d.id) : undefined;
+        if (done) { done(d.value); this.asks.delete(d.id); }
+        break;
+      }
+      case 'endturn':
+        if (host && d.to !== 1) this.send(d);
+        else if (d.to === this._seat) this.events.onEndTurn?.();
+        break;
+      case 'playerleft':
+        if (this._role === 'client') this.events.onPlayerLeft?.(d.seat);
+        break;
+    }
+  }
+
+  private applyIncoming(state: unknown): void {
+    const prevTurn = this.game.turn(), prevOwner = this.game.turnOwner();
+    this.game.applyState(state);
+    this.last = JSON.stringify(this.game.getState());      // don't echo it back
+    const turn = this.game.turn();
+    if (this.game.isRunning() && prevOwner !== this._seat && this.game.turnOwner() === this._seat && String(prevTurn) !== String(turn)) {
+      this.events.onMyTurn?.();
+    }
+  }
+
+  private answerAsk(q: AskMsg): void {
+    if (!this.events.onAsk) return;                        // nobody to answer: the asker times out with "no"
+    void this.events.onAsk(q).then((value) => {
+      if (!this._role) return;
+      const m: GameMsg = { t: 'answer', to: q.from, id: q.id, value: String(value) };
+      if (this._role === 'host') { if (this.conns.has(q.from)) this.pub(topics(this._code).down, m); }
+      else this.send(m);
+    });
+  }
+
+  // ---- players coming and going
+
+  /** A player said goodbye or stopped answering. */
+  private gone(seat: number): void {
+    if (this.game.isRunning()) this.playerLeft(seat);
+    else this.drop(seat);
+  }
+
+  private playerLeft(seat: number): void {
+    this.drop(seat, false);
+    this.pub(topics(this._code).down, { t: 'playerleft', seat });
+    this.events.onPlayerLeft?.(seat);
+    this.roomInfo();
+  }
+
+  private drop(seat: number, announce = true): void {
+    const c = this.conns.get(seat);
+    if (c) this.cid2seat.delete(c.cid);
+    this.conns.delete(seat); this.seen.delete(seat);
+    if (announce) this.roomInfo();
+  }
+
+  private roomInfo(): void {
+    if (this._role !== 'host') return;
+    const info: RoomInfo = { open: 1, players: this.count, max: this.max, running: this.game.isRunning() ? 1 : 0, world: this.world ? 1 : 0, ts: Date.now() };
+    this.pub(topics(this._code).room, info, true);
+  }
+
+  private lost(): void {
+    if (this._role !== 'client') return;
+    const wasPlaying = this.game.isRunning();
+    this._role = ''; this._err = 'hostleft';
+    this.events.onHostLost?.(wasPlaying);
+  }
+
+  // ---- timers: state sync and heartbeats
+
+  private startTimers(): void {
+    if (!this.tickTimer) this.tickTimer = setInterval(() => { try { this.tick(); } catch { /* keep ticking */ } }, TICK_MS);
+    if (!this.beatTimer) this.beatTimer = setInterval(() => { try { this.beat(); } catch { /* keep beating */ } }, BEAT_MS);
+  }
+
+  private stopTimers(): void {
+    // NOTE: the PenguinMod version never stopped these (they idled with no role); stopping them is harmless.
+    if (this.tickTimer) clearInterval(this.tickTimer);
+    if (this.beatTimer) clearInterval(this.beatTimer);
+    this.tickTimer = this.beatTimer = null;
+  }
+
+  /** Whoever's turn it is sends the state when it changes (and once more when the turn passes on). */
+  private tick(): void {
+    if (!this._role) return;
+    if (!this.game.isRunning() && !this.was) return;
+    const mine = this.game.turnOwner() === this._seat;
+    if (mine || this.was) {
+      const data = this.game.getState(), js = JSON.stringify(data);
+      if (js !== this.last) { this.last = js; this.send({ t: 'state', data, from: this._seat }); }
+    }
+    this.was = mine;
+  }
+
+  private beat(): void {
+    const t = topics(this._code);
+    if (this._role === 'host') {
+      this.pub(t.down, { t: 'hb' }); this.roomInfo();
+      for (const [s, at] of [...this.seen]) if (Date.now() - at > GONE_MS) this.gone(s);
+    } else if (this._role === 'client') {
+      this.pub(t.up, { t: 'hb', cid: this.cid });
+      if (Date.now() - (this.lastSeen || Date.now()) > GONE_MS) this.lost();
+    }
+  }
+}
