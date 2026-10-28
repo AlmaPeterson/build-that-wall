@@ -4,6 +4,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
+import { settings } from '../app-state';
+
+// These test the board and overlays, not the card animations (ui/anim has its own tests)
+settings.update(s => ({ ...s, animSpeed: 'off' }));
 import type { CardId } from '../../data/cards';
 import { DEFAULT_SETTINGS } from '../../game';
 import { GameController, type GameSnapshot } from '../controller';
@@ -74,6 +78,16 @@ describe('Board', () => {
     await click($('.hand__card[data-slot="1"]'));
     expect(c.api!.state.seats[0]!.walls).toEqual([29]);
     expect(c.api!.state.actionsLeft).toBe(2);
+  });
+
+  it('with two Man Hours, the second one can build any wall too', async () => {
+    const c = await setup([14, 29, 14, 30]);
+    await click($('.hand__card[data-slot="2"]'));
+    await click($$('.zoom__buttons button')[0]);
+    expect($$('.hand__card--pickable').map(b => b.dataset.slot)).toEqual(['1', '3']);
+    await click($('.hand__card[data-slot="3"]'));
+    expect(c.api!.state.seats[0]!.walls).toEqual([30]);
+    expect(c.api!.state.seats[0]!.hand).toEqual([14, 29]);
   });
 
   it('playable cards show their cost; unplayable ones say why', async () => {
@@ -156,6 +170,8 @@ describe('board-state', () => {
     expect(shownHand(snap({}))).toBe(0);
     expect(shownHand(snap({ view: { ...v, turn: 1 } }))).toBeNull();
     expect(shownHand(snap({ viewer: 1 }))).toBeNull();
+    expect(shownHand(snap({ passTo: 0 }))).toBeNull();                    // the pass screen slides over the board
+    expect(shownHand(snap({ view: { ...v, turn: -1 } }))).toBeNull();     // dealing
   });
 
   it('ranking shares a place on equal miles', () => {

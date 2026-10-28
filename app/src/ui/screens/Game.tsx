@@ -1,6 +1,7 @@
 // The in-game screen: the board with the overlays (questions, pass screen, win screen...) on top.
 import { controller as controllerStore, screen } from '../app-state';
 import { Board } from '../board/Board';
+import { CardZoom } from '../board/CardZoom';
 import { startDemoFromUrl } from '../board/demo';
 import { Button } from '../components/Button';
 import { Overlays } from '../overlays/Overlays';
@@ -23,6 +24,7 @@ export function GameScreen() {
     <div class="game-screen">
       <Board controller={c} />
       <Overlays controller={c} />
+      <CardZoom />
     </div>
   );
 }

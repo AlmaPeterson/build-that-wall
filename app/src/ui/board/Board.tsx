@@ -11,7 +11,7 @@ import type { GameController } from '../controller';
 import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
 import {
-  buildMenu, canInteract, cardActions, payableWalls, shownHand, type CardChoice,
+  buildMenu, canInteract, cardActions, manHourWalls, payableWalls, shownHand, type CardChoice,
 } from './board-state';
 import { BuildMenu, ConfirmEnd } from './BoardModal';
 import { ActionLog } from './ActionLog';
@@ -98,7 +98,8 @@ export function Board({ controller }: { controller: GameController }) {
   const api = controller.api;
   const pickable = !picking ? [] : picking.kind === 'walls'
     ? payableWalls(hand, picking.slot)
-    : (api?.buildOptions(snap.viewer) ?? []).filter(b => 'manHour' in b.pay && b.pay.manHour === picking.manHour).map(b => b.slot);
+    // Any wall can be built with the Man Hour that was tapped (the engine's list only pairs walls with the first Man Hour)
+    : (api?.buildOptions(snap.viewer).length ? manHourWalls(hand) : []);
 
   function onCard(slot: number) {
     playSfx('click');
@@ -123,6 +124,7 @@ export function Board({ controller }: { controller: GameController }) {
   const running = !view.over;
 
   return (
+    <>
     <div class="stage board">
       <div class="board__header" style={{ backgroundImage: `url(${HEADER_IMAGE})` }} role="banner" aria-label="Build That Wall" />
       {running && <ActionLog events={snap.events} />}
@@ -134,7 +136,7 @@ export function Board({ controller }: { controller: GameController }) {
 
       {handSeat !== null
         ? <Hand cards={hand} onCard={onCard} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
-        : <HiddenHand lastCard={botEvent?.card ?? null} />}
+        : <HiddenHand lastCard={view.turn < 0 ? null : botEvent?.card ?? null} dealing={view.turn < 0} />}
 
       {picking && (
         <div class="at pickbar" role="status">
@@ -156,10 +158,6 @@ export function Board({ controller }: { controller: GameController }) {
         <Button onClick={() => screen.set('instructions')}>Instructions</Button>
       </div>
 
-      <div class="board__footer">
-        <a href={AMAZON} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
-        <small>™ &amp; ® 2024 Beacon Political</small>
-      </div>
 
       {open !== null && hand[open] !== undefined && (
         <CardPopup card={hand[open]!} actions={cardActions(api, snap, open, busy)} onChoose={choose} onClose={() => setOpen(null)} />
@@ -168,5 +166,11 @@ export function Board({ controller }: { controller: GameController }) {
       {confirm && <ConfirmEnd onYes={endGame} onNo={() => setConfirm(false)} />}
       <FlightLayer animator={animator} />
     </div>
+    {/* At the bottom of the window, however tall it is */}
+    <footer class="board__footer">
+      <a href={AMAZON} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
+      <small>™ &amp; ® 2024 Beacon Political</small>
+    </footer>
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import { cardById } from '../../data/cards';
 import type { GameState, Seat } from '../../game';
 import { cardImage } from '../assets';
+import { zoomProps } from '../components/zoom';
 import { displayName, isGuarded, TRUMP_TRAIN, wallKinds } from './board-state';
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
@@ -17,11 +18,11 @@ function WallCards({ state, seat, w, h, step, maxWidth }: { state: GameState; se
         const name = cardById(k.kind).name;
         const guarded = isGuarded(state, seat, k.kind);
         return (
-          <div class="wall" key={k.kind} style={{ left: u(i * gap), top: 0, width: u(w), height: u(h) }}
-            title={`${name} ×${k.count}${k.count >= 3 ? ' (complete set)' : ''}${guarded ? ' (protected by a Trump Train)' : ''}`}>
+          <div class="wall" key={k.kind} {...zoomProps(k.kind)} style={{ left: u(i * gap), top: 0, width: u(w), height: u(h), cursor: 'zoom-in' }}
+            title={`${name} ×${k.count}${k.count >= 3 ? ' (complete set)' : ''}${guarded ? ' (protected by a Trump Train)' : ''}. Tap to see it full size.`}>
             <img src={cardImage(k.kind, 'mini')} alt={`${name}, ${k.count} built`} />
             {k.count > 1 && <span class={`wall__badge ${k.count >= 3 ? 'wall__badge--set' : ''}`}>×{Math.min(k.count, 3)}</span>}
-            {guarded && <img class="wall__guard" src={cardImage(TRUMP_TRAIN, 'mini')} alt="Trump Train guard" />}
+            {guarded && <img class="wall__guard" src={cardImage(TRUMP_TRAIN, 'mini')} alt="Trump Train guard" {...zoomProps(TRUMP_TRAIN)} />}
           </div>
         );
       })}

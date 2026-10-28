@@ -22,7 +22,9 @@ export function shownHand(snap: GameSnapshot): Seat | null {
   if (!v) return null;
   const seat = v.seats[snap.viewer];
   if (!seat || seat.bot) return null;                      // watch mode: no human hand to show
-  if (snap.prompt || snap.passTo !== null) return snap.viewer;
+  if (v.turn < 0) return null;                             // dealing: nobody's hand is shown yet
+  if (snap.passTo !== null) return null;                   // the pass screen slides in over the board: show no one's hand
+  if (snap.prompt) return snap.viewer;
   if (v.turn >= 0 && v.seats[v.turn]?.bot && !v.over) return null;   // a bot is playing
   return snap.viewer;
 }
@@ -132,6 +134,11 @@ export function buildMenu(api: GameApi | null, snap: GameSnapshot, busy = false)
     }
   });
   return out;
+}
+
+/** Wall cards in the hand a Man Hour can build: every one of them, whichever Man Hour was picked. */
+export function manHourWalls(hand: readonly CardId[]): number[] {
+  return hand.flatMap((c, i) => (isWall(c) ? [i] : []));
 }
 
 /** Wall cards in the hand that can pay for building `slot` (any other wall). */

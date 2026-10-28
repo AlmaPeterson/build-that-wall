@@ -24,13 +24,17 @@ export interface AnimState {
   caption: string | null;
   /** The player a card is being played on, lit up while it's there. */
   target: Rect | null;
+  /** A played card waiting halfway to its target, drawn where it stopped until the next step. */
+  held: Held | null;
   /** Nothing waiting to be shown: the board is up to date and may be used. */
   idle: boolean;
 }
 
 // Timings at Normal speed (ms)
-const T = { toCenter: 450, hold: 1000, toTarget: 450, move: 550, stagger: 90, maxStagger: 900 };
+const T = { toCenter: 450, hold: 1000, toTarget: 450, move: 550, stagger: 90, maxStagger: 900, blockIn: 550, blockHold: 800, deal: 380, dealGap: 110 };
 const MAX_FLIGHTS = 14;
+const DEAL_FLIGHTS = 36;   // 6 players × 5 cards + room
+const SELF_DEFENSE = 20;
 /** With this many steps waiting (e.g. an online player catching up), play faster; with twice as many, skip. */
 const BACKLOG = 8;
 
@@ -55,7 +59,7 @@ export class Animator {
 
   constructor(private readonly source: Store<GameSnapshot>, private readonly opts: AnimatorOptions) {
     this.last = source.get();
-    this.state = createStore<AnimState>({ snap: this.last, flights: [], duration: 0, caption: null, target: null, idle: true });
+    this.state = createStore<AnimState>({ snap: this.last, flights: [], duration: 0, caption: null, target: null, held: null, idle: true });
     this.unsubscribe = source.subscribe(s => this.push(s));
   }
 
@@ -92,87 +96,163 @@ export class Animator {
 
   private set(p: Partial<AnimState>): void { this.state.set({ ...this.state.get(), ...p }); }
 
-  private show(snap: GameSnapshot): void { this.set({ snap, flights: [], caption: null, target: null, duration: 0 }); }
+  private show(snap: GameSnapshot, held: Held | null = null): void {
+    this.set({ snap, flights: [], caption: null, target: null, duration: 0, held });
+  }
 
   private async step(next: GameSnapshot): Promise<void> {
     const prev = this.state.get().snap;
     const backlog = this.queue.length;
     const speed = backlog >= BACKLOG * 2 ? 0 : this.opts.speed() * (backlog >= BACKLOG ? 0.4 : 1);
-    const plan = speed > 0 ? planStep(prev, next, speed, () => this.nextId++) : null;
-    if (!plan) { this.show(next); return; }
-    this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null }, flights: plan.flights, duration: plan.duration, caption: plan.caption, target: plan.target });
+    let held = this.state.get().held;
+    if (speed <= 0 || !prev.view || prev.viewer !== next.viewer || next.events.length < prev.events.length) held = null;
+    const plan = speed > 0 ? planStep(prev, next, speed, () => this.nextId++, held) : null;
+    if (!plan) { this.show(next, held); return; }
+    this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null }, flights: plan.flights, duration: plan.duration,
+      caption: plan.caption, target: plan.target, held: null });
     await new Promise<void>(resolve => {
       const done = () => { clearTimeout(timer); this.skipNow = null; resolve(); };
       const timer = setTimeout(done, plan.duration);
       this.skipNow = done;
     });
-    this.show(next);
+    this.show(next, plan.held);
   }
 }
 
-export interface StepPlan { mid: GameState; flights: Flight[]; duration: number; caption: string | null; target: Rect | null }
+/** A played card waiting halfway to the player it was played on, while they decide whether to block it. */
+export interface Held { card: CardId; rect: Rect; target: Seat }
 
-/** How to show the step from `prev` to `next`, or null to just show `next` (nothing moved, or a new game / viewer). */
-export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, id: () => number = counter()): StepPlan | null {
+export interface StepPlan {
+  mid: GameState; flights: Flight[]; duration: number; caption: string | null; target: Rect | null;
+  /** The card left waiting at the end of this step, if any. */
+  held: Held | null;
+}
+
+/** Where a blocked card and the Self-Defense meet when the card wasn't already waiting somewhere. */
+const MEET: Rect = { x: 284, y: 110, w: 72, h: 100 };
+
+/**
+ * How to show the step from `prev` to `next`, or null to just show `next` (nothing moved, or a new game / viewer).
+ * `held` is a played card left waiting by an earlier step.
+ */
+export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, id: () => number = counter(),
+  held: Held | null = null): StepPlan | null {
   const before = prev.view, after = next.view;
   if (!before || !after || prev.viewer !== next.viewer || next.events.length < prev.events.length) return null;
   const fresh = next.events.slice(prev.events.length);
   const reveal = fresh.find(e => REVEAL.includes(e.type) && e.card !== undefined && e.seat !== undefined) ?? null;
-  const main = reveal ?? fresh.find(e => e.seat !== undefined && !ROUTINE.includes(e.type)) ?? fresh.find(e => e.seat !== undefined) ?? null;
+  const blocked = fresh.find(e => e.type === 'blocked' && e.card !== undefined && e.seat !== undefined) ?? null;
+  const main = reveal ?? blocked ?? fresh.find(e => e.seat !== undefined && !ROUTINE.includes(e.type)) ?? fresh.find(e => e.seat !== undefined) ?? null;
+  const dealing = fresh.some(e => e.type === 'deal');
   const target = reveal?.target;
   const fallback: Place = target !== undefined ? { at: 'seat', seat: target }
     : main?.seat !== undefined ? { at: 'seat', seat: main.seat } : { at: 'center' };
-  const moves = diffViews(before, after, { played: reveal ? { seat: reveal.seat!, card: reveal.card! } : undefined, fallback });
-  if (!moves.length && !reveal) return null;
+  const moves = diffViews(before, after, { played: reveal ? { seat: reveal.seat!, card: reveal.card! } : undefined, fallback })
+    // Cards coming off the draw pile are never shown, not even your own (they appear in your hand when they land)
+    .map(m => (m.from.at === 'draw' ? { ...m, card: CARD_BACK } : m));
+  if (!moves.length && !reveal && !blocked && !(held && fresh.length)) return null;
+  if (dealing) moves.sort((a, b) => dealOrder(a) - dealOrder(b));    // one card to each player in turn
 
   const from: Seating = seating(prev), to: Seating = seating(next);
   const at = (p: Place, side: 'from' | 'to'): Rect => placeRect(p, side === 'from' ? before : after, side === 'from' ? from : to);
   const ms = (n: number) => n * speed;
   const flights: Flight[] = [];
   const flown: Move[] = [];
+  const take = (pred: (m: Move) => boolean): Move | null => {
+    const i = moves.findIndex(pred);
+    return i < 0 ? null : moves.splice(i, 1)[0]!;
+  };
   let start = 0;
   let targetRect: Rect | null = null;
+  let heldAfter: Held | null = null;
+  const fromNowhere = (m: Move) => m.from.at === 'seat' || m.from.at === 'center';
+
+  // A blocked card: the Self-Defense flies onto it (where it was waiting), then both go to the discard pile
+  if (blocked) {
+    const card = blocked.card!;
+    const meet = held?.card === card ? held.rect : MEET;
+    const own = take(m => m.card === card && fromNowhere(m));
+    const sd = take(m => m.from.at === 'hand' && m.from.seat === blocked.seat && (m.card === SELF_DEFENSE || m.card === CARD_BACK));
+    const t1 = ms(T.blockIn), t2 = t1 + ms(T.blockHold), t3 = t2 + ms(T.move);
+    const discard = at({ at: 'discard' }, 'to');
+    flights.push({ id: id(), card, keys: [{ t: 0, ...meet, face: true }, { t: t2, ...meet, face: true }, { t: t3, ...(own ? at(own.to, 'to') : discard), face: true }] });
+    if (sd) {
+      flown.push(sd);
+      const onTop = { ...meet, x: meet.x + meet.w * 0.12, y: meet.y + meet.h * 0.08 };
+      flights.push({ id: id(), card: SELF_DEFENSE, keys: [
+        { t: 0, ...at(sd.from, 'from'), face: true }, { t: t1, ...onTop, face: true }, { t: t2, ...onTop, face: true },
+        { t: t3, ...at(sd.to, 'to'), face: true },
+      ] });
+    }
+    if (held?.card === card) held = null;
+    start = t2;
+  }
+
+  // A card left waiting by the last step goes on to where it ended up (or into the player it was played on)
+  if (held && fresh.length) {
+    const h = held;
+    const own = take(m => m.card === h.card && fromNowhere(m));
+    const end = own ? at(own.to, 'to') : seatRect(after, to, h.target);
+    flights.push({ id: id(), card: h.card, keys: [{ t: 0, ...h.rect, face: true }, { t: ms(T.move), ...end, face: true }] });
+  }
 
   if (reveal) {
-    // The played card: from the hand to the middle, face up; to the player it's played on; then where it goes
+    // The played card: from the hand to the middle, face up; toward the player it's played on; then where it goes
     const card = reveal.card!;
     const fromHand = (m: Move) => m.from.at === 'hand' && m.from.seat === reveal.seat;
-    let i = moves.findIndex(m => fromHand(m) && m.card === card);
-    if (i < 0) i = moves.findIndex(m => fromHand(m) && m.card === CARD_BACK);
-    const m: Move = i >= 0 ? { ...moves.splice(i, 1)[0]!, card } : {
-      card, from: handPlace(before, reveal.seat!, card), to: fallback,
-    };
-    const t1 = ms(T.toCenter), t2 = t1 + ms(T.hold), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
-    const src = at(m.from, 'from');
-    const keys: Key[] = [
-      { t: 0, ...src, face: from.hand === reveal.seat },
-      { t: t1, ...CENTER, face: true },
-      { t: t2, ...CENTER, face: true },
-    ];
+    const m: Move = take(x => fromHand(x) && x.card === card) ?? take(x => fromHand(x) && x.card === CARD_BACK)
+      ?? { card, from: handPlace(before, reveal.seat!, card), to: fallback };
+    m.card = card;
+    const t1 = start + ms(T.toCenter), t2 = t1 + ms(T.hold), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
+    const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
+    if (start > 0) keys.push({ ...keys[0]!, t: start });   // waits in the hand until the block is over
+    keys.push({ t: t1, ...CENTER, face: true }, { t: t2, ...CENTER, face: true });
     if (target !== undefined) {
       targetRect = rowRect(after, to, target);
-      keys.push({ t: t3, ...grow(seatRect(after, to, target)), face: true });
+      const spot = grow(seatRect(after, to, target));
+      if (m.to.at === 'seat') {
+        // Held nowhere yet: they may still block it, so it waits halfway
+        const half = lerp(CENTER, spot, 0.5);
+        keys.push({ t: t3, ...half, face: true });
+        heldAfter = { card, rect: half, target };
+      } else {
+        keys.push({ t: t3, ...spot, face: true }, { t: t4, ...at(m.to, 'to'), face: true });
+      }
+    } else {
+      keys.push({ t: t4, ...at(m.to, 'to'), face: true });
     }
-    keys.push({ t: t4, ...at(m.to, 'to'), face: true });
     flights.push({ id: id(), card, keys });
     flown.push(m);
     start = t3;
   }
 
-  const shown = moves.slice(0, MAX_FLIGHTS);
+  const cap = dealing ? DEAL_FLIGHTS : MAX_FLIGHTS;
+  const shown = moves.slice(0, cap);
   flown.push(...shown);
-  const stagger = shown.length > 1 ? Math.min(ms(T.stagger), ms(T.maxStagger) / (shown.length - 1)) : 0;
+  const each = dealing ? ms(T.deal) : ms(T.move);
+  const stagger = dealing ? ms(T.dealGap)
+    : shown.length > 1 ? Math.min(ms(T.stagger), ms(T.maxStagger) / (shown.length - 1)) : 0;
   shown.forEach((m, n) => {
-    const t0 = start + n * stagger, t1 = t0 + ms(T.move);
+    const t0 = start + n * stagger, t1 = t0 + each;
     const face = m.card !== CARD_BACK;
     const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face }];
     if (t0 > 0) keys.push({ t: t0, ...at(m.from, 'from'), face });
     keys.push({ t: t1, ...at(m.to, 'to'), face });
     flights.push({ id: id(), card: m.card, keys });
   });
+  if (!flights.length) return null;
   const duration = Math.max(...flights.map(f => f.keys.at(-1)!.t));
-  return { mid: midView(before, flown), flights, duration, target: targetRect,
+  return { mid: midView(before, flown), flights, duration, target: targetRect, held: heldAfter,
     caption: main && !ROUTINE.includes(main.type) ? main.text : null };
+}
+
+/** Dealing: round by round, seat by seat. */
+function dealOrder(m: Move): number {
+  return m.to.at === 'hand' ? m.to.slot * 10 + m.to.seat : 1000;
+}
+
+function lerp(a: Rect, b: Rect, k: number): Rect {
+  return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k };
 }
 
 function seating(s: GameSnapshot): Seating {

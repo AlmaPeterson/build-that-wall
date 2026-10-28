@@ -19,7 +19,9 @@
   background-position: calc(var(--u) * -20) calc(var(--u) * -13);
 }
 .board__footer {
-  position: absolute; left: 0; bottom: 0; width: 100%; height: calc(var(--u) * 25);
+  /* Outside the stage: fixed to the bottom of the window, full width, sized like the stage */
+  --u: calc(min(100vw, 100vh * 16 / 9) / 640);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: calc(var(--u) * 25);
   background: #2020ff; color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font); font-size: calc(var(--u) * 11);
@@ -203,3 +205,8 @@ button.board__log { cursor: pointer; font-family: inherit; }
 .log__list { margin: 0 0 calc(var(--u) * 10); padding-left: calc(var(--u) * 18); max-height: calc(var(--u) * 230); overflow-y: auto; }
 .log__list li { margin: calc(var(--u) * 1.5) 0; }
 .log__turn { list-style: none; margin-left: calc(var(--u) * -18) !important; margin-top: calc(var(--u) * 6) !important; font-weight: bold; color: var(--red); }
+
+/* A card tapped to see it full size: above the overlays too */
+.card-zoom { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, .7); display: flex; align-items: center; }
+.card-zoom__stage { background: none; }
+.card-zoom .zoom { background: none; }

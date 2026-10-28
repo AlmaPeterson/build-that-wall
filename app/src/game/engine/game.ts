@@ -291,6 +291,7 @@ export class Game implements GameApi {
     s.actionsLeft -= cost;
     this.pendingPlay = { type: 'play', seat, card, text: this.name(seat) + ' played ' + cardName(card) + '.' };
     const done = await this.opts.rules.run(this.context(seat, card));
+    this.flushDeferred();
     if (!done) {                                            // backed out before anything happened
       this.pendingPlay = null;
       hand.splice(slot, 0, card);
@@ -321,6 +322,7 @@ export class Game implements GameApi {
       s.discard.push(card);
       this.emit({ type: 'immediate', seat, card, text: 'PLAY IMMEDIATELY: ' + this.name(seat) + ' drew ' + cardName(card) + '.' });
       await this.opts.rules.runImmediate(this.context(seat, card));
+      this.flushDeferred();
       this.trainCheck();
     }
   }
@@ -425,6 +427,8 @@ export class Game implements GameApi {
   }
 
   private async decide<D extends Decision>(d: D): Promise<Answer<D>> {
+    // Someone else must respond (block, pay with Savings...): announce the card first, so they see it coming
+    if (this.pendingPlay && d.seat !== this.pendingPlay.seat) this.flushPlay();
     const a = await this.opts.deciderFor(d.seat).decide(d, this.state);
     // The player picked someone for the card they're playing: the 'play' event names them
     const p = this.pendingPlay;
@@ -483,7 +487,8 @@ export class Game implements GameApi {
     if (!yes || i < 0) return false;
     hand.splice(i, 1);
     s.discard.push(SELF_DEFENSE);
-    this.emit({ type: 'blocked', seat: target, target: attacker, card,
+    // Announced once the effect has discarded the blocked card too, so both are seen going together
+    this.deferred.push({ type: 'blocked', seat: target, target: attacker, card,
       text: this.name(target) + ' blocked ' + cardName(card) + ' with Self-Defense.' });
     return true;
   }
@@ -504,9 +509,14 @@ export class Game implements GameApi {
   // A 'play' event waits until the card's effect does something, so a card the player backs out of
   // is never announced (or learned from by the bots)
   private pendingPlay: GameEvent | null = null;
+  private deferred: GameEvent[] = [];
   private emit(e: GameEvent): void {
     if (this.pendingPlay && e !== this.pendingPlay) this.flushPlay();
+    this.flushDeferred();
     this.emitFn(e);
+  }
+  private flushDeferred(): void {
+    for (const d of this.deferred.splice(0)) this.emitFn(d);
   }
   private flushPlay(): void {
     const p = this.pendingPlay;

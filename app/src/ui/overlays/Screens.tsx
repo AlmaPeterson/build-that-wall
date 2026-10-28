@@ -69,7 +69,7 @@ export function Recap({ lines, myTurn, onClose }: { lines: RecapLine[]; myTurn: 
         <div class="btw-recap-list">
           {lines.map((l, i) => (
             <div key={i} class="btw-recap-row">
-              {l.card !== undefined && <CardImage id={l.card} size="thumb" class="btw-recap-cause" />}
+              {l.card !== undefined && <CardImage id={l.card} size="thumb" class="btw-recap-cause" zoomable />}
               <div class="btw-recap-body">
                 <div class="btw-recap-text">{l.text}</div>
                 {(l.lost?.length || l.got?.length) ? (
@@ -91,7 +91,7 @@ export function Recap({ lines, myTurn, onClose }: { lines: RecapLine[]; myTurn: 
 function Fig({ id, label, tone }: { id: number; label: string; tone: 'lost' | 'got' }) {
   return (
     <figure class={'btw-recap-fig btw-recap-fig--' + tone}>
-      <CardImage id={id} size="mini" />
+      <CardImage id={id} size="mini" zoomable />
       <figcaption>{label}</figcaption>
     </figure>
   );

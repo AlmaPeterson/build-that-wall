@@ -41,10 +41,18 @@ function FlyingCard({ flight, duration, unit }: { flight: Flight; duration: numb
 }
 
 export function FlightLayer({ animator }: { animator: Animator }) {
-  const { flights, duration, caption, target } = useStore(animator.state);
+  const { flights, duration, caption, target, held } = useStore(animator.state);
   const layer = useRef<HTMLDivElement>(null);
   const unit = (layer.current?.parentElement?.clientWidth ?? 640) / 640;
-  if (!flights.length) return <div ref={layer} class="flights flights--idle" />;
+  if (!flights.length) {
+    // A card waiting halfway to the player it was played on (they're deciding whether to block it)
+    return (
+      <div ref={layer} class="flights flights--idle">
+        {held && <img class="flight flight--held" src={cardImage(held.card, 'thumb')} alt={cardById(held.card).name}
+          style={{ transform: `translate(${held.rect.x * unit}px, ${held.rect.y * unit}px)`, width: `${held.rect.w * unit}px`, height: `${held.rect.h * unit}px` }} />}
+      </div>
+    );
+  }
   return (
     <div ref={layer} class="flights" onClick={() => animator.skip()} title="Tap to skip">
       {target && <div class="flights__target" style={{ left: `${target.x * unit}px`, top: `${target.y * unit}px`, width: `${target.w * unit}px`, height: `${target.h * unit}px`, animationDuration: `${duration}ms` }} />}

@@ -10,12 +10,14 @@ import { askOption, askWall, attack, cardName, findInHand, hand, others, seatNam
  * Both can be blocked. Any opponent can be picked for "take", even one with no Trumps (as before).
  */
 export async function spyBalloon(ctx: EffectContext): Promise<boolean> {
-  ctx.discard(ctx.card);
+  // The card is discarded once the target has had their chance to block (so it's seen flying at them first)
   const guarded = ctx.state.trainGuards.filter(g => g.seat !== ctx.player && others(ctx).includes(g.seat));
   const choice = await askOption(ctx, ctx.player, guarded.length ? ['take', 'remove'] : ['take']);
   if (choice === 'remove') {
     const w = (await askWall(ctx, ctx.player, guarded))!;
-    if (await ctx.defend(w.seat, ctx.player, ctx.card)) return true;
+    const blocked = await ctx.defend(w.seat, ctx.player, ctx.card);
+    ctx.discard(ctx.card);
+    if (blocked) return true;
     const at = ctx.state.trainGuards.findIndex(g => g.seat === w.seat && g.kind === w.kind);
     if (at >= 0) {
       ctx.state.trainGuards.splice(at, 1);
@@ -26,6 +28,7 @@ export async function spyBalloon(ctx: EffectContext): Promise<boolean> {
     return true;
   }
   const { target, blocked } = await attack(ctx, others(ctx));
+  ctx.discard(ctx.card);
   if (target === null || blocked) return true;
   const took: CardId[] = [];
   for (let i = 0; i < 12; i++) {
@@ -43,9 +46,9 @@ export async function spyBalloon(ctx: EffectContext): Promise<boolean> {
 
 /** 6 Controlled Opposition (2 random cards, blockable) and 21 Stimulus Check (3 random cards, not blockable). */
 export async function steal(ctx: EffectContext): Promise<boolean> {
-  ctx.discard(ctx.card);
   const withCards = others(ctx).filter(s => hand(ctx, s).length > 0);
   const { target, blocked } = await attack(ctx, withCards, ctx.card === 6);
+  ctx.discard(ctx.card);
   if (target === null || blocked) return true;
   const took: CardId[] = [];
   for (let i = 0; i < (ctx.card === 6 ? 2 : 3); i++) {
@@ -84,8 +87,8 @@ export async function limit(ctx: EffectContext): Promise<boolean> {
 
 /** 49 Hand Swap (pack card): swap whole hands with an opponent; blockable. */
 export async function handSwap(ctx: EffectContext): Promise<boolean> {
-  ctx.discard(ctx.card);
   const { target, blocked } = await attack(ctx, others(ctx));
+  ctx.discard(ctx.card);
   if (target === null || blocked) return true;
   const me = ctx.state.seats[ctx.player]!, them = ctx.state.seats[target]!;
   [me.hand, them.hand] = [them.hand, me.hand];

@@ -23,7 +23,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: var(--font-body); }
+html, body { margin: 0; height: 100%; overflow-x: hidden; background: var(--paper); color: var(--ink); font-family: var(--font-body); }
 #app { height: 100%; }
 button { font: inherit; }
 
