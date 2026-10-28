@@ -1,0 +1,215 @@
+// An online session for the Online screen: quick match, host a room, join with a code, the lobby,
+// starting the game (host) and following it (players).
+import type { BotMemory, Difficulty, GameSettings } from '../../game';
+import { OnlineRoom, cleanName, type AskMsg, type Connect } from '../../services/online';
+import type { GameController } from '../controller';
+import { createStore, type Store } from '../store';
+import { OnlineClientController } from './client';
+import { HostController } from './host';
+import { ASK_MODE, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
+
+export type Phase = 'idle' | 'connecting' | 'lobby' | 'playing' | 'ended';
+
+export interface OnlineState {
+  phase: Phase;
+  role: '' | 'host' | 'client';
+  code: string;
+  /** This device's room seat (1 = host). */
+  seat: number;
+  players: LobbyPlayer[];
+  bots: number;
+  status: string;
+  error: string;
+}
+
+export interface SessionDeps {
+  connect: Connect;
+  /** This player's name. */
+  name: () => string;
+  /** Game settings to start from (ending, difficulties...). */
+  baseSettings: () => GameSettings;
+  memory?: BotMemory;
+  /** Show a running game on this device (sets the board's controller and screen). */
+  show: (c: GameController) => void;
+  autoJoin?: () => boolean;
+  random?: () => number;
+  /** Waits between auto-join tries (replaced in tests). */
+  wait?: (ms: number) => Promise<void>;
+}
+
+const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, status: '', error: '' };
+const AUTO_JOIN_TRIES = 20, AUTO_JOIN_MS = 2000;
+
+export class OnlineSession {
+  readonly state: Store<OnlineState> = createStore<OnlineState>({ ...IDLE });
+  private room: OnlineRoom;
+  private host: HostController | null = null;
+  private client: OnlineClientController | null = null;
+  private names = new Map<number, string>();
+  private running = false;
+
+  constructor(private readonly deps: SessionDeps) {
+    this.room = this.makeRoom();
+  }
+
+  /** The game controller on this device, once a game started. */
+  get controller(): GameController | null { return this.host ?? this.client; }
+
+  private set(patch: Partial<OnlineState>): void { this.state.set({ ...this.state.get(), ...patch }); }
+
+  private makeRoom(): OnlineRoom {
+    return new OnlineRoom(this.deps.connect, {
+      getState: () => null,
+      applyState: () => {},
+      isRunning: () => this.running && !this.controller?.state?.over,
+      turn: () => (this.controller?.state?.turn ?? -1) + 1,
+      turnOwner: () => 1,
+      autoSync: false,
+    }, {
+      onData: (data, from) => this.onData(data, from),
+      onAsk: q => this.onAsk(q),
+      onJoin: seat => { if (!this.names.has(seat)) this.names.set(seat, 'Player ' + seat); this.lobby(); },
+      onPlayerLeft: seat => this.onPlayerLeft(seat),
+      onHostLost: () => this.set({ phase: 'ended', error: 'The host left the game.' }),
+      onStatus: status => this.set({ status }),
+    }, this.deps.random);
+  }
+
+  // ---- getting into a room
+
+  async hostRoom(max = 6): Promise<boolean> {
+    this.reset('Opening a room...');
+    const code = await this.room.host({ max });
+    if (!code) return this.failed();
+    this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
+    this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '' });
+    this.lobby();
+    return true;
+  }
+
+  async join(code: string): Promise<boolean> {
+    this.reset('Joining ' + code.toUpperCase() + '...');
+    const tries = this.deps.autoJoin?.() ? AUTO_JOIN_TRIES : 1;
+    let seat = 0;
+    for (let i = 0; i < tries && seat <= 0; i++) {
+      if (i) { this.set({ status: 'Waiting for the host to open ' + code.toUpperCase() + '... (' + (i + 1) + ' of ' + tries + ')' }); await (this.deps.wait ?? sleep)(AUTO_JOIN_MS); }
+      if (this.state.get().phase !== 'connecting') return false;      // the player gave up
+      seat = await this.room.join(code);
+    }
+    if (seat <= 0) return this.failed();
+    this.joined(seat);
+    return true;
+  }
+
+  async quick(max = 6): Promise<boolean> {
+    this.reset('Connecting to the online service...');
+    const seat = await this.room.quick(max);
+    if (seat <= 0) return this.failed();
+    if (this.room.role === 'host') {
+      this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
+      this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '' });
+      this.lobby();
+    } else this.joined(seat);
+    return true;
+  }
+
+  private joined(seat: number): void {
+    this.client = new OnlineClientController(msg => this.room.sendData(1, msg));
+    this.set({ phase: 'lobby', role: 'client', code: this.room.code, seat, status: 'Waiting for the host to start...', error: '' });
+    this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat });
+  }
+
+  leave(): void {
+    this.room.leave();
+    this.running = false;
+    this.host = null; this.client = null; this.names.clear();
+    this.state.set({ ...IDLE });
+  }
+
+  /** Host: how many bots join the online players. */
+  setBots(n: number): void {
+    const humans = 1 + this.room.connectedSeats().length;
+    this.set({ bots: Math.max(0, Math.min(6 - humans, Math.floor(n) || 0)) });
+    this.lobby();
+  }
+
+  /** Host: start the game with everyone in the room (plus bots). */
+  start(seed?: number): Promise<void> | null {
+    if (this.room.role !== 'host') return null;
+    const roomSeats = [1, ...this.room.connectedSeats()];
+    const bots = Math.min(this.state.get().bots, 6 - roomSeats.length);
+    if (roomSeats.length + bots < 2) { this.set({ error: 'Wait for another player, or add a bot.' }); return null; }
+    const base = this.deps.baseSettings();
+    const difficulties: Difficulty[] = Array.from({ length: bots }, (_, i) => {
+      const d = base.difficulties[i];
+      return d && d !== 'random' ? d : 'medium';
+    });
+    const settings: GameSettings = {
+      ...base, players: roomSeats.length + bots, bots, difficulties,
+      names: roomSeats.map(s => this.names.get(s) ?? 'Player ' + s),
+    };
+    this.host = new HostController(this.room, roomSeats, this.deps.memory);
+    this.running = true;
+    this.set({ phase: 'playing', status: '', error: '' });
+    this.deps.show(this.host);
+    return this.host.start(settings, seed);
+  }
+
+  // ---- messages
+
+  private onData(data: unknown, from: number): void {
+    if (this.room.role === 'host') {
+      if (!isToHost(data)) return;
+      if (data.k === 'name') { this.names.set(from, cleanName(data.name) || 'Player ' + from); this.lobby(); return; }
+      this.host?.receive(data, from);
+      return;
+    }
+    if (!isToPlayer(data) || !this.client) return;
+    if (data.k === 'lobby') { this.set({ players: data.players, bots: data.bots }); return; }
+    if (data.k === 'snap' && !this.running) {
+      this.running = true;
+      this.set({ phase: 'playing', status: '' });
+      this.deps.show(this.client);
+    }
+    this.client.receive(data);
+  }
+
+  private async onAsk(q: AskMsg): Promise<string> {
+    if (q.mode !== ASK_MODE || !this.client) return 'no';
+    let decision;
+    try { decision = JSON.parse(q.l1); } catch { return 'no'; }
+    const answer = await this.client.askHere(decision);
+    return JSON.stringify(answer);
+  }
+
+  private onPlayerLeft(roomSeat: number): void {
+    if (this.host) {
+      const seat = this.host.gameSeat(roomSeat);
+      if (seat > 0) void this.host.leave(seat);
+    }
+    this.names.delete(roomSeat);
+    this.lobby();
+  }
+
+  /** Host: tell everyone who's in the room. */
+  private lobby(): void {
+    if (this.room.role !== 'host') return;
+    const players = [1, ...this.room.connectedSeats()].map(seat => ({ seat, name: this.names.get(seat) ?? 'Player ' + seat }));
+    this.set({ players });
+    if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots: this.state.get().bots } satisfies ToPlayer);
+  }
+
+  private reset(status: string): void {
+    this.room.leave();
+    this.running = false;
+    this.host = null; this.client = null; this.names.clear();
+    this.state.set({ ...IDLE, phase: 'connecting', status });
+  }
+
+  private failed(): false {
+    this.set({ phase: 'idle', status: '', error: this.room.errorMessage || 'Could not go online.' });
+    return false;
+  }
+}
+
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
