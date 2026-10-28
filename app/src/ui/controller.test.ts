@@ -97,9 +97,24 @@ describe('a card being played', () => {
     expect(asking.prompt?.decision.kind).toBe('chooseWall');
     expect(asking.view!.seats[0]!.hand).toEqual([7, 29]);          // not gone yet
     asking.prompt!.answer(null);                                     // back out
-    expect((await done).reason).toBe('Cancelled.');
+    expect(await done).toEqual({ ok: false, reason: 'Cancelled.' });
     expect(c.snapshot.get().view!.seats[0]!.hand).toEqual([7, 29]);
     expect(c.snapshot.get().events.length).toBe(events);             // nothing happened
+  });
+
+  it("a building card's \"pick a wall\" points at the walls as the screen shows the hand", async () => {
+    const c = await myTurn([26, 3, 29, 14, 30]);                    // Assassin in slot 1: build up to 2 walls free
+    void c.act({ type: 'play', slot: 1 });
+    await tick();
+    const asking = c.snapshot.get();
+    const d = asking.prompt!.decision as { kind: string; options: number[] };
+    expect(d.kind).toBe('chooseHandCard');
+    const hand = asking.view!.seats[0]!.hand;
+    expect(hand).toEqual([26, 3, 29, 14, 30]);                       // Assassin still shown
+    expect(d.options.map(s => hand[s])).toEqual([29, 30]);          // the choices are the walls on screen
+    asking.prompt!.answer(4 as never);                               // Wall Section 2, as shown
+    await tick();
+    expect(c.api!.state.seats[0]!.walls).toEqual([30]);
   });
 
   it('a card that goes to the discard pile before its question is still shown in your hand meanwhile', async () => {

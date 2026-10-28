@@ -78,10 +78,11 @@ export class HostController extends GameController {
   /** Ask a remote player's device; a timeout, a player who left or a bad answer gets the safe fallback. */
   private remote(seat: Seat): Decider {
     return {
-      decide: async <D extends Decision>(d: D): Promise<Answer<D>> => {
+      decide: async <D extends Decision>(asked: D): Promise<Answer<D>> => {
         this.sendNow();                     // they need the latest view to answer
+        const { decision: d, back } = this.screenSlots(asked);   // slots as their screen shows the hand
         const value = await this.room.ask(this.roomSeats[seat]!, { l1: JSON.stringify(d), l2: '', l3: '', card: 'card' in d ? d.card : 0, mode: ASK_MODE });
-        return parseAnswer(d, value);
+        return back(parseAnswer(d, value));
       },
     };
   }
