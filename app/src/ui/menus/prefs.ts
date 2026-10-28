@@ -81,6 +81,7 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
     musicMode: music === 'Play One' ? 'one' : music === 'Cycle All' ? 'cycle' : base.musicMode,
     autoJoin: get('autojoin') === '' ? base.autoJoin : get('autojoin') === '1',
     tutorial: get('tutor') === '' ? base.tutorial : get('tutor') === '1',
+    animSpeed: (['slow', 'normal', 'fast', 'off'] as const).find(a => a === get('anim')) ?? base.animSpeed,
     textSizes,
   });
 }
@@ -99,6 +100,7 @@ export function saveUiSettings(store: SaveStore, s: UiSettings): void {
   put('autojoin', s.autoJoin ? '1' : '0');
   g.difficulties.slice(0, MAX_PLAYERS).forEach((d, k) => put('ai' + (k + 1), LEVEL_TO_OLD[d]));
   put('tutor', s.tutorial ? '1' : '0');
+  put('anim', s.animSpeed);
   for (const area of Object.keys(TEXT_PREF) as TextArea[]) put('ts_' + TEXT_PREF[area], String(s.textSizes[area]));
 }
 
@@ -116,6 +118,7 @@ export function initSettingsPersistence(store: SaveStore = new SaveStore(browser
   stop = settings.subscribe(s => {
     const game = controller.get()?.state;
     if (!game || game.over) saveUiSettings(store, s);
+    else if (store.prefGet('anim') !== s.animSpeed) store.prefSet('anim', s.animSpeed);   // a new setting: saved mid-game too
   });
 }
 

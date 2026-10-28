@@ -195,3 +195,11 @@
 .board-modal__list { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 6); margin-bottom: calc(var(--u) * 10); }
 .board-modal__list .btw-button { width: 100%; height: auto !important; min-height: calc(var(--u) * 29); padding: calc(var(--u) * 3) calc(var(--u) * 6) !important; font-size: calc(var(--u) * 10 * var(--tb)) !important; }
 .board-modal__row { display: flex; gap: calc(var(--u) * 10); justify-content: center; }
+
+/* The full game log */
+button.board__log { cursor: pointer; font-family: inherit; }
+.log { text-align: left; }
+.log h2 { text-align: center; }
+.log__list { margin: 0 0 calc(var(--u) * 10); padding-left: calc(var(--u) * 18); max-height: calc(var(--u) * 230); overflow-y: auto; }
+.log__list li { margin: calc(var(--u) * 1.5) 0; }
+.log__turn { list-style: none; margin-left: calc(var(--u) * -18) !important; margin-top: calc(var(--u) * 6) !important; font-weight: bold; color: var(--red); }

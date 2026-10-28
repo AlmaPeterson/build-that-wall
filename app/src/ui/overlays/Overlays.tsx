@@ -6,6 +6,7 @@ import type { GameEvent } from '../../game';
 import { controller as currentController, screen, settings, startLocalGame } from '../app-state';
 import { playSfx } from '../audio';
 import type { GameController } from '../controller';
+import { animatorFor } from '../anim';
 import { useStore } from '../store';
 import { PromptView } from './Prompt';
 import { BigNotice, PassScreen, Recap, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
@@ -16,7 +17,8 @@ const TOAST_MS = 3200;
 const tutorMemory = createBotMemory({ get: () => null, set: () => {} });   // tips don't learn
 
 export function Overlays({ controller }: { controller: GameController }) {
-  const snap = useStore(controller.snapshot);
+  // What the board shows now: prompts and notices wait until the cards before them have moved
+  const { snap } = useStore(animatorFor(controller).state);
   const { tutorial } = useStore(settings);
   const { view, viewer, events, prompt, passTo } = snap;
 
@@ -44,6 +46,8 @@ export function Overlays({ controller }: { controller: GameController }) {
         if (lines.length) setRecap({ lines, myTurn: true });
         continue;
       }
+      // A Play Immediately card is already shown in the middle with its caption while it moves
+      if (e.type === 'immediate' && settings.get().animSpeed !== 'off') continue;
       const t = toastFor(e);
       if (t) newToasts.push({ id: ++toastId.current, ...t });
     }

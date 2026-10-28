@@ -400,3 +400,29 @@ describe('what each player sees', () => {
     expect(JSON.parse(JSON.stringify(state))).toEqual(state);
   });
 });
+
+describe('the play event', () => {
+  it('names the player the card was played on', async () => {
+    const rules = stubRules({
+      6: async ctx => {
+        ctx.discard(6);
+        const target = await ctx.decide({ kind: 'chooseSeat', seat: ctx.player, card: 6, options: [1], cancellable: false });
+        ctx.emit({ type: 'cardMoved', seat: ctx.player, target: target!, text: 'took cards' });
+        return true;
+      },
+    });
+    const { game, state, events } = setup({ rules, answer: d => (d.kind === 'chooseSeat' ? 1 : null), draw: filler(20) });
+    await begin(game, state, [[6], [MH]]);
+    await game.act(0, { type: 'play', slot: 0 });
+    const play = events.find(e => e.type === 'play')!;
+    expect(play).toMatchObject({ seat: 0, card: 6, target: 1, text: 'Player 1 played Controlled Opposition on Player 2.' });
+    expect(events.indexOf(play)).toBeLessThan(events.findIndex(e => e.type === 'cardMoved'));
+  });
+
+  it('has no target for a card played on nobody', async () => {
+    const { game, state, events } = setup({ draw: filler(20) });
+    await begin(game, state, [[26], [MH]]);
+    await game.act(0, { type: 'play', slot: 0 });
+    expect(events.find(e => e.type === 'play')!.target).toBeUndefined();
+  });
+});
