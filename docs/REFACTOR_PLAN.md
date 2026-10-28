@@ -64,7 +64,7 @@ tutorial, animations.
    effect, bot behaviour) and `app/src/data/cards.json` (the card catalogue), taken from the dump.
 5. **Assets with names**: map hashed asset files to readable names (from costume/sound names).
 
-### Phase 1 — Game core (pure logic, no UI)
+### Phase 1 — Game core (pure logic, no UI) (done)
 - `game/state.ts` (one serialisable game state), `game/rules.ts`, `game/cards/*`,
   `game/bots/*`, driven by actions (`playCard`, `buildWall`, `endTurn`…).
 - Unit tests for every card effect and win condition, written from `docs/game-rules.md`.
@@ -92,6 +92,16 @@ tutorial, animations.
   `tools/export-assets.py` → `app/public/assets/` (896 files) + `app/src/data/assets.json`.
 - Old behaviour kept as-is is marked `// NOTE:` in the code; bugs found in the blocks are in
   `docs/game-rules.md` section 15.
+
+## Phase 1 results
+
+- `app/src/game/`: `types.ts` + `contracts.ts` (shared), `engine/` (setup, turns, building, playing,
+  endings, `viewFor` for online), `effects/` (every card), `bots/` (Easy/Medium/Hard, learning),
+  `local.ts` (`createLocalGame` wires them together).
+- Async engine: whenever a rule needs a choice it asks that seat's `Decider` (UI, bot or online room).
+- Seeded random numbers live in the state: the same seed replays the same game.
+- `simulate.test.ts` plays 96 bots-only games across player counts and endings: every game finishes
+  and no card ever appears or disappears. Over 200 sample games: ~40 turns, every card gets played.
 
 ## Decisions (owner, 2026-10-27)
 
