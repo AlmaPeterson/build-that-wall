@@ -2,7 +2,7 @@
 // ends, sound, music, names and text sizes. Changes are saved straight away (menus/prefs.ts).
 import type { ComponentChildren } from 'preact';
 import type { Ending } from '../../game';
-import { controller, screen, settings, type TextArea, type UiSettings } from '../app-state';
+import { controller, screen, settings, type TextArea, type UiSettings, goBack } from '../app-state';
 import { Button } from '../components/Button';
 import {
   ENDING_NAMES, initSettingsPersistence, MAX_PLAYERS, MIN_PLAYERS, TEXT_STEPS, updateSettings, type BotLevel,
@@ -129,7 +129,7 @@ export function SettingsScreen() {
         ))}
         <Button color="plain" onClick={() => set({ textSizes: { menu: 1, board: 1, cards: 1, popups: 1 } })}>Reset text sizes to normal</Button>
       </main>
-      <footer class="page__foot"><Button onClick={() => screen.set('menu')}>Back</Button></footer>
+      <footer class="page__foot"><Button onClick={goBack}>Back</Button></footer>
     </div>
   );
 }

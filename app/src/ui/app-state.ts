@@ -36,3 +36,9 @@ export function startLocalGame(game: GameSettings = settings.get().game): GameCo
   void c.start(game);
   return c;
 }
+
+/** Leave a side screen (settings, instructions, ...): back to the running game if there is one, else the menu. */
+export function goBack(): void {
+  const c = controller.get();
+  screen.set(c?.state && !c.state.over ? 'game' : 'menu');
+}
