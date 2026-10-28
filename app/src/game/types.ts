@@ -52,6 +52,7 @@ export interface GameState {
   actionsLeft: number;
   exhaustCount: number;          // times the draw pile has run out
   exhaustPending: number;
+  exhaustFlag?: boolean;         // the draw pile is empty and that has already been counted (engine bookkeeping)
   final: { kind: FinalKind; stop: Seat; reason: string } | null;   // a final round in progress
   deckDone: boolean;
   over: GameResult | null;
