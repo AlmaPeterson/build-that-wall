@@ -174,6 +174,16 @@
   position: absolute; inset: 0; z-index: 50;
   background: rgba(0, 0, 0, .7);
 }
+/* Dragged aside (components/drag.ts): the board shows through */
+.zoom--moved, .board-modal--moved { background: rgba(0, 0, 0, .15); }
+.zoom__group { position: absolute; inset: 0; pointer-events: none; }
+.zoom__group > * { pointer-events: auto; }
+.drag-box.zoom__group { transform-origin: calc(var(--u) * 100) calc(var(--u) * 3); }   /* the top-left of its pieces (buttons row, X) */
+/* With the board showing through, the white text needs its own dark panel */
+.zoom--moved .zoom__text { background: rgba(0, 0, 0, .8); border-radius: calc(var(--u) * 6); padding: calc(var(--u) * 6) calc(var(--u) * 8); }
+/* On the card picture's bottom-right corner */
+.zoom__grip { left: calc(var(--u) * 404); top: calc(var(--u) * 290); right: auto; bottom: auto; width: calc(var(--u) * 22); height: calc(var(--u) * 22); color: rgba(255, 255, 255, .85); background-color: rgba(0, 0, 0, .35); border-radius: calc(var(--u) * 4) 0 calc(var(--u) * 4) 0; }
+.zoom__grip:hover { color: #fff; }
 .zoom__card { position: absolute; left: calc(var(--u) * 211); top: calc(var(--u) * 12); width: calc(var(--u) * 218); height: calc(var(--u) * 303); }
 .zoom__close {
   position: absolute; right: calc(var(--u) * 3); top: calc(var(--u) * 3); width: calc(var(--u) * 39); height: calc(var(--u) * 39);
@@ -186,7 +196,7 @@
 .zoom__text h3 { margin: 0 0 calc(var(--u) * 6); font: 900 calc(var(--u) * 13 * var(--tc)) var(--font); }
 .zoom__note { margin-top: calc(var(--u) * 8); background: #fff3cd; color: #5a1210; border-radius: calc(var(--u) * 5); padding: calc(var(--u) * 4) calc(var(--u) * 6); font-weight: bold; }
 .zoom__buttons {
-  position: absolute; left: 0; right: 0; top: calc(var(--u) * 322);
+  position: absolute; left: calc(var(--u) * 100); right: calc(var(--u) * 100); top: calc(var(--u) * 322);   /* centred; no wider than needed, so dragging keeps them in view */
   display: flex; justify-content: center; gap: calc(var(--u) * 12);
 }
 .zoom__buttons .btw-button, .board-modal .btw-button {

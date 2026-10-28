@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { CardId, Decision, GameState, Seat, WallRef } from '../../game';
 import { CardImage } from '../components/CardImage';
+import { RESIZE_TITLE, useDraggable } from '../components/drag';
 import { showCard } from '../components/zoom';
 import type { Prompt } from '../controller';
 import { cardName, optionLabel, promptTitle, seatName } from './text';
@@ -95,7 +96,7 @@ function Shell(props: {
 }) {
   const { d, view, title, sub, onCancel, cancelText = 'Cancel', children } = props;
   const card = props.card ?? ('card' in d ? d.card : undefined);
-  const box = useRef<HTMLDivElement>(null);
+  const drag = useDraggable('prompt'), box = drag.ref;
   useEffect(() => { box.current?.querySelector<HTMLElement>('button')?.focus(); }, [d]);
   useEffect(() => {
     if (!onCancel) return;
@@ -104,8 +105,8 @@ function Shell(props: {
     return () => removeEventListener('keydown', key);
   }, [onCancel]);
   return (
-    <div class="btw-ov-backdrop">
-      <div class="btw-ov-box" role="dialog" aria-modal="true" aria-label={title} ref={box}>
+    <div class={'btw-ov-backdrop' + (drag.moved ? ' btw-ov-backdrop--moved' : '')}>
+      <div class="btw-ov-box drag-box" role="dialog" aria-modal="true" aria-label={title} ref={box} style={drag.style}>
         <div class="btw-ov-head">{seatName(view, d.seat)}</div>
         <div class="btw-ov-body">
           {card !== undefined && <CardImage id={card} size="thumb" class="btw-ov-cause" zoomable />}
@@ -117,6 +118,7 @@ function Shell(props: {
           </div>
         </div>
         <div class="btw-ov-foot" />
+        <span class="drag-grip" title={RESIZE_TITLE} aria-hidden="true" />
       </div>
     </div>
   );

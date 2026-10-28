@@ -9,6 +9,8 @@
 }
 
 /* Framed box: red header, white body, navy foot (as the old recap and notices) */
+.btw-ov-backdrop--moved { background: rgba(0, 0, 0, .15); }
+
 .btw-ov-box, .btw-ov-frame {
   width: min(94vw, 620px); max-height: 92vh;
   display: flex; flex-direction: column;

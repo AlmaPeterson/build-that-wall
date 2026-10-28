@@ -30,3 +30,16 @@
   font-size: calc(1rem * var(--text-popups));
 }
 .btw-modal__title { font-family: var(--font); color: var(--red); margin: 0 0 12px; }
+
+/* A popup that can be dragged aside (drag.ts) */
+.drag-box { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transform-origin: top left; }
+.drag-box:not(.zoom__group) { position: relative; }
+/* The resize grip, bottom-right: three diagonal lines */
+.drag-grip {
+  position: absolute; right: 2px; bottom: 2px; width: 22px; height: 22px; cursor: nwse-resize; touch-action: none; z-index: 2;
+  background: linear-gradient(135deg, transparent 0 45%, currentColor 45% 52%, transparent 52% 62%, currentColor 62% 69%, transparent 69% 79%, currentColor 79% 86%, transparent 86%);
+  color: rgba(0, 0, 0, .45); border-bottom-right-radius: 6px;
+}
+.drag-grip:hover { color: rgba(0, 0, 0, .8); }
+.drag-box:active { cursor: grabbing; }
+.drag-box button, .drag-box a { cursor: pointer; }

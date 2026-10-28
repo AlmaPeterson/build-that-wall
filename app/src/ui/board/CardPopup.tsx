@@ -3,6 +3,7 @@ import { useEffect } from 'preact/hooks';
 import { cardById, type CardId } from '../../data/cards';
 import { cardImage } from '../assets';
 import { Button } from '../components/Button';
+import { RESIZE_TITLE, useDraggable } from '../components/drag';
 import type { CardActions, CardChoice } from './board-state';
 
 interface Props {
@@ -16,13 +17,16 @@ interface Props {
 
 export function CardPopup({ card, actions, onChoose, onClose, closeLabel = 'Back' }: Props) {
   const c = cardById(card);
+  const drag = useDraggable('card');
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     addEventListener('keydown', key);
     return () => removeEventListener('keydown', key);
   }, [onClose]);
   return (
-    <div class="zoom" role="dialog" aria-modal="true" aria-label={c.name} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div class={'zoom' + (drag.moved ? ' zoom--moved' : '')} role="dialog" aria-modal="true" aria-label={c.name} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      {/* Everything moves together when dragged; the gaps between the pieces stay the backdrop */}
+      <div class="zoom__group drag-box" data-drag-children ref={drag.ref} style={drag.style}>
       <img class="zoom__card" src={cardImage(card, 'high')} alt={c.name} draggable={false} />
       <Button class="zoom__close" aria-label="Close" onClick={onClose}>X</Button>
       <div class="zoom__text">
@@ -33,6 +37,8 @@ export function CardPopup({ card, actions, onChoose, onClose, closeLabel = 'Back
       <div class="zoom__buttons">
         {actions.buttons.map(b => <Button key={b.label} onClick={() => onChoose(b.choice)}>{b.label}</Button>)}
         <Button onClick={onClose}>{closeLabel}</Button>
+      </div>
+      <span class="drag-grip zoom__grip" title={RESIZE_TITLE} aria-hidden="true" />
       </div>
     </div>
   );
