@@ -10,7 +10,13 @@ export class MqttLoadError extends Error {}
 type MqttModule = typeof import('mqtt');
 let loading: Promise<MqttModule> | null = null;
 function loadMqtt(): Promise<MqttModule> {
-  if (!loading) loading = import('mqtt').catch((e) => { loading = null; throw new MqttLoadError(String(e)); });
+  // In the browser build mqtt is CommonJS: connect() is on the default export, not on the module itself
+  if (!loading) loading = import('mqtt')
+    .then((m) => {
+      const d = (m as unknown as { default?: MqttModule }).default;
+      return d?.connect ? d : m;
+    })
+    .catch((e) => { loading = null; throw new MqttLoadError(String(e)); });
   return loading;
 }
 

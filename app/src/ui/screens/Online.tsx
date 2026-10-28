@@ -1,8 +1,9 @@
 // Online: quick match, host a private room, join with a code; then the lobby until the host starts.
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { screen, settings } from '../app-state';
 import { Message, Page } from '../account/Page';
 import { Button } from '../components/Button';
+import { onlineIntent } from '../menus/start';
 import { online } from '../online';
 import { services } from '../services';
 import { useStore } from '../store';
@@ -12,7 +13,17 @@ export function OnlineScreen() {
   const ui = useStore(settings);
   const player = useStore(services.player);
   const [code, setCode] = useState('');
+  const codeBox = useRef<HTMLInputElement>(null);
   useEffect(() => { void services.init(); }, []);
+  // The menu's choice (Quick online match, Host a private room, Join with a code): do it straight away
+  useEffect(() => {
+    const intent = onlineIntent.get();
+    onlineIntent.set(null);
+    if (!intent || online.state.get().phase !== 'idle') return;
+    if (intent === 'quick') void online.quick();
+    else if (intent === 'host') void online.hostRoom();
+    else codeBox.current?.focus();
+  }, []);
 
   const back = () => { if (st.phase !== 'playing') online.leave(); screen.set('menu'); };
 
@@ -31,7 +42,7 @@ export function OnlineScreen() {
             <p>Open a private room and tell your friends its code.</p>
             <div class="btw-row"><Button color="navy" onClick={() => void online.hostRoom()}>Open a room</Button></div>
             <div class="btw-row">
-              <input class="btw-input" placeholder="Room code" value={code} maxLength={8} autoCapitalize="characters"
+              <input ref={codeBox} class="btw-input" placeholder="Room code" value={code} maxLength={8} autoCapitalize="characters"
                 onInput={e => setCode((e.target as HTMLInputElement).value.toUpperCase())}
                 onKeyDown={e => { if (e.key === 'Enter' && code.trim()) void online.join(code); }} aria-label="Room code" />
               <Button color="navy" disabled={!code.trim()} onClick={() => void online.join(code)}>Join</Button>
