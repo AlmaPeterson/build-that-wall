@@ -77,6 +77,9 @@ export class GameController {
     r?.();
   }
 
+  /** Publish the snapshot again (e.g. after a test changed the state directly). */
+  refresh(): void { this.publish(); }
+
   async leave(seat: Seat): Promise<void> { await this.game?.leave(seat); this.publish(); }
 
   private ask<D extends Decision>(decision: D): Promise<Answer<D>> {

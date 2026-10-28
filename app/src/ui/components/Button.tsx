@@ -3,7 +3,7 @@ import './components.css';
 
 export type ButtonColor = 'red' | 'navy' | 'gold' | 'plain';
 
-interface Props extends Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'color'> {
+interface Props extends Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, 'color'> {
   color?: ButtonColor;
   children: ComponentChildren;
 }
