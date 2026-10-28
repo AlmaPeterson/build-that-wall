@@ -10,7 +10,10 @@ import { Leaderboard, mqttWorldBoard } from '../services/leaderboard';
 import { connectMqtt, type Connect } from '../services/online';
 import { PayPalCheckout, Purchases, type BuyResult, type Checkout, type PriceInfo } from '../services/payments';
 import { SaveStore, browserStorage, type KeyValueStorage } from '../services/storage';
+import { controller as currentGame } from './app-state';
 import type { GameController } from './controller';
+import { OnlineClientController } from './online/client';
+import { HostController } from './online/host';
 import { createStore, type Store } from './store';
 
 /** What the screens show about the player. Recomputed by refresh(). */
@@ -212,3 +215,15 @@ export const services: AppServices = createServices({
   toast: domToast,
   location: typeof location !== 'undefined' ? location : undefined,
 });
+
+/** The human seats played on this device: online, just this player's seat; Pass'n'Play, every human. */
+export function localSeats(c: GameController): number[] {
+  if (c instanceof HostController) return [0];
+  if (c instanceof OnlineClientController) return [c.seat];
+  return (c.state?.seats ?? []).flatMap((s, i) => (s.bot ? [] : [i]));
+}
+
+if (typeof window !== 'undefined') {
+  void services.init();
+  services.watchGames(currentGame, localSeats);
+}

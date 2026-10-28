@@ -101,7 +101,7 @@ describe('remote answers', () => {
     const block = { kind: 'block', seat: 1, attacker: 0, card: 9 } as const;
     expect(parseAnswer(block, 'no')).toBe(false);
     expect(parseAnswer(block, 'true')).toBe(true);
-    const seat = { kind: 'chooseSeat', seat: 1, card: 6, options: [0, 2], cancellable: false } as const;
+    const seat = { kind: 'chooseSeat' as const, seat: 1, card: 6, options: [0, 2], cancellable: false };
     expect(parseAnswer(seat, '5')).toBe(0);
     expect(parseAnswer(seat, '2')).toBe(2);
     expect(fallbackAnswer({ ...seat, cancellable: true })).toBeNull();

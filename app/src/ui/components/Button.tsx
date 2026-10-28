@@ -1,9 +1,9 @@
-import type { ComponentChildren, JSX } from 'preact';
+import type { ButtonHTMLAttributes, ComponentChildren } from 'preact';
 import './components.css';
 
 export type ButtonColor = 'red' | 'navy' | 'gold' | 'plain';
 
-interface Props extends Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'color'> {
+interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'color'> {
   color?: ButtonColor;
   children: ComponentChildren;
 }
