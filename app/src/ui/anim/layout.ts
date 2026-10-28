@@ -15,6 +15,12 @@ const DISCARD: Rect = { x: 256, y: 123.5, w: 44, h: 61 };
 const JAIL: Rect = { x: 355, y: 76, w: 10, h: 14 };
 const HIDDEN_HAND: Rect = { x: 214, y: 225, w: 46, h: 64 };
 const HAND_RIGHT = 469 - 49;
+/** The hand box's width in stage units (board.css .hand). */
+export const HAND_WIDTH_UNITS = 464;
+
+/** How far the hand is scrolled, in stage units (set by board/Hand.tsx). */
+let handScroll = 0;
+export function setHandScroll(units: number): void { handScroll = Number.isFinite(units) ? units : 0; }
 
 function rowOf(view: GameState, seating: Seating, seat: Seat): number {
   return view.seats.map((_, s) => s).filter(s => s !== seating.mine).indexOf(seat);
@@ -42,7 +48,7 @@ export function seatRect(view: GameState, seating: Seating, seat: Seat): Rect {
 export function placeRect(place: Place, view: GameState, seating: Seating): Rect {
   switch (place.at) {
     case 'hand':
-      if (place.seat === seating.hand) return { x: Math.min(11.5 + place.slot * 60, HAND_RIGHT), y: 222.5, w: 49, h: 67 };
+      if (place.seat === seating.hand) return { x: Math.max(5, Math.min(11.5 + place.slot * 60 - handScroll, HAND_RIGHT)), y: 222.5, w: 49, h: 67 };
       if (place.seat === seating.mine) return HIDDEN_HAND;
       return seatRect(view, seating, place.seat);
     case 'walls': return wallRect(view, seating, place.seat, place.kind);

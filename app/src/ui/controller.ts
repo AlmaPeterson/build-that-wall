@@ -25,6 +25,8 @@ export interface GameSnapshot {
   prompt: Prompt | null;
   /** The pass-the-device screen is up, waiting for this seat to tap "I'm ready". */
   passTo: Seat | null;
+  /** "Player 1's turn" is showing for a moment before that player's turn starts (one person playing). */
+  turnBanner?: Seat | null;
 }
 
 export interface ControllerOptions {
@@ -42,6 +44,8 @@ export interface ControllerOptions {
   /** Pause before each bot action (ms) so people can follow it; watch mode uses `watchDelay`. Default 0 (tests). */
   botDelay?: number;
   watchDelay?: number;
+  /** One person on this device: show "<name>'s turn" this long (ms) before each of their turns. Default 0 (tests). */
+  turnBanner?: number;
 }
 
 const forever = new Promise<never>(() => {});
@@ -61,6 +65,7 @@ export class GameController {
   private holder: Seat | null = null;
   private stopped = false;
   private pace: (() => Promise<void>) | null = null;
+  private bannerSeat: Seat | null = null;
 
   constructor(private readonly opts: ControllerOptions = {}) {
     for (const fn of createdHooks) fn(this);
@@ -84,7 +89,7 @@ export class GameController {
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
-      beforeTurn: seat => (this.passing() ? this.passTo(seat) : Promise.resolve()),
+      beforeTurn: seat => (this.passing() ? this.passTo(seat) : this.banner(seat)),
       beforeBotAction: async () => {
         // Let the board finish showing what just happened, then pause so people can follow
         if (this.pace) await this.pace();
@@ -160,6 +165,20 @@ export class GameController {
     });
   }
 
+  /** "<name>'s turn" for a moment, once the board has shown everything before it. */
+  private async banner(seat: Seat): Promise<void> {
+    const ms = this.opts.turnBanner ?? 0, s = this.game?.state;
+    if (ms <= 0 || !s || s.seats[seat]?.bot || this.opts.localSeat !== undefined || this.opts.remoteDecider?.(seat)) return;
+    if (this.pace) await this.pace();
+    if (this.stopped) return forever;
+    this.bannerSeat = seat;
+    this.publish();
+    await new Promise(r => setTimeout(r, ms));
+    this.bannerSeat = null;
+    if (this.stopped) return forever;
+    this.publish();
+  }
+
   private passTo(seat: Seat): Promise<void> {
     if (this.stopped) return forever;
     return new Promise(resolve => { this.passResolve = resolve; this.passSeat = seat; this.publish(seat); });
@@ -188,6 +207,7 @@ export class GameController {
       events: this.events.map(e => redactEvent(e, viewer)),
       prompt: passTo === null ? this.prompts[0] ?? null : null,
       passTo,
+      turnBanner: this.bannerSeat,
     });
   }
 }

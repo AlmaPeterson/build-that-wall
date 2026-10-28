@@ -23,7 +23,7 @@ export function shownHand(snap: GameSnapshot): Seat | null {
   const seat = v.seats[snap.viewer];
   if (!seat || seat.bot) return null;                      // watch mode: no human hand to show
   if (v.turn < 0) return null;                             // dealing: nobody's hand is shown yet
-  if (snap.passTo !== null) return null;                   // the pass screen slides in over the board: show no one's hand
+  if (snap.passTo !== null || (snap.turnBanner ?? null) !== null) return null;                   // the pass screen slides in over the board: show no one's hand
   if (snap.prompt) return snap.viewer;
   if (v.turn >= 0 && v.seats[v.turn]?.bot && !v.over) return null;   // a bot is playing
   return snap.viewer;

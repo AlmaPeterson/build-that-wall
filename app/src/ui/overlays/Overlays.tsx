@@ -9,7 +9,7 @@ import type { GameController } from '../controller';
 import { animatorFor } from '../anim';
 import { useStore } from '../store';
 import { PromptView } from './Prompt';
-import { BigNotice, PassScreen, Recap, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
+import { BigNotice, PassScreen, Recap, TurnBanner, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
 import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, type RecapLine } from './text';
 import './overlays.css';
 
@@ -90,6 +90,8 @@ export function Overlays({ controller }: { controller: GameController }) {
       onClose={() => setNotices(ns => ns.slice(1))} />;
   } else if (recap) {
     modal = <Recap lines={recap.lines} myTurn={recap.myTurn} onClose={() => setRecap(null)} />;
+  } else if (snap.turnBanner != null && !view.over) {
+    modal = <TurnBanner name={seatName(view, snap.turnBanner)} />;
   }
 
   return (

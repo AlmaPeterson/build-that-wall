@@ -39,7 +39,7 @@ export const settings = createStore<UiSettings>(DEFAULT_UI_SETTINGS);
 export const controller = createStore<GameController | null>(null);
 
 /** How games on this device run: bots pause (after their moves have been shown) so people can follow them; services add the bots' saved memory. */
-export const gameOptions: ControllerOptions = { passScreen: true, botDelay: 350, watchDelay: 700 };
+export const gameOptions: ControllerOptions = { passScreen: true, botDelay: 350, watchDelay: 700, turnBanner: 1300 };
 
 /** Start a game on this device with the current settings and show the board. */
 export function startLocalGame(game: GameSettings = settings.get().game): GameController {

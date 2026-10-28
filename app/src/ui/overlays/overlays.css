@@ -157,3 +157,26 @@
   background: rgba(0, 0, 0, .65); color: #fff; font-size: 18px; line-height: 26px; cursor: zoom-in;
 }
 .btw-ov-zoom:focus-visible { outline: 3px solid var(--gold); }
+
+/* "Player 1's turn": the one thing to look at for a moment. The screen dims and a big band sweeps across. */
+.btw-turn {
+  position: fixed; inset: 0; z-index: 950; display: flex; align-items: center; pointer-events: none;
+  background: rgba(0, 0, 0, .7); animation: btw-turn-dim 1.3s ease-in-out both;
+}
+.btw-turn-band {
+  width: 100%; padding: clamp(18px, 4vw, 36px) 16px; text-align: center; color: #fff;
+  background: #1f2fd0; border-top: 6px solid #ffd84d; border-bottom: 6px solid #ffd84d;
+  box-shadow: 0 0 60px rgba(255, 216, 77, .55);
+  font: 900 clamp(40px, 9vw, 96px) var(--font); text-shadow: 0 4px 0 #b3122a;
+  animation: btw-turn-in 1.3s cubic-bezier(.2, .8, .3, 1) both;
+}
+.btw-turn-name { color: #ffd84d; }
+@keyframes btw-turn-dim { 0% { opacity: 0; } 15%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes btw-turn-in {
+  0% { transform: translateX(100%) scale(.9); }
+  22% { transform: none; }
+  30% { transform: scale(1.06); }
+  38%, 82% { transform: none; }
+  100% { transform: translateX(-100%) scale(.9); }
+}
+@media (prefers-reduced-motion: reduce) { .btw-turn, .btw-turn-band { animation: none; } }
