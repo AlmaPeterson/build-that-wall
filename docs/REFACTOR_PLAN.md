@@ -75,6 +75,42 @@ tutorial, animations.
   tutorial, store. Port the existing DOM panels from BTW Links.
 - Match the 640×360 layout first; responsive improvements after parity.
 
+### Phase 2b — Follow every action (animations)
+Owner's request (2026-10-28): every move must be easy to follow, bots' turns included. Nothing
+should just appear or disappear; every card visibly travels from where it was to where it goes.
+
+What the player must see:
+- **Playing a card:** the card leaves the player's hand (the bot's hidden hand too), turns face up so
+  everyone can read it, pauses large in the middle with a caption ("Bot 2 plays Debt on Player 1"),
+  then flies to where it goes: the discard pile, or the **target player** for Debt and every other
+  card played on someone (their wall row / scoreboard row lights up).
+- **Building a wall:** the wall card flies into its exact spot in that player's built section.
+  The payment is shown too: the Man Hour (or the two walls paid) flies to the discard pile.
+- **Everything else that moves a card:** draws (card back flies from the draw pile to the hand; it is
+  only face up for the player who drew it), blocks (the blocking card flies in and the blocked card
+  goes to the discard), walls taken or knocked down, cards stolen or swapped between players,
+  jail / quarantine / train guard markers, reshuffling the discard into the draw pile.
+- A short **action log** on the board (last few lines, tap to see the whole game) so a missed move
+  can be read back.
+
+How to build it:
+1. **Engine events say where things go.** `GameEvent` gets `from`/`to` places
+   (`hand` + slot, `wall` + seat + position, `discard`, `draw`, `seat` for cards played on a player)
+   and the payment cards for `build`. Engine tests check every card effect emits them.
+2. **Controller keeps a queue.** After each event it stores the event with the redacted view as it is
+   *after* that event. The board steps through the queue: animate the move, then show that view.
+   The engine waits for the queue to drain before the next bot action (this replaces the fixed
+   0.6 s bot pause), so the state on screen never jumps ahead of the animation.
+3. **One flying-card layer on the board.** Hand slots, wall spots, piles and seats carry
+   `data-place` attributes; the layer measures start and end and moves a card image between them
+   with the Web Animations API (no library). Face-down for cards the viewer may not see.
+4. **Human moves animate the same way** (from the tapped hand slot), and online clients animate from
+   the events they receive, so every device sees the same thing.
+5. **Settings → Animation speed:** Slow / Normal / Fast / Off. Tapping the board skips the current
+   animation. `prefers-reduced-motion` starts at Off (cards fade into place instead).
+6. **Tests:** queue order and waiting with fake timers (happy-dom can't measure positions);
+   a headless-browser screenshot run of `?demo=watch` to check by eye.
+
 ### Phase 3 — Parity and switch-over
 - Side-by-side play-testing against the PenguinMod version, checklist in `docs/parity.md`.
 - Switch GitHub Pages to the new build; keep the old build at `/classic/` for a while.
@@ -106,7 +142,7 @@ tutorial, animations.
 - Build: ~90 KB gzipped JS + a 90 KB gzipped MQTT chunk loaded only for online play (old game: ~16 MB).
 
 Not done yet: video ads for non-Gold players, owner tools UI, online spectators, card movement
-animations, confetti; online play not yet tried against the real MQTT broker.
+animations (planned in Phase 2b), confetti; online play not yet tried against the real MQTT broker.
 
 ## Phase 1 results
 
