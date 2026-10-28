@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CARD_BACK } from '../game';
 import { GameController } from './controller';
 
 const settings = (players: number, bots: number) => ({
@@ -32,6 +33,21 @@ describe('GameController', () => {
     expect(snap.events.at(-1)?.type).toBe('gameOver');
   });
 
+  it('a bots-only game shows every hand face up', async () => {
+    const c = new GameController();
+    let release: () => void = () => {};
+    c.setPace(() => new Promise(r => { release = r; }));
+    const done = c.start(settings(3, 3), 7);
+    await new Promise(r => setTimeout(r, 0));
+    const snap = c.snapshot.get();
+    expect(snap.openHands).toBe(true);
+    expect(snap.view!.seats.flatMap(s => s.hand)).not.toContain(CARD_BACK);
+    expect(snap.view!.seats.some(s => s.hand.length)).toBe(true);
+    c.setPace(null);
+    release();
+    await done;
+  });
+
   it("shows only the viewer's hand and waits for the human to act", async () => {
     const c = new GameController();
     void c.start(settings(2, 1), 3);
@@ -40,6 +56,7 @@ describe('GameController', () => {
     expect(snap.view).not.toBeNull();
     expect(snap.viewer).toBe(0);
     expect(snap.view!.seats[1]!.hand.every(id => id === 4)).toBe(true);   // the bot's hand is hidden
+    expect(snap.openHands).toBe(false);
     if (snap.view!.turn === 0 && !snap.prompt) {
       expect((await c.act({ type: 'endTurn' })).ok).toBe(true);
     }

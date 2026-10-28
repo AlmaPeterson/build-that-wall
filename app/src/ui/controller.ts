@@ -27,6 +27,8 @@ export interface GameSnapshot {
   passTo: Seat | null;
   /** "Player 1's turn" is showing for a moment before that player's turn starts (one person playing). */
   turnBanner?: Seat | null;
+  /** Only bots are playing (a local game): every hand is face up, and the board shows the playing bot's. */
+  openHands?: boolean;
 }
 
 export interface ControllerOptions {
@@ -220,13 +222,20 @@ export class GameController {
   viewOf(seat: Seat): GameState | null {
     const s = this.game?.state;
     if (!s) return null;
-    const v = viewFor(s, seat);
+    const open = this.allBots();
+    const v = viewFor(s, seat, open);
     const p = this.game!.unannouncedPlay;
     if (p) {
       if (p.discarded) v.discard.splice(v.discard.lastIndexOf(p.card), 1);
-      v.seats[p.seat]?.hand.splice(p.slot, 0, seat === p.seat ? p.card : CARD_BACK);
+      v.seats[p.seat]?.hand.splice(p.slot, 0, open || seat === p.seat ? p.card : CARD_BACK);
     }
     return v;
+  }
+
+  /** A local game with only bots playing: nobody's hand is secret, so the watcher sees them all. */
+  private allBots(): boolean {
+    const s = this.game?.state;
+    return !!s && this.opts.localSeat === undefined && s.seats.every(x => !!x.bot);
   }
 
   private publish(passTo: Seat | null = this.passResolve ? this.snapshot.get().passTo : null): void {
@@ -235,10 +244,11 @@ export class GameController {
       view: this.viewOf(viewer),
       viewer,
       // Other players' drawn cards stay hidden, on a shared device too
-      events: this.events.map(e => redactEvent(e, viewer)),
+      events: this.allBots() ? [...this.events] : this.events.map(e => redactEvent(e, viewer)),
       prompt: passTo === null ? this.prompts[0] ?? null : null,
       passTo,
       turnBanner: this.bannerSeat,
+      openHands: this.allBots(),
     });
   }
 }

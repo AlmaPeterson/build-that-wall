@@ -213,6 +213,14 @@ describe('board-state', () => {
     expect(shownHand(snap({ view: { ...v, turn: -1 } }))).toBeNull();     // dealing
   });
 
+  it("shownHand shows the playing bot's hand when only bots play", () => {
+    const v = snap({}).view!;
+    const bots = { ...v, seats: v.seats.map(s => ({ ...s, bot: s.bot ?? 'medium' as const })) };
+    expect(shownHand(snap({ view: { ...bots, turn: 1 }, openHands: true }))).toBe(1);
+    expect(shownHand(snap({ view: { ...bots, turn: 1 } }))).toBeNull();   // not an open-hands game
+    expect(shownHand(snap({ view: { ...bots, turn: -1 }, openHands: true }))).toBeNull();
+  });
+
   it('ranking shares a place on equal miles', () => {
     const state = { seats: [{ walls: [29] }, { walls: [29, 29] }, { walls: [30] }], trainGuards: [] } as unknown as Parameters<typeof ranking>[0];
     expect(ranking(state).map(r => [r.seat, r.miles, r.label])).toEqual([[1, 8, '1st:'], [0, 3, '2nd:'], [2, 3, '2nd:']]);

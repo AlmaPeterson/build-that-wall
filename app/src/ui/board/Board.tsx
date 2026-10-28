@@ -11,7 +11,7 @@ import type { GameController } from '../controller';
 import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
 import {
-  buildMenu, canInteract, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice,
+  buildMenu, canInteract, displayName, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice,
 } from './board-state';
 import { BuildMenu, ConfirmEnd } from './BoardModal';
 import { ActionLog } from './ActionLog';
@@ -157,11 +157,13 @@ export function Board({ controller }: { controller: GameController }) {
 
       <Scoreboard state={view} />
       <Piles state={view} />
-      {handSeat !== null || !view.seats[snap.viewer]?.bot ? <MyWalls state={view} seat={snap.viewer} /> : null}
+      {!view.seats[snap.viewer]?.bot ? <MyWalls state={view} seat={snap.viewer} /> : null}
       <OtherWalls state={view} viewer={view.seats[snap.viewer]?.bot ? -1 : snap.viewer} />
 
       {handSeat !== null
-        ? <Hand seat={handSeat} cards={hand} onCard={onCard} onLift={live && !picking ? onLift : undefined} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
+        ? snap.openHands
+          ? <Hand seat={handSeat} cards={hand} onCard={() => {}} picking={null} title={displayName(view, handSeat) + "'s Hand"} />
+          : <Hand seat={handSeat} cards={hand} onCard={onCard} onLift={live && !picking ? onLift : undefined} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
         : <HiddenHand message={view.turn < 0 ? 'Dealing the cards…' : snap.turnBanner != null || snap.passTo !== null ? 'Your cards are coming up…' : undefined} />}
 
       {picking && (

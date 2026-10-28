@@ -26,6 +26,8 @@ interface Props {
    * x, y are viewport pixels. Without it, cards only move along the hand.
    */
   onLift?(slot: number, x: number, y: number, phase: 'move' | 'drop' | 'cancel'): void;
+  /** Whose hand it says it is: "Your Hand" unless it's someone else's (a bots-only game). */
+  title?: string;
 }
 
 const DRAG_START_PX = 6;      // a mouse press that moves further than this is a drag, not a tap
@@ -35,7 +37,7 @@ const LIFT_PX = 30;           // pulling a card this far up takes it out of the 
 
 interface Drag { from: number; to: number; dx: number }
 
-export function Hand({ seat, cards, onCard, picking, onLift }: Props) {
+export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand' }: Props) {
   const row = useRef<HTMLDivElement>(null);
   useStore(handOrderVersion);
   const [drag, setDragState] = useState<Drag | null>(null);
@@ -145,8 +147,8 @@ export function Hand({ seat, cards, onCard, picking, onLift }: Props) {
   }, []);
   return (
     <>
-      <div class="at hand__title">Your Hand</div>
-      <div class={'at hand' + (drag ? ' hand--dragging' : '')} role="list" aria-label="Your hand (drag cards to arrange them)" ref={row}>
+      <div class="at hand__title">{title}</div>
+      <div class={'at hand' + (drag ? ' hand--dragging' : '')} role="list" aria-label={title + ' (drag cards to arrange them)'} ref={row}>
         {shown.map((slot, at) => {
           const id = cards[slot]!;
           const pickable = picking ? picking.pickable.includes(slot) : true;
