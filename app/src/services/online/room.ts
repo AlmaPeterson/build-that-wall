@@ -18,6 +18,11 @@ export interface GameHooks {
   turn(): number;
   /** The seat whose device plays the current turn: bots and empty seats are played by the host (see seatOwner). */
   turnOwner(): number;
+  /**
+   * false: don't share the whole state every tick. The TypeScript game's host runs the game and sends
+   * each player only what they may see, with sendData. Default true (the PenguinMod way).
+   */
+  autoSync?: boolean;
 }
 
 /** Things that happen to this device. All optional. */
@@ -36,6 +41,10 @@ export interface RoomEvents {
   onAsk?(ask: AskMsg): Promise<string>;
   /** Progress text for the player ("Looking for an online game..."). */
   onStatus?(text: string): void;
+  /** A data message (see sendData). fromSeat: the sender (1 = the host). */
+  onData?(data: unknown, fromSeat: number): void;
+  /** Host: a player joined the room (before the game starts). */
+  onJoin?(seat: number): void;
 }
 
 export type Role = '' | 'host' | 'client';
@@ -239,6 +248,31 @@ export class OnlineRoom {
     });
   }
 
+  /** Host: the seats of the players connected now (not the host's own seat 1), in seat order. */
+  connectedSeats(): number[] {
+    return this._role === 'host' ? [...this.conns.keys()].sort((a, b) => a - b) : [];
+  }
+
+  /**
+   * Send data to one seat. Host: to that player's own topic (only they get it), or seat 1 = this device.
+   * Player: to the host (seat 1). Returns false when there's no one to send to.
+   */
+  sendData(seat: number, data: unknown): boolean {
+    if (!this._role) return false;
+    const msg: GameMsg = { t: 'x', to: seat, from: this._seat, data };
+    if (this._role === 'client') { this.send(msg); return true; }
+    if (seat === 1) { this.events.onData?.(data, 1); return true; }
+    const c = this.conns.get(seat);
+    if (!c) return false;
+    this.pub(topics(this._code).client(c.cid), msg);
+    return true;
+  }
+
+  /** Host: send data to every connected player at once (for things everyone may see). */
+  broadcastData(data: unknown): void {
+    if (this._role === 'host') this.pub(topics(this._code).down, { t: 'x', to: 0, from: 1, data });
+  }
+
   // ---- connection
 
   private async connect(): Promise<boolean> {
@@ -351,6 +385,7 @@ export class OnlineRoom {
     this.conns.set(seat, { cid }); this.cid2seat.set(cid, seat); this.seen.set(seat, Date.now());
     this.pub(to, { t: 'welcome', seat });
     this.roomInfo();
+    this.events.onJoin?.(seat);
   }
 
   private onMsg(d: DownMsg, fromSeat: number): void {
@@ -384,6 +419,9 @@ export class OnlineRoom {
         break;
       case 'playerleft':
         if (this._role === 'client') this.events.onPlayerLeft?.(d.seat);
+        break;
+      case 'x':
+        if (d.to === 0 || d.to === this._seat) this.events.onData?.(d.data, fromSeat);
         break;
     }
   }
@@ -459,7 +497,7 @@ export class OnlineRoom {
 
   /** Whoever's turn it is sends the state when it changes (and once more when the turn passes on). */
   private tick(): void {
-    if (!this._role) return;
+    if (!this._role || this.game.autoSync === false) return;
     if (!this.game.isRunning() && !this.was) return;
     const mine = this.game.turnOwner() === this._seat;
     if (mine || this.was) {
