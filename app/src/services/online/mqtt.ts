@@ -77,6 +77,9 @@ function wrap(cl: import('mqtt').MqttClient): Transport {
     onClose(handler) {
       cl.on('close', () => { if (!ended) handler(); });
     },
+    connected() {
+      return !ended && cl.connected;
+    },
     end() {
       ended = true;
       try { cl.end(true); } catch { /* already closed */ }

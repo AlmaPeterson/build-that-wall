@@ -42,6 +42,9 @@ export class FakeRelay {
     for (const c of [...this.clients]) c.drop();
   }
 
+  /** The connections still open (oldest first). */
+  get open(): FakeTransport[] { return [...this.clients]; }
+
   /** Messages published to a topic, parsed. */
   sent(topic: string): Record<string, unknown>[] {
     return this.log.filter((l) => l.topic === topic && l.payload).map((l) => JSON.parse(l.payload) as Record<string, unknown>);
@@ -87,6 +90,9 @@ export class FakeTransport implements Transport {
   }
   onClose(handler: () => void): void {
     this.closeHandlers.push(handler);
+  }
+  connected(): boolean {
+    return !this.ended;
   }
   end(): void {
     this.ended = true;
