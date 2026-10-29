@@ -353,7 +353,9 @@ function grow(r: Rect): Rect {
 }
 
 function same(a: GameSnapshot, b: GameSnapshot): boolean {
+  // Every field the board or overlays show: a change in any of them must get through (e.g. Quarantine's OK)
   return a.viewer === b.viewer && a.prompt === b.prompt && a.passTo === b.passTo && (a.turnBanner ?? null) === (b.turnBanner ?? null)
+    && (a.skipped ?? null) === (b.skipped ?? null) && !!a.openHands === !!b.openHands
     && a.events.length === b.events.length && JSON.stringify(a.view) === JSON.stringify(b.view);
 }
 

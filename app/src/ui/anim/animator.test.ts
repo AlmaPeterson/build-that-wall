@@ -78,6 +78,18 @@ describe('Animator', () => {
     expect(anim.state.get()).toMatchObject({ snap: next, flights: [], idle: true });
   });
 
+  it("a snapshot that only changes Quarantine's OK (skipped) still gets through", async () => {
+    const { prev } = debtStep();
+    const source = createStore(prev);
+    const anim = new Animator(source, { speed: () => 1 });
+    source.set({ ...prev, skipped: 0 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(anim.state.get().snap.skipped).toBe(0);
+    source.set({ ...prev, skipped: null });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(anim.state.get().snap.skipped).toBeNull();
+  });
+
   it('tapping skips the step; speed 0 shows it straight away', async () => {
     const { prev, next } = debtStep();
     const source = createStore(prev);
