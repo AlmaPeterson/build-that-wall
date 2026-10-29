@@ -30,6 +30,20 @@ export function promptTitle(kind: string, card: CardId, purpose?: string): strin
   }
 }
 
+/** "Waiting for Ben to decide: block it with Self-Defense?" (another player is answering, on their own device). */
+export function waitingText(w: { seat: Seat; kind: string; card?: CardId; purpose?: string }, state: Pick<GameState, 'seats'>): string {
+  const who = seatName(state, w.seat);
+  switch (w.kind) {
+    case 'block': return 'Waiting for ' + who + ' to decide whether to block it with Self-Defense…';
+    case 'paySavings': return 'Waiting for ' + who + ' to decide whether to pay the Debt with Savings…';
+    case 'chooseSeat': return 'Waiting for ' + who + ' to pick a player' + (w.card ? ' for ' + cardName(w.card) : '') + '…';
+    case 'chooseWall': return 'Waiting for ' + who + ' to pick a wall…';
+    case 'chooseHandCard': return 'Waiting for ' + who + (w.purpose === 'build' ? ' to pick a wall to build…' : ' to pick a card to give away…');
+    case 'pickCards': case 'pickHandCards': return 'Waiting for ' + who + ' to pick their cards…';
+    default: return 'Waiting for ' + who + ' to decide' + (w.card ? ' (' + cardName(w.card) + ')' : '') + '…';
+  }
+}
+
 /** One line of the turn recap: what happened, with the card that caused it and any walls involved. */
 export interface RecapLine {
   text: string;

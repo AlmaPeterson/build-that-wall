@@ -47,6 +47,12 @@ export interface RoomEvents {
   onJoin?(seat: number): void;
   /** The connection dropped and came back: messages may have been missed meanwhile. */
   onReconnected?(): void;
+  /** The host hasn't heard from this device: show "Still here?" (msLeft to answer, then it's out). */
+  onStillAsk?(msLeft: number): void;
+  /** The host gave up on this device (no "Still here" in time): it has left the game. */
+  onDropped?(): void;
+  /** Host: a player said "Still here"; their seat was kept (send them everything again). */
+  onStillHere?(seat: number): void;
 }
 
 export type Role = '' | 'host' | 'client';
@@ -83,6 +89,17 @@ const JOIN_WAIT_MS = 9000;
 const SCAN_MS = 2000;
 const QUICK_FRESH_MS = 30000;
 const ASK_TIMEOUT_MS = 45000;
+// A player who would count as gone is asked "Still here?" first: this long on their screen...
+export const STILL_MS = 60000;
+// ...plus this long for a slow or frozen device, before the host gives up and marks them as left
+export const STILL_GRACE_MS = 20000;
+// Quick match: a room whose host doesn't welcome us this fast is probably left over; try the next one
+const QUICK_JOIN_WAIT_MS = 4000;
+
+/** Is this retained room info from a host that's still there? (A host in the background updates it rarely.) */
+export function roomAlive(info: RoomInfo, now: number, fresh: number): boolean {
+  return now - (info.ts || 0) <= (info.away ? AWAY_GONE_MS : fresh);
+}
 
 const ERRORS: Record<string, string> = {
   'peer-unavailable': 'No game with that code is open.',
@@ -133,6 +150,7 @@ export class OnlineRoom {
   private cid2seat = new Map<string, number>();
   private seen = new Map<number, number>();               // host: seat -> last heard from
   private away = new Set<number>();                       // host: seats whose page is in the background
+  private stillAsked = new Map<number, number>();         // host: seat -> when it was asked "Still here?"
   private hostAway = false;                               // player: the host's page is in the background
   private myAway = false;                                 // this page is in the background
   private reconnecting = false;
@@ -204,13 +222,15 @@ export class OnlineRoom {
     await new Promise((r) => setTimeout(r, SCAN_MS));
     this.unsub(ALL_ROOMS);
     const now = Date.now();
+    // Rooms left over by a host that's gone (closed without leaving): clear them so nobody tries them again
+    for (const [code, i] of this.scan) if (i && !roomAlive(i, now, ROOM_STALE_MS)) this.clearRoom(code);
     const rooms = [...this.scan.entries()]
-      .filter(([, i]) => i && i.world && i.open && !i.running && i.players < i.max && now - i.ts < QUICK_FRESH_MS)
+      .filter(([, i]) => i && i.world && i.open && !i.running && i.players < i.max && roomAlive(i, now, QUICK_FRESH_MS))
       .sort((x, y) => y[1].players - x[1].players);
     this.scan = null;
     for (const [code] of rooms) {
       this.events.onStatus?.('Joining an online game...');
-      const seat = await this.joinCode(code, JOIN_WAIT_MS);
+      const seat = await this.joinCode(code, QUICK_JOIN_WAIT_MS);
       if (seat > 0) return seat;
     }
     // nobody waiting: open a world room on the same connection
@@ -232,7 +252,7 @@ export class OnlineRoom {
       setTimeout(() => tr.end(), 300);     // let the goodbye go out first
     }
     this._role = ''; this._code = ''; this._seat = 1; this.was = false; this.last = '';
-    this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.away.clear(); this.joining = false;
+    this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.away.clear(); this.stillAsked.clear(); this.joining = false;
     this.hostAway = false;
     this.stopTimers();
     this.backWaiter?.();
@@ -248,7 +268,7 @@ export class OnlineRoom {
     this.myAway = away;
     if (!this._role) return;
     const t = topics(this._code);
-    if (this._role === 'host') this.pub(t.down, { t: away ? 'away' : 'back' });
+    if (this._role === 'host') { this.pub(t.down, { t: away ? 'away' : 'back' }); this.roomInfo(); }
     else this.pub(t.up, { t: away ? 'away' : 'back', cid: this.cid });
     if (away) return;
     const w = this.backWaiter;
@@ -334,8 +354,9 @@ export class OnlineRoom {
     const still = () => this._role === role && this._code === code;
     try {
       for (let i = 0; i < RECONNECT_TRIES && still(); i++) {
-        // In the background a phone may not even have a network: wait until the page is back
-        while (this.myAway && still()) await new Promise<void>(r => { this.backWaiter = r; });
+        // In the background a phone may not even have a network: a player waits until the page is back.
+        // The host keeps trying, or joiners would find its room dead and open their own instead.
+        while (this.myAway && role === 'client' && still()) await new Promise<void>(r => { this.backWaiter = r; });
         if (!still()) return;
         if (await this.connect()) {
           if (!still()) { this.dropConnection(); return; }
@@ -404,7 +425,10 @@ export class OnlineRoom {
       setTimeout(() => res(null), ROOM_WAIT_MS);
     });
     this.roomWait = null; this.unsub(t.room);
-    if (!info || !info.open || Date.now() - (info.ts || 0) > ROOM_STALE_MS) { this._err = 'peer-unavailable'; return 0; }
+    if (!info || !info.open || !roomAlive(info, Date.now(), ROOM_STALE_MS)) {
+      if (info && info.open) this.clearRoom(code);         // left over by a host that's gone
+      this._err = 'peer-unavailable'; return 0;
+    }
     await this.sub(t.down); await this.sub(t.client(this.cid));
     this.joining = true;
     const seat = await new Promise<number>((res) => {
@@ -441,7 +465,12 @@ export class OnlineRoom {
       this.seen.set(s, Date.now());
       if (d.t === 'hb') return;
       if (d.t === 'away') { this.away.add(s); return; }
-      if (d.t === 'back') { this.away.delete(s); return; }
+      if (d.t === 'back') { this.away.delete(s); this.askStill(s); return; }   // asked while it was away: ask now
+      if (d.t === 'here') {
+        this.away.delete(s);
+        if (this.stillAsked.delete(s)) this.events.onStillHere?.(s);
+        return;
+      }
       this.onMsg(d as DownMsg, s);
       return;
     }
@@ -450,6 +479,8 @@ export class OnlineRoom {
       if (d.t === 'away') { this.hostAway = true; return; }
       if (d.t === 'back') { this.hostAway = false; return; }
       if (d.t === 'end') { this.lost(); return; }
+      if (d.t === 'still') { if (this._role === 'client') this.events.onStillAsk?.(Math.max(0, +d.left || 0)); return; }
+      if (d.t === 'dropped') { if (this._role === 'client') { this._role = ''; this.stopTimers(); this.events.onDropped?.(); } return; }
       if ('_except' in d && d._except !== undefined && d._except === this._seat) return;
       this.onMsg(d as DownMsg, 1);
     }
@@ -458,7 +489,11 @@ export class OnlineRoom {
   private hostHello(cid: string): void {
     const to = topics(this._code).client(cid);
     const known = this.cid2seat.get(cid);
-    if (known) { this.pub(to, { t: 'welcome', seat: known }); return; }
+    if (known) {
+      this.pub(to, { t: 'welcome', seat: known });
+      this.askStill(known);                               // reconnected while asked "Still here?"
+      return;
+    }
     let seat = 0;
     for (let s = 2; s <= this.max; s++) if (!this.conns.has(s)) { seat = s; break; }
     if (!seat || this.game.isRunning()) {
@@ -543,6 +578,25 @@ export class OnlineRoom {
     else this.drop(seat);
   }
 
+  /** Host: ask one player's device "Still here?" (on its own topic), if it's being asked. */
+  private askStill(seat: number): void {
+    const c = this.conns.get(seat), asked = this.stillAsked.get(seat);
+    if (!c || asked === undefined) return;
+    this.pub(topics(this._code).client(c.cid), { t: 'still', left: Math.max(0, STILL_MS - (Date.now() - asked)) });
+  }
+
+  private tellDropped(seat: number): void {
+    const c = this.conns.get(seat);
+    if (c) this.pub(topics(this._code).client(c.cid), { t: 'dropped' });
+  }
+
+  /** Player: "Still here" was clicked. */
+  stillHere(): void {
+    if (this._role !== 'client') return;
+    this.lastSeen = Date.now();
+    this.pub(topics(this._code).up, { t: 'here', cid: this.cid });
+  }
+
   private playerLeft(seat: number): void {
     this.drop(seat, false);
     this.pub(topics(this._code).down, { t: 'playerleft', seat });
@@ -553,14 +607,20 @@ export class OnlineRoom {
   private drop(seat: number, announce = true): void {
     const c = this.conns.get(seat);
     if (c) this.cid2seat.delete(c.cid);
-    this.conns.delete(seat); this.seen.delete(seat); this.away.delete(seat);
+    this.conns.delete(seat); this.seen.delete(seat); this.away.delete(seat); this.stillAsked.delete(seat);
     if (announce) this.roomInfo();
   }
 
   private roomInfo(): void {
     if (this._role !== 'host') return;
     const info: RoomInfo = { open: 1, players: this.count, max: this.max, running: this.game.isRunning() ? 1 : 0, world: this.world ? 1 : 0, ts: Date.now() };
+    if (this.myAway) info.away = 1;
     this.pub(topics(this._code).room, info, true);
+  }
+
+  /** Clear a room's retained info (its host is gone), so quick match and joiners stop finding it. */
+  private clearRoom(code: string): void {
+    this.transport?.publish(topics(code).room, '', true);
   }
 
   private lost(): void {
@@ -600,12 +660,24 @@ export class OnlineRoom {
     const t = topics(this._code);
     if (this._role === 'host') {
       this.pub(t.down, { t: 'hb' }); this.roomInfo();
-      for (const [s, at] of [...this.seen]) if (Date.now() - at > (this.away.has(s) ? AWAY_GONE_MS : GONE_MS)) this.gone(s);
+      const now = Date.now();
+      for (const [s, at] of [...this.seen]) {
+        const asked = this.stillAsked.get(s);
+        if (asked !== undefined) {
+          // No "Still here" in time: they've left (and their device is told, if it can still hear us)
+          if (now - asked > STILL_MS + STILL_GRACE_MS) { this.tellDropped(s); this.gone(s); }
+          else this.askStill(s);                          // again, for a device that has just come back
+        } else if (now - at > (this.away.has(s) ? AWAY_GONE_MS : GONE_MS)) {
+          this.stillAsked.set(s, now);                    // gone quiet: ask before letting them go
+          this.askStill(s);
+        }
+      }
     } else if (this._role === 'client') {
       this.pub(t.up, { t: 'hb', cid: this.cid });
       // While either page is in the background, silence is expected; back in front, setAway reconnects if needed
-      const limit = this.hostAway || this.myAway ? AWAY_GONE_MS : GONE_MS;
-      if (Date.now() - (this.lastSeen || Date.now()) > limit) this.lost();
+      // (Never while this page is in the background: it can't tell, and coming back checks the connection.)
+      const limit = this.hostAway ? AWAY_GONE_MS : GONE_MS;
+      if (!this.myAway && Date.now() - (this.lastSeen || Date.now()) > limit) this.lost();
     }
   }
 }
