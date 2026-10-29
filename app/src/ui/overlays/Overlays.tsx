@@ -41,7 +41,8 @@ export function Overlays({ controller }: { controller: GameController }) {
       if (e.type === 'gameStart') { setWinClosed(false); setRecap(null); setNotices([]); }
       if (e.type === 'finalRound') { setNotices(n => [...n, e]); playSfx('alert'); continue; }
       if (e.type === 'gameOver') { playSfx('win'); continue; }
-      if (e.type === 'turnStart' && e.seat !== undefined && !view.seats[e.seat]?.bot) {
+      // Only the player whose turn it is, on their own screen (not another player's, online or in Pass'n'Play)
+      if (e.type === 'turnStart' && e.seat !== undefined && !view.seats[e.seat]?.bot && e.seat === viewer) {
         const lines = recapFor(events.slice(0, events.indexOf(e) + 1), e.seat, view);
         if (lines.length) setRecap({ lines, myTurn: true });
         continue;
@@ -56,7 +57,7 @@ export function Overlays({ controller }: { controller: GameController }) {
       const ids = new Set(newToasts.map(t => t.id));
       setTimeout(() => setToasts(ts => ts.filter(t => !ids.has(t.id))), TOAST_MS);
     }
-  }, [events, view]);
+  }, [events, view, viewer]);
 
   // A sound when a question comes up
   useEffect(() => { if (prompt) playSfx('prompt'); }, [prompt]);
@@ -88,7 +89,8 @@ export function Overlays({ controller }: { controller: GameController }) {
     const n = notices[0]!;
     modal = <BigNotice head="FINAL ROUND" title={n.text.startsWith('The last card') ? 'LAST CARD!' : 'FINAL ROUND!'} sub={n.text}
       onClose={() => setNotices(ns => ns.slice(1))} />;
-  } else if (recap) {
+  } else if (recap && controller.snapshot.get().passTo === null) {
+    // (Pass'n'Play: the pass screen waits while cards move; the recap waits for the pass screen, so it's never seen by the wrong player)
     // Quarantined: one OK closes the recap and lets the game go on (the turn is skipped, so not "it's my turn")
     const skipped = snap.skipped != null;
     const lines = skipped ? [...recap.lines, { text: "You're in Quarantine: you drew your cards but skip the rest of this turn." }] : recap.lines;
