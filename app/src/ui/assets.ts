@@ -15,11 +15,6 @@ export const CARD_BACK_IMAGE = (): string => cardImage(4);
 interface Costume { path: string; rotationCenterX: number; rotationCenterY: number; bitmapResolution: number }
 const sprites = (manifest as unknown as { sprites: Record<string, { costumes: Record<string, Costume>; sounds: Record<string, { path: string }> }> }).sprites;
 
-/** A costume from the old project, e.g. costume('Buttons', 'Start Game'). */
-export function costume(sprite: string, name: string): Costume | null {
-  return sprites[sprite]?.costumes[name] ?? null;
-}
-
 export function sound(sprite: string, name: string): string | null {
   return sprites[sprite]?.sounds[name]?.path ?? null;
 }

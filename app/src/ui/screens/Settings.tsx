@@ -82,6 +82,10 @@ export function SettingsScreen() {
         <Row label="Players">
           <Stepper label="Players" value={g.players} min={MIN_PLAYERS} max={MAX_PLAYERS} onChange={players => setGame({ players })} />
         </Row>
+        {/* Online only: keep trying to join a room that isn't open yet */}
+        {s.gameMode === 'multiplayer' && (
+          <Row label="Auto Join"><Toggle label="Auto Join" on={s.autoJoin} onChange={autoJoin => set({ autoJoin })} /></Row>
+        )}
         <Row label="AI Players">
           <Stepper label="AI Players" value={g.bots} min={0} max={g.players} onChange={bots => setGame({ bots })} />
           {g.bots === g.players && <span class="settings__hint">Watch mode: bots only</span>}
@@ -120,7 +124,6 @@ export function SettingsScreen() {
             <option value="one">Play One</option>
           </select>
         </Row>
-        <Row label="Auto Join"><Toggle label="Auto Join" on={s.autoJoin} onChange={autoJoin => set({ autoJoin })} /></Row>
         <Row label="Tutorial tips"><Toggle label="Tutorial tips" on={s.tutorial} onChange={tutorial => set({ tutorial })} /></Row>
         <Row label="Card animations" id="set-anim">
           <select id="set-anim" value={s.animSpeed} onChange={e => set({ animSpeed: e.currentTarget.value as AnimSpeed })}>
