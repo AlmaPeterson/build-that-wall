@@ -18,7 +18,7 @@ const until = async (ok: () => boolean, ms = 3000) => {
 function session(relay: FakeRelay, name: string, shown: GameController[]) {
   return new OnlineSession({
     connect: relay.connect, name: () => name,
-    baseSettings: () => ({ ...DEFAULT_SETTINGS }),
+    baseSettings: () => ({ ...DEFAULT_SETTINGS, firstSeat: 0 }),
     show: c => shown.push(c),
     wait: () => Promise.resolve(),
   });

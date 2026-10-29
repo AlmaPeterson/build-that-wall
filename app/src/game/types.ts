@@ -22,6 +22,7 @@ export interface GameSettings {
   actionsPerTurn: number;        // 3
   cardsPerTurn: number;          // 3
   packCards: CardId[];           // extra cards from active expansion packs (none yet)
+  firstSeat?: Seat;              // who goes first; default a random player (the Tutorial and tests set it)
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {

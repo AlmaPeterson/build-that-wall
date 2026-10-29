@@ -8,6 +8,19 @@ const SET3 = (k: number) => [k, k, k];
 const THREE_SETS = [...SET3(29), ...SET3(30), ...SET3(31)];
 
 describe('dealing and drawing', () => {
+  it('a random player goes first unless firstSeat says who', async () => {
+    const firsts = new Set<number>();
+    for (let seed = 1; seed <= 30; seed++) {
+      const { game, state } = setup({ seed, settings: { players: 4, firstSeat: undefined } });
+      await game.start();
+      firsts.add(state.turn);                                   // no bots: the game waits for the first player
+    }
+    expect(firsts.size).toBeGreaterThan(1);
+    const { game, state } = setup({ seed: 7, settings: { players: 4, firstSeat: 2 } });
+    await game.start();
+    expect(state.turn).toBe(2);
+  });
+
   it('deals 5 rounds, one card per seat per round, from the top of the pile', async () => {
     const draw = Array.from({ length: 20 }, (_, i) => 100 + i);   // top = 119
     const { game, state } = setup({ draw: draw as CardId[] });

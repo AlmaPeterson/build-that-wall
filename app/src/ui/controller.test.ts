@@ -4,7 +4,7 @@ import { GameController } from './controller';
 
 const settings = (players: number, bots: number) => ({
   players, bots, difficulties: Array(bots).fill('medium'), names: [], ending: 1 as const, endingTimes: 1 as const,
-  actionsPerTurn: 3, cardsPerTurn: 3, packCards: [],
+  actionsPerTurn: 3, cardsPerTurn: 3, packCards: [], firstSeat: 0,
 });
 
 describe('GameController', () => {

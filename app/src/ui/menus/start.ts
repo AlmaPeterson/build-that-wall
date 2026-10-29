@@ -47,5 +47,6 @@ export function goOnline(intent: OnlineIntent): void {
 /** The Tutorial: tips on for the player, against bots on this device. */
 export function startTutorialGame(): void {
   settings.set({ ...settings.get(), tutorial: true });
-  startVsBots();
+  const g = settings.get().game;
+  startLocalGame({ ...gameSettingsFor(g.players, g.players - 1), firstSeat: 0 });   // learning: you go first
 }

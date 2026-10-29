@@ -53,8 +53,9 @@ export class Game implements GameApi {
       }
     }
     dealt.forEach((cards, seat) => this.emit({ type: 'deal', seat, cards, text: this.name(seat) + ' was dealt ' + cards.length + ' cards.' }));
-    // Play Immediately cards dealt here wait for that seat's first turn
-    s.turn = 0;
+    // A random player goes first (not always Player 1). Play Immediately cards dealt here wait for that seat's first turn
+    const first = s.settings.firstSeat;
+    s.turn = first !== undefined && first >= 0 && first < s.seats.length ? first : randomInt(s, 0, s.seats.length - 1);
     await this.runTurns(true);
   }
 
