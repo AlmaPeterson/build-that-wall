@@ -51,6 +51,38 @@ describe('planStep', () => {
     expect(plan.mid.discard).toEqual([]);
   });
 
+  it("a bot's card not played on you just flies across at a normal size, without stopping big in the middle", () => {
+    const a = base();
+    const b = clone(a);
+    b.seats[1]!.hand = [30];
+    b.discard = [7];
+    const play: GameEvent = { type: 'play', seat: 1, card: 7, text: 'Bot played Debt.' };
+    const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
+    const [card] = plan.flights;
+    expect(card!.card).toBe(7);
+    expect(card!.big).toBeFalsy();
+    expect(card!.keys.every(k => k.face)).toBe(true);             // you can tell which card it is all the way
+    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
+    expect(card!.keys[1]).toMatchObject({ w: 44, h: 61 });         // halfway: the size of the draw pile
+    expect(card!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });  // on the discard pile
+    expect(plan.duration).toBeLessThan(planStep(debtStep().prev, debtStep().next, 1)!.duration);
+  });
+
+  it('Spy Balloon on you: one balloon, straight on to the discard pile (the hidden hand looks unchanged)', () => {
+    const a = base();
+    a.seats[1]!.hand = [5, 30];
+    const b = clone(a);
+    b.seats[1]!.hand = [30, 26];      // lost the balloon, got your Trump: still two hidden cards
+    b.seats[0]!.hand = [29];
+    b.discard = [5];
+    const play: GameEvent = { type: 'play', seat: 1, card: 5, target: 0, text: 'Bot played Chinese Spy Balloon on Player 1.' };
+    const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
+    const balloons = plan.flights.filter(f => f.card === 5);
+    expect(balloons).toHaveLength(1);
+    expect(balloons[0]!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });
+    expect(plan.held).toBeNull();                                    // not also left waiting halfway
+  });
+
   it('slower speed takes longer; nothing moved or another viewer means no animation', () => {
     const { prev, next } = debtStep();
     expect(planStep(prev, next, 2)!.duration).toBe(planStep(prev, next, 1)!.duration * 2);

@@ -1,7 +1,8 @@
 // Plays the game back one step at a time so people can follow it. The controller publishes a snapshot
 // for every event; the animator queues them and shows each in turn: cards that moved fly from where they
-// were to where they went (a played card stops in the middle first, face up, with what happened), and only
-// then does the board show the new state. No DOM here: FlightLayer draws the flights it publishes.
+// were to where they went (a card you play, or one played on you, stops in the middle first, face up, with
+// what happened; other players' cards just fly across, big enough to tell which card it is), and only then
+// does the board show the new state. No DOM here: FlightLayer draws the flights it publishes.
 import { CARD_BACK, type CardId, type GameState, type Seat } from '../../game';
 import { shownHand } from '../board/board-state';
 import type { GameSnapshot } from '../controller';
@@ -39,7 +40,10 @@ export interface AnimState {
 }
 
 // Timings at Normal speed (ms)
-const T = { toCenter: 450, hold: 1000, toTarget: 450, move: 550, stagger: 90, maxStagger: 900, blockIn: 550, blockHold: 800, deal: 380, dealGap: 110 };
+const T = { toCenter: 450, hold: 1000, toTarget: 450, move: 550, stagger: 90, maxStagger: 900, blockIn: 550, blockHold: 800, deal: 380, dealGap: 110,
+  across: 800, atTarget: 250 };
+/** A card someone else plays, as it crosses the board: the size of the draw pile, so you can tell which it is. */
+const PASSING = { w: 44, h: 61 };
 const MAX_FLIGHTS = 14;
 const DEAL_FLIGHTS = 36;   // 6 players × 5 cards + room
 const SELF_DEFENSE = 20;
@@ -260,33 +264,60 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     // The played card: from the hand to the middle, face up; toward the player it's played on; then where it goes
     const card = reveal.card!;
     const fromHand = (m: Move) => m.from.at === 'hand' && m.from.seat === reveal.seat;
-    const m: Move = take(x => fromHand(x) && x.card === card) ?? take(x => fromHand(x) && x.card === CARD_BACK)
-      ?? { card, from: handPlace(before, reveal.seat!, card), to: fallback };
+    // A hidden hand that lost the played card and got another one (a Spy Balloon taking your Trumps) looks
+    // unchanged: then the card is the one that turned up from nowhere (on the discard pile), not a second copy
+    const arrived = take(x => fromHand(x) && x.card === card) ?? take(x => fromHand(x) && x.card === CARD_BACK)
+      ?? take(x => x.card === card && fromNowhere(x));
+    const m: Move = arrived && fromHand(arrived) ? arrived
+      : { card, from: handPlace(before, reveal.seat!, card), to: arrived?.to ?? fallback };
     m.card = card;
     // Not on any pile yet and played on nobody: it stays in the middle (it lands with a later step)
     if (m.to.at === 'seat' && target === undefined) m.to = { at: 'center' };
-    const t1 = start + ms(T.toCenter), t2 = t1 + (confirming ? 0 : ms(T.hold)), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
-    const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
-    if (start > 0) keys.push({ ...keys[0]!, t: start });   // waits in the hand until the block is over
-    keys.push({ t: t1, ...CENTER, face: true }, { t: t2, ...CENTER, face: true });
-    if (target !== undefined) {
-      targetRect = rowRect(after, to, target);
-      const spot = grow(seatRect(after, to, target));
-      if (m.to.at === 'seat') {
-        // Held nowhere yet: they may still block it, so it waits halfway
-        const half = lerp(CENTER, spot, 0.5);
-        keys.push({ t: t3, ...half, face: true });
-        heldAfter = { card, rect: half, target };
+    // Only a card you play, or one played on you, stops in the middle for you to read
+    const me = next.view && !next.view.seats[next.viewer]?.bot ? next.viewer : -1;
+    if (reveal.seat !== me && target !== me) {
+      const src = at(m.from, 'from');
+      const keys: Key[] = [{ t: 0, ...src, face: true }];
+      if (start > 0) keys.push({ ...keys[0]!, t: start });
+      const passBy = (a: Rect, b: Rect) => sized(lerp(a, b, 0.5), PASSING);
+      const t1 = start + ms(T.across);
+      if (target !== undefined) {
+        targetRect = rowRect(after, to, target);
+        const spot = grow(seatRect(after, to, target));
+        keys.push({ t: start + ms(T.across) / 2, ...passBy(src, spot), face: true }, { t: t1, ...spot, face: true });
+        if (m.to.at === 'seat') heldAfter = { card, rect: spot, target };   // they may still block it: it waits there
+        else keys.push({ t: t1 + ms(T.atTarget), ...spot, face: true }, { t: t1 + ms(T.atTarget) + ms(T.move), ...at(m.to, 'to'), face: true });
       } else {
-        keys.push({ t: t3, ...spot, face: true }, { t: t4, ...at(m.to, 'to'), face: true });
+        const end = m.to.at === 'center' ? sized(CENTER, PASSING) : at(m.to, 'to');   // waiting in the middle: not big
+        keys.push({ t: start + ms(T.across) / 2, ...passBy(src, end), face: true }, { t: t1, ...end, face: true });
       }
+      flights.push({ id: id(), card, keys });
+      flown.push(m);
+      start = t1;
     } else {
-      keys.push({ t: t4, ...at(m.to, 'to'), face: true });
+      const t1 = start + ms(T.toCenter), t2 = t1 + (confirming ? 0 : ms(T.hold)), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
+      const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
+      if (start > 0) keys.push({ ...keys[0]!, t: start });   // waits in the hand until the block is over
+      keys.push({ t: t1, ...CENTER, face: true }, { t: t2, ...CENTER, face: true });
+      if (target !== undefined) {
+        targetRect = rowRect(after, to, target);
+        const spot = grow(seatRect(after, to, target));
+        if (m.to.at === 'seat') {
+          // Held nowhere yet: they may still block it, so it waits halfway
+          const half = lerp(CENTER, spot, 0.5);
+          keys.push({ t: t3, ...half, face: true });
+          heldAfter = { card, rect: half, target };
+        } else {
+          keys.push({ t: t3, ...spot, face: true }, { t: t4, ...at(m.to, 'to'), face: true });
+        }
+      } else {
+        keys.push({ t: t4, ...at(m.to, 'to'), face: true });
+      }
+      flights.push({ id: id(), card, keys, big: true });
+      flown.push(m);
+      start = t3;
+      if (confirming) splitAt = t1;
     }
-    flights.push({ id: id(), card, keys, big: true });
-    flown.push(m);
-    start = t3;
-    if (confirming) splitAt = t1;
   }
 
   const cap = dealing ? DEAL_FLIGHTS : MAX_FLIGHTS;
@@ -344,6 +375,11 @@ function rowRect(view: GameState, s: Seating, seat: Seat): Rect {
   if (seat === s.mine) return { x: 4, y: 168, w: 194, h: 42 };
   const r = seatRect(view, s, seat);
   return { x: 306, y: r.y - 2, w: 184, h: 25 };
+}
+
+/** `r`'s centre, at size `s`. */
+function sized(r: Rect, s: { w: number; h: number }): Rect {
+  return { x: r.x + (r.w - s.w) / 2, y: r.y + (r.h - s.h) / 2, w: s.w, h: s.h };
 }
 
 /** A small spot made big enough to see a card on it. */
