@@ -31,12 +31,15 @@
 
 /* Last thing a bot did (the old "AI Log") */
 .board__log {
-  left: calc(var(--u) * 5); top: calc(var(--u) * 36); width: calc(var(--u) * 250); height: calc(var(--u) * 20);
-  background: #fff; border: 1px solid #d8332d; border-radius: calc(var(--u) * 6);
-  color: #7a1a16; font-weight: bold; font-size: calc(var(--u) * 10 * var(--tb));
-  display: flex; align-items: center; justify-content: center; padding: 0 calc(var(--u) * 6);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  left: calc(var(--u) * 6); top: calc(var(--u) * 38); min-height: calc(var(--u) * 17);
+  background: rgba(255, 255, 255, .94); border: 0; border-radius: 999px; box-shadow: 0 calc(var(--u) * 1) calc(var(--u) * 3) rgba(0, 0, 0, .25);
+  color: #7a1a16; font-weight: bold; font-size: calc(var(--u) * 9 * var(--tb)); line-height: 1.1;
+  display: inline-flex; align-items: center; gap: calc(var(--u) * 4); padding: calc(var(--u) * 2) calc(var(--u) * 9) calc(var(--u) * 2) calc(var(--u) * 6);
+  white-space: nowrap;
 }
+.board__log:hover { background: #fff; }
+.board__log:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.board__log-icon { width: calc(var(--u) * 11 * var(--tb)); height: calc(var(--u) * 11 * var(--tb)); flex: none; }
 
 /* Scoreboard: Miles of Wall and Cards in Hand */
 .score {
@@ -47,7 +50,8 @@
 }
 .score--miles { left: calc(var(--u) * 3.3); width: calc(var(--u) * 86); }
 .score--hand { left: calc(var(--u) * 93.7); width: calc(var(--u) * 94); }
-.score__title { font: bold calc(var(--u) * 11 * var(--tb)) Arial, Helvetica, sans-serif; text-align: center; height: calc(var(--u) * 14); }
+/* The box is fixed-size, so the title grows only a little with larger board text, and never wraps onto the rows */
+.score__title { font: bold calc(var(--u) * min(11 * var(--tb), 11.5)) Arial, Helvetica, sans-serif; text-align: center; height: calc(var(--u) * 14); white-space: nowrap; letter-spacing: -0.01em; }
 .score__row { display: flex; align-items: center; height: calc(var(--u) * 12.945); gap: calc(var(--u) * 3); white-space: nowrap; }
 .score__rank { width: calc(var(--u) * 15); flex: none; }
 .score--miles .score__name { font-size: calc(var(--u) * 9 * var(--tb)); letter-spacing: -0.02em; }
@@ -164,8 +168,11 @@
 /* Buttons on the right */
 /* Above the card-flight layer (z 40), so the buttons work while cards are moving instead of only skipping the animation */
 .side { z-index: 42; left: calc(var(--u) * 499); top: calc(var(--u) * 72); width: calc(var(--u) * 137); display: flex; flex-direction: column; gap: calc(var(--u) * 5); }
+/* ...except while the flight layer holds a card shown big (a drawn Play Immediately card): that waits for Continue and must be on top */
+.board:has(.flights .zoom) .side { z-index: 39; }
 .side .btw-button {
-  height: calc(var(--u) * 26); padding: 0; border-width: calc(var(--u) * 2.5); border-radius: calc(var(--u) * 8);
+  /* At least the old height, and taller when the label needs two lines (large text) */
+  min-height: calc(var(--u) * 26); padding: calc(var(--u) * 2) calc(var(--u) * 4); line-height: 1.1; border-width: calc(var(--u) * 2.5); border-radius: calc(var(--u) * 8);
   font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: calc(var(--u) * 13 * var(--tb));
 }
 
@@ -200,7 +207,7 @@
   display: flex; justify-content: center; gap: calc(var(--u) * 12);
 }
 .zoom__buttons .btw-button, .board-modal .btw-button {
-  height: calc(var(--u) * 29); padding: 0 calc(var(--u) * 10); min-width: calc(var(--u) * 120);
+  min-height: calc(var(--u) * 29); padding: calc(var(--u) * 3) calc(var(--u) * 10); line-height: 1.1; min-width: calc(var(--u) * 120);
   border-width: calc(var(--u) * 2.5); border-radius: calc(var(--u) * 8);
   font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: calc(var(--u) * 12 * var(--tb));
 }
@@ -214,7 +221,7 @@
 }
 .board-modal__box h2 { margin: 0 0 calc(var(--u) * 8); font: 900 calc(var(--u) * 15) var(--font); color: var(--red); }
 .board-modal__list { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 6); margin-bottom: calc(var(--u) * 10); }
-.board-modal__list .btw-button { width: 100%; height: auto !important; min-height: calc(var(--u) * 29); padding: calc(var(--u) * 3) calc(var(--u) * 6) !important; font-size: calc(var(--u) * 10 * var(--tb)) !important; }
+.board-modal__list .btw-button { width: 100%; min-height: calc(var(--u) * 29); padding: calc(var(--u) * 3) calc(var(--u) * 6) !important; font-size: calc(var(--u) * 10 * var(--tb)) !important; }
 .board-modal__row { display: flex; gap: calc(var(--u) * 10); justify-content: center; }
 
 /* The full game log */

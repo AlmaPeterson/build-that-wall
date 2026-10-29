@@ -27,3 +27,9 @@
 .btw-list li { padding: 6px 10px; border-radius: 8px; background: #faf7f2; display: flex; justify-content: space-between; gap: 10px; }
 .btw-code { font-family: var(--font); font-size: calc(2.4rem * var(--text-menu)); letter-spacing: 0.15em; color: var(--navy); text-align: center; margin: 4px 0; }
 textarea.btw-input { width: 100%; min-height: 90px; font-family: monospace; font-size: 12px; }
+
+/* "Coming soon" label next to a heading */
+.btw-soon {
+  display: inline-block; vertical-align: middle; margin-left: 0.4em; padding: 0.15em 0.6em; border-radius: 999px;
+  background: var(--gold); color: #2a1f00; font: bold 0.6em Arial, Helvetica, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
+}

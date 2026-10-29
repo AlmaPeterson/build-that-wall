@@ -56,6 +56,12 @@ export function AccountScreen() {
         <Message text={said.gold?.text ?? ''} ok={!!said.gold?.ok} />
       </section>
 
+      <section class="btw-card" aria-labelledby="packs-h">
+        <h2 id="packs-h">Expansion packs <span class="btw-soon">Coming soon</span></h2>
+        <p>New cards to mix into your games are on the way. Check back here for them.</p>
+        <div class="btw-row"><Button color="plain" disabled>Coming soon</Button></div>
+      </section>
+
       <Donate busy={busy} run={run} currency={config.currency} said={said.donate ?? null} say={s => say('donate', s)} />
 
       <section class="btw-card" aria-labelledby="more-h">
