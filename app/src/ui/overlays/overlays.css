@@ -49,6 +49,7 @@
   background: none; cursor: pointer;
 }
 .btw-ov-card:hover { border-color: var(--gold); }
+.btw-ov-card--picked { border-color: var(--gold); background: #fff3c4; box-shadow: 0 0 0 3px var(--gold); }
 .btw-ov-card img { width: calc(84px * var(--text-cards)); height: auto; aspect-ratio: 258 / 360; object-fit: cover; border-radius: 7px; display: block; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
 .btw-ov-card--small img { width: 44px; }
 .btw-ov-badge {

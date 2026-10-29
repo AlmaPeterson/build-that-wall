@@ -106,5 +106,11 @@ describe('remote answers', () => {
     expect(parseAnswer(seat, '2')).toBe(2);
     expect(fallbackAnswer({ ...seat, cancellable: true })).toBeNull();
     expect(parseAnswer({ kind: 'pickCards', seat: 1, card: 22, pool: [1, 2], max: 1 }, '[1,2]')).toEqual([]);
+    const build = { kind: 'pickHandCards' as const, seat: 1, card: 13, purpose: 'build' as const, options: [2, 4, 5], cards: [29, 30, 31], min: 1, max: 2 };
+    expect(parseAnswer(build, '[5,2]')).toEqual([5, 2]);
+    expect(parseAnswer(build, '[2,4,5]')).toEqual([2]);          // too many
+    expect(parseAnswer(build, '[3]')).toEqual([2]);              // not an option
+    expect(parseAnswer(build, '[2,2]')).toEqual([2]);            // repeated
+    expect(parseAnswer(build, '[]')).toEqual([2]);               // too few
   });
 });

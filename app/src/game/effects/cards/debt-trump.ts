@@ -13,7 +13,7 @@ export async function debt(ctx: EffectContext): Promise<boolean> {
   if (!w) return false;
   // Discarded after the owner's Savings answer, so the Debt is seen flying at them first
   const savings = findInHand(ctx, w.seat, 19);
-  const paid = savings >= 0 && await ctx.decide({ kind: 'paySavings', seat: w.seat, attacker: ctx.player });
+  const paid = savings >= 0 && await ctx.decide({ kind: 'paySavings', seat: w.seat, attacker: ctx.player, wall: w.kind });
   ctx.discard(7);
   if (paid) {
     ctx.discard(ctx.takeFromHand(w.seat, findInHand(ctx, w.seat, 19)));

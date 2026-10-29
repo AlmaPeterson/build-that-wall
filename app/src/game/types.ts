@@ -83,13 +83,19 @@ export type Decision =
   /** Use Self-Defense to block this attack? (section 8) */
   | { kind: 'block'; seat: Seat; attacker: Seat; card: CardId }
   /** Use Savings to pay this Debt? */
-  | { kind: 'paySavings'; seat: Seat; attacker: Seat }
+  | { kind: 'paySavings'; seat: Seat; attacker: Seat; wall?: CardId }   // wall: the section the Debt takes
   /** Pick an opponent for a card. cancellable: the player may back out before anything is spent. */
   | { kind: 'chooseSeat'; seat: Seat; card: CardId; options: Seat[]; cancellable: boolean }
   /** Pick a built wall section (Debt target, Afghanistan, Riot, Trump Train pair, Spy Balloon guard). */
   | { kind: 'chooseWall'; seat: Seat; card: CardId; options: WallRef[]; cancellable: boolean }
   /** Pick a card from your own hand (by slot), e.g. which card to give to `to` when handing out. */
   | { kind: 'chooseHandCard'; seat: Seat; card: CardId; purpose: 'give' | 'build'; options: number[]; to?: Seat; optional: boolean }
+  /**
+   * Pick several cards from your own hand at once (by slot), between `min` and `max` of them, e.g. the walls
+   * a free-build card builds. cards[i] is the card in slot options[i] (the screen may show the hand differently
+   * while a card is being played). Answer: the slots, in the order picked.
+   */
+  | { kind: 'pickHandCards'; seat: Seat; card: CardId; purpose: 'build'; options: number[]; cards: CardId[]; min: number; max: number }
   /** Pick up to `max` cards from a pool (piles shown grouped by kind). Answer: card ids. */
   | { kind: 'pickCards'; seat: Seat; card: CardId; pool: CardId[]; max: number }
   /** Pick one of named options, e.g. Trump Train 'draw' | 'protect', Spy Balloon 'take' | 'remove'. */
@@ -102,6 +108,7 @@ export type Answer<D extends Decision> =
   D extends { kind: 'chooseWall' } ? WallRef | null :
   D extends { kind: 'chooseHandCard' } ? number | null :
   D extends { kind: 'pickCards' } ? CardId[] :
+  D extends { kind: 'pickHandCards' } ? number[] :
   D extends { kind: 'chooseOption' } ? string | null :
   never;
 

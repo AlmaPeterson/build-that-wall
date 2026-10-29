@@ -11,7 +11,7 @@ import { GameController, type Prompt } from '../controller';
 import { Overlays } from './Overlays';
 import { PICK_SECONDS, PromptView } from './Prompt';
 import { PASS_GUARD_MS, PassScreen, Recap, WinScreen } from './Screens';
-import { optionLabel, passWhy, personal, recapFor } from './text';
+import { optionLabel, passWhy, personal, recapFor, wallToastFor } from './text';
 
 let root: HTMLElement;
 beforeEach(() => { root = document.createElement('div'); document.body.appendChild(root); });
@@ -261,5 +261,15 @@ describe('Overlays with a real game', () => {
     act(() => render(<Overlays controller={c} />, root));
     expect(root.textContent).toMatch(/wins!|It's a tie/);
     expect(root.textContent).toContain('Back to menu');
+  });
+});
+
+describe('wallToastFor', () => {
+  it("tells you when someone else's card takes or gives you a wall, not about your own moves", () => {
+    const took = { type: 'wallMoved' as const, seat: 1, target: 0, card: 31, text: 'Ben took Wall Section 3 from Ann.' };
+    expect(wallToastFor(took, 0)).toEqual({ text: 'Ben took Wall Section 3 from Ann.', tone: 'alert' });
+    expect(wallToastFor(took, 1)).toBeNull();                                         // Ben did it
+    expect(wallToastFor({ ...took, seat: 0, target: 0 }, 0)).toBeNull();               // pulling your own wall back
+    expect(wallToastFor({ ...took, type: 'build' }, 0)).toBeNull();
   });
 });

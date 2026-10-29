@@ -41,6 +41,7 @@ function defaultAnswer(d: Decision): unknown {
     case 'block': case 'paySavings': return false;
     case 'chooseSeat': case 'chooseWall': case 'chooseHandCard': case 'chooseOption': return d.options[0] ?? null;
     case 'pickCards': return d.pool.slice(0, d.max);
+    case 'pickHandCards': return d.options.slice(0, d.max);
   }
 }
 

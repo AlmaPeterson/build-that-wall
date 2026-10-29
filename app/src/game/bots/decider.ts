@@ -48,6 +48,9 @@ export function answer(d: Decision, state: Readonly<GameState>, memory: BotMemor
     case 'pickCards':
       return poolPick(d.pool, d.max);
 
+    case 'pickHandCards':
+      return buildPicks(state, d.seat, d.options, d.cards, d.max);   // free builds never stop early
+
     case 'chooseOption':
       return chooseOption(state, d.seat, d.card, d.options);
   }
@@ -105,6 +108,27 @@ function wallSlot(state: Readonly<GameState>, me: Seat, hand: CardId[], options:
     if (v > best) { best = v; pick = i; }
   }
   return pick;
+}
+
+/**
+ * Several free builds at once: as many as allowed, best first (as `wallSlot` would pick them one by one,
+ * counting the ones already picked as built). Toilet Paper's options are one card per set.
+ */
+function buildPicks(state: Readonly<GameState>, me: Seat, options: number[], cards: CardId[], max: number): number[] {
+  const picked: number[] = [], extra = new Map<CardId, number>();
+  while (picked.length < Math.min(max, options.length)) {
+    let best = -1, pick = -1;
+    options.forEach((slot, i) => {
+      if (picked.includes(slot) || !isWall(cards[i]!)) return;
+      const n = wallCount(state, me, cards[i]!) + (extra.get(cards[i]!) ?? 0);
+      const v = n === 0 ? 3 : n === 1 ? 5 : n === 2 ? 8 : 1;
+      if (v > best) { best = v; pick = i; }
+    });
+    if (pick < 0) break;
+    picked.push(options[pick]!);
+    extra.set(cards[pick]!, (extra.get(cards[pick]!) ?? 0) + 1);
+  }
+  return picked;
 }
 
 /** `ai give slot`: keep the most valuable card for yourself, give the least valuable to others. */
