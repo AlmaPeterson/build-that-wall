@@ -55,6 +55,12 @@ export class HostController extends GameController {
     }
   }
 
+  /** Send every online player everything again (after the host's connection dropped and came back). */
+  resyncAll(): void {
+    this.sentEvents.clear(); this.sentView.clear();
+    this.sendNow();
+  }
+
   /** Send every online player what changed, now. */
   sendNow(): void {
     if (this.sendTimer) { clearTimeout(this.sendTimer); this.sendTimer = null; }

@@ -26,7 +26,7 @@ class FakeGame implements GameHooks {
 function device(relay: FakeRelay, seq: number[] = []) {
   const game = new FakeGame();
   const events = {
-    seats: [] as number[], myTurns: 0, endTurns: 0, left: [] as number[], lost: [] as boolean[], status: [] as string[],
+    seats: [] as number[], myTurns: 0, endTurns: 0, left: [] as number[], lost: [] as boolean[], status: [] as string[], reconnected: 0,
     ask: undefined as ((q: AskMsg) => Promise<string>) | undefined,
   };
   const hooks: RoomEvents = {
@@ -36,6 +36,7 @@ function device(relay: FakeRelay, seq: number[] = []) {
     onPlayerLeft: (s) => events.left.push(s),
     onHostLost: (w) => events.lost.push(w),
     onStatus: (t) => events.status.push(t),
+    onReconnected: () => events.reconnected++,
     onAsk: (q) => (events.ask ? events.ask(q) : new Promise(() => {})),
   };
   let i = 0;
@@ -230,12 +231,14 @@ describe('OnlineRoom', () => {
     expect(host.room.count).toBe(2);
   });
 
-  it('heartbeat: a silent player is dropped after 20 seconds', async () => {
+  it('heartbeat: a silent player is dropped after 30 seconds', async () => {
     const { host, guest } = await hostAndJoin();
     host.game.running = true;
     await run(150);
     (guest.room['transport'] as unknown as FakeTransport).silence();  // no goodbye, just gone
-    await run(25000);
+    await run(20000);
+    expect(host.events.left).toEqual([]);
+    await run(15000);
     expect(host.events.left).toEqual([2]);
     expect(host.room.count).toBe(1);
   });
@@ -245,7 +248,7 @@ describe('OnlineRoom', () => {
     host.game.running = true;
     await run(150);
     (host.room['transport'] as unknown as FakeTransport).silence();
-    await run(25000);
+    await run(35000);
     expect(guest.events.lost).toEqual([true]);
     expect(guest.room.role).toBe('');
     expect(guest.room.errorMessage).toBe('The host left the game.');
@@ -261,10 +264,82 @@ describe('OnlineRoom', () => {
     expect(host.room.seat).toBe(1);
   });
 
-  it('a dropped connection counts as the host leaving', async () => {
+  it('a dropped connection that never comes back counts as the host leaving', async () => {
     const { guest } = await hostAndJoin();
+    relay.online = false;
     relay.dropAll();
+    await run(30000);
+    expect(guest.events.lost).toEqual([]);                    // still trying
+    await run(60000);
     expect(guest.events.lost).toEqual([false]);
+  });
+
+  it('a dropped connection reconnects: same room, same seat, and the game carries on', async () => {
+    const { host, guest } = await hostAndJoin();
+    host.game.running = true;
+    await run(150);
+    (guest.room['transport'] as unknown as FakeTransport).drop();
+    await run(200);
+    expect(guest.events.reconnected).toBe(1);
+    expect(guest.room.role).toBe('client');
+    expect(guest.room.seat).toBe(2);
+    expect(host.room.count).toBe(2);
+    await run(60000);                                         // heartbeats flow again: nobody is dropped
+    expect(host.events.left).toEqual([]);
+    expect(guest.events.lost).toEqual([]);
+  });
+
+  it('a player in the background (another window or app) is not dropped for minutes', async () => {
+    const { host, guest } = await hostAndJoin();
+    host.game.running = true;
+    await run(150);
+    guest.room.setAway(true);
+    await run(10);
+    (guest.room['transport'] as unknown as FakeTransport).silence();   // a frozen page: no heartbeats at all
+    await run(5 * 60000);
+    expect(host.events.left).toEqual([]);
+    expect(host.room.count).toBe(2);
+    await run(6 * 60000);                                     // gone for good after 10 minutes
+    expect(host.events.left).toEqual([2]);
+  });
+
+  it('coming back to the page reconnects if the connection died meanwhile', async () => {
+    const { host, guest } = await hostAndJoin();
+    host.game.running = true;
+    await run(150);
+    guest.room.setAway(true);
+    await run(10);
+    (guest.room['transport'] as unknown as FakeTransport).silence();   // died without a close event
+    await run(3 * 60000);
+    expect(guest.events.lost).toEqual([]);                    // the player doesn't give up while in the background
+    guest.room.setAway(false);
+    await run(200);
+    expect(guest.events.reconnected).toBe(1);
+    expect(guest.room.seat).toBe(2);
+    await run(60000);
+    expect(host.events.left).toEqual([]);
+    expect(guest.events.lost).toEqual([]);
+  });
+
+  it('a host in the background is not taken for gone', async () => {
+    const { host, guest } = await hostAndJoin();
+    host.game.running = true;
+    await run(150);
+    host.room.setAway(true);
+    await run(10);
+    (host.room['transport'] as unknown as FakeTransport).silence();
+    await run(5 * 60000);
+    expect(guest.events.lost).toEqual([]);
+    expect(guest.room.role).toBe('client');
+  });
+
+  it('closing the page (leave) still says goodbye straight away', async () => {
+    const { host, guest } = await hostAndJoin();
+    host.game.running = true;
+    await run(150);
+    guest.room.leave();
+    await run(10);
+    expect(host.events.left).toEqual([2]);
   });
 
   it('quick match joins the fullest open world room', async () => {

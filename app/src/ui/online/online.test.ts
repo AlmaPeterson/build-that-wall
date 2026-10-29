@@ -52,6 +52,34 @@ describe('online game', () => {
     expect(clientC.snapshot.get().viewer).toBe(1);
   });
 
+  it("a player's dropped connection comes back and the game reaches them again", async () => {
+    const { relay, guest, hostC, clientC } = await twoPlayers();
+    relay.open[1]!.drop();                                  // the guest's connection (the host connected first)
+    await new Promise(r => setTimeout(r, 50));
+    expect(guest.state.get().phase).toBe('playing');
+    await hostC.act({ type: 'endTurn' });
+    await until(() => clientC.snapshot.get().view?.turn === 1);
+    expect(clientC.snapshot.get().view!.seats[1]!.hand).toEqual(hostC.state!.seats[1]!.hand);
+  });
+
+  it("the host picks each bot's difficulty in the lobby", async () => {
+    const relay = new FakeRelay();
+    const shown: GameController[] = [];
+    const host = session(relay, 'Hana', shown);
+    sessions.push(host);
+    expect(await host.hostRoom()).toBe(true);
+    host.setBots(3);
+    host.setBotDifficulty(0, 'hard');
+    host.setBotDifficulty(1, 'easy');
+    host.setBotDifficulty(2, 'random');
+    expect(host.state.get().difficulties.slice(0, 3)).toEqual(['hard', 'easy', 'random']);
+    void host.start(7);
+    await until(() => shown.length === 1 && !!shown[0]!.state);
+    const bots = shown[0]!.state!.seats.slice(1).map(s => s.bot);
+    expect(bots.slice(0, 2)).toEqual(['hard', 'easy']);
+    expect(['easy', 'medium', 'hard']).toContain(bots[2]);           // random picks one
+  });
+
   it("the player never receives the host's hand or the draw pile order", async () => {
     const { relay, hostC, clientC } = await twoPlayers();
     await hostC.act({ type: 'endTurn' });           // some play happens: the guest's turn starts

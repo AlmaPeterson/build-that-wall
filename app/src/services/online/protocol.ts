@@ -93,6 +93,7 @@ export type UpMsg =
   | { t: 'hello'; cid: string }
   | { t: 'bye'; cid: string }
   | { t: 'hb'; cid: string }
+  | { t: 'away' | 'back'; cid: string }       // this page went into the background / came back
   | (GameMsg & { cid: string });
 
 // ---- host -> players (on /down, or /c/<cid> while joining)
@@ -102,6 +103,7 @@ export type DownMsg =
   | { t: 'full' }
   | { t: 'playerleft'; seat: number }
   | { t: 'hb' }
+  | { t: 'away' | 'back' }                     // the host's page went into the background / came back
   | { t: 'end' }
   /** _except: the seat this was relayed from, which ignores it. */
   | (GameMsg & { _except?: number; cid?: string });

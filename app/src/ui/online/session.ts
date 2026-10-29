@@ -9,6 +9,8 @@ import { HostController } from './host';
 import { ASK_MODE, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
 
 export type Phase = 'idle' | 'connecting' | 'lobby' | 'playing' | 'ended';
+export type BotLevel = Difficulty | 'random';
+const LEVELS: readonly BotLevel[] = ['easy', 'medium', 'hard', 'random'];
 
 export interface OnlineState {
   phase: Phase;
@@ -18,6 +20,8 @@ export interface OnlineState {
   seat: number;
   players: LobbyPlayer[];
   bots: number;
+  /** Host: each bot's difficulty (bot k = difficulties[k]); 'random' picks one when the game starts. */
+  difficulties: BotLevel[];
   status: string;
   error: string;
 }
@@ -37,7 +41,7 @@ export interface SessionDeps {
   wait?: (ms: number) => Promise<void>;
 }
 
-const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, status: '', error: '' };
+const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, difficulties: [], status: '', error: '' };
 const AUTO_JOIN_TRIES = 20, AUTO_JOIN_MS = 2000;
 
 export class OnlineSession {
@@ -72,6 +76,11 @@ export class OnlineSession {
       onPlayerLeft: seat => this.onPlayerLeft(seat),
       onHostLost: () => this.set({ phase: 'ended', error: 'The host left the game.' }),
       onStatus: status => this.set({ status }),
+      // Back after a dropped connection: anything sent meanwhile was missed, so catch up
+      onReconnected: () => {
+        if (this.room.role === 'client' && this.client) this.room.sendData(1, { k: 'resync' });
+        else if (this.room.role === 'host') this.host?.resyncAll();
+      },
     }, this.deps.random);
   }
 
@@ -82,7 +91,7 @@ export class OnlineSession {
     const code = await this.room.host({ max });
     if (!code) return this.failed();
     this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
-    this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '' });
+    this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '', difficulties: this.startingLevels() });
     this.lobby();
     return true;
   }
@@ -107,7 +116,7 @@ export class OnlineSession {
     if (seat <= 0) return this.failed();
     if (this.room.role === 'host') {
       this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
-      this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '' });
+      this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '', difficulties: this.startingLevels() });
       this.lobby();
     } else this.joined(seat);
     return true;
@@ -118,6 +127,12 @@ export class OnlineSession {
     this.set({ phase: 'lobby', role: 'client', code: this.room.code, seat, status: 'Waiting for the host to start...', error: '' });
     this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat });
   }
+
+  /** The page went into the background (another window or app) or came back. */
+  pageVisible(visible: boolean): void { this.room.setAway(!visible); }
+
+  /** The page is closing for good: say goodbye now, so nobody waits for us. */
+  pageClosing(): void { this.room.leave(); }
 
   leave(): void {
     this.room.leave();
@@ -133,6 +148,14 @@ export class OnlineSession {
     this.lobby();
   }
 
+  /** Host: set one bot's difficulty (bot 0 is the first bot). */
+  setBotDifficulty(bot: number, level: BotLevel): void {
+    if (this.room.role !== 'host' || bot < 0 || bot > 5 || !LEVELS.includes(level)) return;
+    const difficulties = [...this.state.get().difficulties];
+    difficulties[bot] = level;
+    this.set({ difficulties });
+  }
+
   /** Host: start the game with everyone in the room (plus bots). */
   start(seed?: number): Promise<void> | null {
     if (this.room.role !== 'host') return null;
@@ -140,10 +163,8 @@ export class OnlineSession {
     const bots = Math.min(this.state.get().bots, 6 - roomSeats.length);
     if (roomSeats.length + bots < 2) { this.set({ error: 'Wait for another player, or add a bot.' }); return null; }
     const base = this.deps.baseSettings();
-    const difficulties: Difficulty[] = Array.from({ length: bots }, (_, i) => {
-      const d = base.difficulties[i];
-      return d && d !== 'random' ? d : 'medium';
-    });
+    const chosen = this.state.get().difficulties;
+    const difficulties: BotLevel[] = Array.from({ length: bots }, (_, i) => chosen[i] ?? 'medium');
     const settings: GameSettings = {
       ...base, players: roomSeats.length + bots, bots, difficulties,
       names: roomSeats.map(s => this.names.get(s) ?? 'Player ' + s),
@@ -197,6 +218,12 @@ export class OnlineSession {
     const players = [1, ...this.room.connectedSeats()].map(seat => ({ seat, name: this.names.get(seat) ?? 'Player ' + seat }));
     this.set({ players });
     if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots: this.state.get().bots } satisfies ToPlayer);
+  }
+
+  /** The bots' difficulties from Settings, as a starting point the host can change in the lobby. */
+  private startingLevels(): BotLevel[] {
+    const base = this.deps.baseSettings().difficulties;
+    return Array.from({ length: 6 }, (_, i) => (LEVELS.includes(base[i] as BotLevel) ? base[i] as BotLevel : 'medium'));
   }
 
   private reset(status: string): void {

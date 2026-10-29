@@ -13,6 +13,12 @@ export const online = new OnlineSession({
   autoJoin: () => settings.get().autoJoin,
 });
 
+// Another window or app in front: the others are told, so they don't decide this player has gone
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => online.pageVisible(document.visibilityState === 'visible'));
+  addEventListener('pagehide', e => { if (!(e as PageTransitionEvent).persisted) online.pageClosing(); });
+}
+
 export { OnlineSession } from './session';
 export { HostController } from './host';
 export { OnlineClientController } from './client';
