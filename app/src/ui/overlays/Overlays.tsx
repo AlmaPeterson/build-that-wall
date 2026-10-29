@@ -10,7 +10,7 @@ import { animatorFor } from '../anim';
 import { useStore } from '../store';
 import { PromptView } from './Prompt';
 import { BigNotice, PassScreen, Recap, TurnBanner, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
-import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, type RecapLine } from './text';
+import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, wallToastFor, type RecapLine } from './text';
 import './overlays.css';
 
 const TOAST_MS = 3200;
@@ -37,6 +37,7 @@ export function Overlays({ controller }: { controller: GameController }) {
     seen.current = events.length;
     if (!fresh.length || !view) return;
     const newToasts: Toast[] = [];
+    const wallsToasted = new Set<number>();
     for (const e of fresh) {
       if (e.type === 'gameStart') { setWinClosed(false); setRecap(null); setNotices([]); }
       if (e.type === 'finalRound') { setNotices(n => [...n, e]); playSfx('alert'); continue; }
@@ -48,6 +49,9 @@ export function Overlays({ controller }: { controller: GameController }) {
       }
       // Play Immediately cards and blocks are already shown, with their caption, while the cards move
       if ((e.type === 'immediate' || e.type === 'blocked') && settings.get().animSpeed !== 'off') continue;
+      // A wall of yours taken or given: once per wall (the game and the card can both report the move)
+      const w = !view.seats[viewer]?.bot ? wallToastFor(e, viewer) : null;
+      if (w && e.card !== undefined && !wallsToasted.has(e.card)) { wallsToasted.add(e.card); newToasts.push({ id: ++toastId.current, ...w }); continue; }
       const t = toastFor(e);
       if (t) newToasts.push({ id: ++toastId.current, ...t });
     }

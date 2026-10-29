@@ -117,18 +117,40 @@ export function takeFromPile(pile: CardId[], card: CardId): boolean {
   return true;
 }
 
-/** Build up to `max` Wall Sections from the hand for free, one at a time; may stop after the first (Cards › define build free). */
-export async function buildFreeLoop(ctx: EffectContext, max: number): Promise<number> {
-  let built = 0;
-  while (built < max) {
-    const slots = qualifyingSlots(ctx, ctx.player, 'walls');
-    if (!slots.length) break;
-    const slot = await askHandCard(ctx, ctx.player, 'build', slots, built > 0);
-    if (slot === null) break;
-    ctx.buildFree(ctx.player, slot);
-    built++;
+/**
+ * Pick between `min` and `max` of `options` (hand slots) at once. The answer is checked: unknown or repeated
+ * slots are dropped, extra ones cut off, and too few are topped up from the first options.
+ */
+export async function askHandCards(ctx: EffectContext, seat: Seat, options: number[], min: number, max: number): Promise<number[]> {
+  max = Math.min(max, options.length);
+  min = Math.min(min, max);
+  if (max <= 0) return [];
+  const h = hand(ctx, seat);
+  const a = await ctx.decide({ kind: 'pickHandCards', seat, card: ctx.card, purpose: 'build', options, cards: options.map(i => h[i]!), min, max });
+  const picks: number[] = [];
+  for (const s of Array.isArray(a) ? a : []) if (options.includes(s) && !picks.includes(s) && picks.length < max) picks.push(s);
+  for (const s of options) if (picks.length < min && !picks.includes(s)) picks.push(s);
+  return picks;
+}
+
+/** Build the cards in these hand slots for free, in this order (each slot as it was before any of them was built). */
+export function buildSlots(ctx: EffectContext, slots: number[]): void {
+  const done: number[] = [];
+  for (const s of slots) {
+    ctx.buildFree(ctx.player, s - done.filter(d => d < s).length);
+    done.push(s);
   }
-  return built;
+}
+
+/**
+ * Build up to `max` Wall Sections from the hand for free; at least one if there is any (Cards › define build
+ * free). The player picks them all in one go, then the card is discarded, then they're built.
+ */
+export async function buildFreeLoop(ctx: EffectContext, max: number, discard?: CardId): Promise<number> {
+  const slots = await askHandCards(ctx, ctx.player, qualifyingSlots(ctx, ctx.player, 'walls'), 1, max);
+  if (discard !== undefined) ctx.discard(discard);
+  buildSlots(ctx, slots);
+  return slots.length;
 }
 
 /** Pick an opponent for an attack, then let them block with Self-Defense. Returns the target, or null if blocked or no one to pick. */

@@ -33,8 +33,8 @@ export function PromptView({ prompt, view }: Props) {
       );
     case 'paySavings':
       return (
-        <Shell d={d} view={view} card={7} title={promptTitle(d.kind, 7)}
-          sub={seatName(view, d.attacker) + ' played Debt on one of your walls. Savings keeps the wall.'}>
+        <Shell d={d} view={view} card={d.wall ?? 7} title={promptTitle(d.kind, 7)}
+          sub={seatName(view, d.attacker) + ' played Debt to take ' + (d.wall !== undefined ? 'your ' + cardName(d.wall) : 'one of your walls') + '. Pay with Savings to keep it.'}>
           <Choices>
             <Choice onClick={() => answer(true)}>Pay with Savings</Choice>
             <Choice plain onClick={() => answer(false)}>Let them take it</Choice>
@@ -77,6 +77,8 @@ export function PromptView({ prompt, view }: Props) {
     }
     case 'pickCards':
       return <PickCards d={d} view={view} onDone={ids => answer(ids)} />;
+    case 'pickHandCards':
+      return <PickHandCards d={d} view={view} onDone={slots => answer(slots)} />;
     case 'chooseOption':
       return (
         <Shell d={d} view={view} title={cardName(d.card)} onCancel={d.cancellable ? () => answer(null) : undefined}>
@@ -130,10 +132,11 @@ function Choice({ plain, onClick, children }: { plain?: boolean; onClick: () => 
   return <button type="button" class={'btw-ov-btn' + (plain ? ' btw-ov-btn--plain' : '')} onClick={onClick}>{children}</button>;
 }
 
-function CardButton({ id, onClick, badge }: { id: CardId; onClick: () => void; badge?: string }) {
+function CardButton({ id, onClick, badge, picked }: { id: CardId; onClick: () => void; badge?: string; picked?: boolean }) {
   return (
     <span class="btw-ov-cardwrap">
-      <button type="button" class="btw-ov-card" onClick={onClick} aria-label={cardName(id) + (badge ? ', ' + badge : '')}>
+      <button type="button" class={'btw-ov-card' + (picked ? ' btw-ov-card--picked' : '')} onClick={onClick}
+        aria-label={cardName(id) + (badge ? ', ' + badge : '')} aria-pressed={picked === undefined ? undefined : picked}>
         <CardImage id={id} size="thumb" aria-hidden="true" />
         {badge && <span class="btw-ov-badge">{badge}</span>}
       </button>
@@ -160,6 +163,32 @@ function Walls({ options, view, onPick }: { options: WallRef[]; view: GameState;
         </div>
       ))}
     </div>
+  );
+}
+
+/** Tick between `min` and `max` cards of your hand (e.g. the walls to build for free), then confirm once. */
+function PickHandCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickHandCards' }>; view: GameState; onDone: (slots: number[]) => void }) {
+  const [picks, setPicks] = useState<number[]>([]);
+  const toggle = (slot: number) => setPicks(p => (p.includes(slot) ? p.filter(s => s !== slot)
+    : p.length < d.max ? [...p, slot] : d.max === 1 ? [slot] : p));
+  const sets = d.card === 23;
+  const what = (n: number) => n + (sets ? (n === 1 ? ' set' : ' sets') : (n === 1 ? ' wall' : ' walls'));
+  const sub = (d.min === d.max ? 'Pick ' + what(d.max) : 'Pick up to ' + what(d.max)) + ', then build them all at once.'
+    + (sets && d.max > 1 ? ' Each set after the first costs 1 action.' : '');
+  return (
+    <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose)} sub={sub}>
+      <div class="btw-ov-cards">
+        {d.options.map((slot, i) => (
+          <CardButton key={slot} id={d.cards[i]!} picked={picks.includes(slot)} badge={picks.includes(slot) ? '✓ ' + (picks.indexOf(slot) + 1) : undefined}
+            onClick={() => toggle(slot)} />
+        ))}
+      </div>
+      <Choices>
+        <Choice onClick={() => { if (picks.length >= d.min) onDone(picks); }}>
+          {picks.length >= d.min ? 'Build ' + what(picks.length) : 'Pick ' + (d.min - picks.length) + ' more'}
+        </Choice>
+      </Choices>
+    </Shell>
   );
 }
 

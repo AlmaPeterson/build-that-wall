@@ -38,18 +38,36 @@ describe('free builds: Assassin (3), Legal Immigration (13), Voting Machine (28)
     expect(s.actionsLeft).toBe(3);
   });
 
-  it('Legal Immigration builds up to 3; the first pick is required, later ones can stop', async () => {
+  it('Legal Immigration: all the walls are picked in one question (1 to 3), then the card is discarded and they are built', async () => {
     const s = makeState([{ hand: [13, W1, W2, W3, W4] }, {}]);
-    const { ctx } = await play(s, 13, { chooseHandCard: [1, null] });
-    expect(s.seats[0]!.walls).toEqual([W2]);
-    expect(ctx.asked.map(d => d.kind === 'chooseHandCard' && d.optional)).toEqual([false, true]);
+    const { ctx } = await play(s, 13, { pickHandCards: [[3, 1]] });
+    expect(ctx.asked).toHaveLength(1);
+    expect(ctx.asked[0]).toMatchObject({ kind: 'pickHandCards', options: [0, 1, 2, 3], cards: [W1, W2, W3, W4], min: 1, max: 3 });
+    expect(s.seats[0]!.walls).toEqual([W4, W2]);                     // in the order picked
+    expect(s.seats[0]!.hand).toEqual([W1, W3]);
+    // The card goes first, then the walls, so the board shows them in that order
+    const firstBuild = ctx.events.findIndex(e => e.type === 'build');
+    expect(ctx.discardAtEmit[firstBuild]).toContain(13);
   });
 
-  it('stops when no walls are left in hand', async () => {
+  it('a bad answer is fixed: unknown or repeated slots dropped, extras cut, at least one wall built', async () => {
+    const s = makeState([{ hand: [3, W1, W2, W3] }, {}]);
+    await play(s, 3, { pickHandCards: [[9, 2, 2, 0, 1]] });
+    expect(s.seats[0]!.walls).toEqual([W3, W1]);                     // slots 2 and 0; the rest is too many
+    const t = makeState([{ hand: [3, W1, W2] }, {}]);
+    await play(t, 3, { pickHandCards: [[]] });
+    expect(t.seats[0]!.walls).toEqual([W1]);                         // none picked: the first is built anyway
+  });
+
+  it('only asks for as many as there are walls; no walls, no question', async () => {
     const s = makeState([{ hand: [28, W1] }, {}]);
     const { ctx } = await play(s, 28);
     expect(s.seats[0]!.walls).toEqual([W1]);
-    expect(ctx.asked).toHaveLength(1);
+    expect(ctx.asked[0]).toMatchObject({ min: 1, max: 1 });
+    const t = makeState([{ hand: [28, 14] }, {}]);
+    const c2 = await play(t, 28);
+    expect(c2.ctx.asked).toHaveLength(0);
+    expect(t.discard).toEqual([28]);
   });
 });
 
@@ -62,12 +80,17 @@ describe('Toilet Paper (23)', () => {
     expect(s.actionsLeft).toBe(1);
   });
 
-  it('can stop after the first set; the first choice cannot be cancelled', async () => {
+  it('can stop after the first set; at least one set; as many sets as actions allow', async () => {
     const s = makeState([{ hand: [23, W1, W1, W2, W2] }, {}]);
-    const { ctx } = await play(s, 23, { chooseHandCard: [null, null] });
-    expect(s.seats[0]!.walls).toEqual([W1, W1]);           // null on the first choice falls back to the first set
-    expect(ctx.asked.map(d => d.kind === 'chooseHandCard' && d.optional)).toEqual([false, true]);
+    const { ctx } = await play(s, 23, { pickHandCards: [[]] });
+    expect(s.seats[0]!.walls).toEqual([W1, W1]);           // nothing picked falls back to the first set
+    expect(ctx.asked).toHaveLength(1);
+    expect(ctx.asked[0]).toMatchObject({ kind: 'pickHandCards', options: [0, 2], cards: [W1, W2], min: 1, max: 2 });
     expect(s.actionsLeft).toBe(3);
+    const t = makeState([{ hand: [23, W1, W1, W2, W2] }, {}], { actionsLeft: 0 });
+    const c2 = await play(t, 23);
+    expect(c2.ctx.asked[0]).toMatchObject({ max: 1 });      // no actions left: only the free set
+    expect(t.seats[0]!.walls).toEqual([W1, W1]);
   });
 
   it('no further sets without actions', async () => {
@@ -221,6 +244,7 @@ describe('Debt (7)', () => {
   it('the owner may pay with Savings', async () => {
     const s = makeState([{ hand: [7] }, { walls: [W1], hand: [19, 14] }]);
     const { ctx } = await play(s, 7, { paySavings: [true] });
+    expect(ctx.asked.find(d => d.kind === 'paySavings')).toMatchObject({ seat: 1, attacker: 0, wall: W1 });   // they're told which wall
     expect(s.seats[1]!.walls).toEqual([W1]);
     expect(s.seats[1]!.hand).toEqual([14]);
     expect(s.discard).toEqual([7, 19]);

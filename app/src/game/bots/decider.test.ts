@@ -96,6 +96,13 @@ describe('choosing hand cards', () => {
     expect(ask(s, { kind: 'chooseHandCard', seat: 0, card: 3, purpose: 'build', options: [0, 1], optional: true })).toBe(1);
   });
 
+  it('several free builds at once: as many as allowed, best first, counting the ones already picked', () => {
+    const s = makeState([bot('hard', { hand: [29, 30, 31, 14], walls: [30, 30] }), {}]);
+    const d = { kind: 'pickHandCards' as const, seat: 0, card: 13, purpose: 'build' as const, options: [0, 1, 2], cards: [29, 30, 31], min: 1, max: 2 };
+    expect(ask(s, d)).toEqual([1, 0]);             // completes the 30 set first, then a new kind
+    expect(ask(s, { ...d, max: 5 })).toEqual([1, 0, 2]);
+  });
+
   it('handing out: give others the least valuable, keep the most valuable', () => {
     const s = makeState([bot('hard', { hand: [7, 29, 14, 12] }), {}]);
     const d: Of<'chooseHandCard'> = { kind: 'chooseHandCard', seat: 0, card: 8, purpose: 'give', options: [0, 1, 2, 3], optional: false };

@@ -36,6 +36,7 @@ export function fallbackAnswer<D extends Decision>(d: D): Answer<D> {
     case 'chooseSeat': case 'chooseWall': case 'chooseOption': return a(d.cancellable ? null : d.options[0] ?? null);
     case 'chooseHandCard': return a(d.optional ? null : d.options[0] ?? null);
     case 'pickCards': return a([]);
+    case 'pickHandCards': return a(d.options.slice(0, d.min));
   }
 }
 
@@ -52,6 +53,8 @@ export function parseAnswer<D extends Decision>(d: D, text: string): Answer<D> {
       case 'chooseWall': return v === null ? d.cancellable
         : d.options.some(w => w.seat === (v as { seat?: number }).seat && w.kind === (v as { kind?: number }).kind);
       case 'pickCards': return Array.isArray(v) && v.length <= d.max && v.every(x => typeof x === 'number');
+      case 'pickHandCards': return Array.isArray(v) && v.length >= d.min && v.length <= d.max
+        && new Set(v).size === v.length && v.every(x => d.options.includes(x as number));
     }
   })();
   return ok ? v as Answer<D> : fallbackAnswer(d);

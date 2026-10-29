@@ -140,19 +140,19 @@ describe('a card being played', () => {
     expect(c.snapshot.get().events.length).toBe(events);             // nothing happened
   });
 
-  it("a building card's \"pick a wall\" points at the walls as the screen shows the hand", async () => {
+  it("a building card's \"pick the walls\" names its cards, so they're right while the screen still shows the card", async () => {
     const c = await myTurn([26, 3, 29, 14, 30]);                    // Assassin in slot 1: build up to 2 walls free
     void c.act({ type: 'play', slot: 1 });
     await tick();
     const asking = c.snapshot.get();
-    const d = asking.prompt!.decision as { kind: string; options: number[] };
-    expect(d.kind).toBe('chooseHandCard');
-    const hand = asking.view!.seats[0]!.hand;
-    expect(hand).toEqual([26, 3, 29, 14, 30]);                       // Assassin still shown
-    expect(d.options.map(s => hand[s])).toEqual([29, 30]);          // the choices are the walls on screen
-    asking.prompt!.answer(4 as never);                               // Wall Section 2, as shown
+    const d = asking.prompt!.decision as { kind: string; options: number[]; cards: number[] };
+    expect(d.kind).toBe('pickHandCards');
+    expect(asking.view!.seats[0]!.hand).toEqual([26, 3, 29, 14, 30]);   // Assassin still shown
+    expect(d.cards).toEqual([29, 30]);                               // the choices are the two walls
+    asking.prompt!.answer([d.options[1]!] as never);                 // Wall Section 2 only
     await tick();
     expect(c.api!.state.seats[0]!.walls).toEqual([30]);
+    expect(c.api!.state.discard).toContain(3);
   });
 
   it('a card that goes to the discard pile before its question is still shown in your hand meanwhile', async () => {

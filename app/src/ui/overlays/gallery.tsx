@@ -30,11 +30,13 @@ const events: GameEvent[] = [
 
 const SHOW: Record<string, () => preact.JSX.Element> = {
   block: () => <PromptView view={view} prompt={prompt({ kind: 'block', seat: 0, attacker: 1, card: 6 })} />,
-  savings: () => <PromptView view={view} prompt={prompt({ kind: 'paySavings', seat: 0, attacker: 1 })} />,
+  savings: () => <PromptView view={view} prompt={prompt({ kind: 'paySavings', seat: 0, attacker: 1, wall: 31 })} />,
   seat: () => <PromptView view={view} prompt={prompt({ kind: 'chooseSeat', seat: 0, card: 17, options: [1, 2], cancellable: true })} />,
   wall: () => <PromptView view={view} prompt={prompt({ kind: 'chooseWall', seat: 0, card: 7, options: [{ seat: 1, kind: 31 }, { seat: 1, kind: 32 }, { seat: 2, kind: 33 }], cancellable: true })} />,
   give: () => <PromptView view={view} prompt={prompt({ kind: 'chooseHandCard', seat: 0, card: 8, purpose: 'give', options: [0, 1, 2, 3, 4, 5], to: 1, optional: false })} />,
   build: () => <PromptView view={view} prompt={prompt({ kind: 'chooseHandCard', seat: 0, card: 3, purpose: 'build', options: [0, 3], optional: true })} />,
+  builds: () => <PromptView view={view} prompt={prompt({ kind: 'pickHandCards', seat: 0, card: 13, purpose: 'build', options: [0, 2, 3, 5], cards: [29, 30, 31, 32], min: 1, max: 3 })} />,
+  sets: () => <PromptView view={view} prompt={prompt({ kind: 'pickHandCards', seat: 0, card: 23, purpose: 'build', options: [0, 3], cards: [29, 31], min: 1, max: 2 })} />,
   pick: () => <PromptView view={view} prompt={prompt({ kind: 'pickCards', seat: 0, card: 22, pool: [29, 29, 14, 7, 26, 25, 3, 30], max: 3 })} />,
   option: () => <PromptView view={view} prompt={prompt({ kind: 'chooseOption', seat: 0, card: 25, options: ['draw', 'protect'], cancellable: true })} />,
   pass: () => <PassScreen name="Ben" why="Ann played Debt on you. It's your turn." onReady={() => {}} />,

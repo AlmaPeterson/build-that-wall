@@ -25,6 +25,7 @@ export function promptTitle(kind: string, card: CardId, purpose?: string): strin
     case 'chooseWall': return card === 7 ? 'Which wall do you want to take?' : card === 25 ? 'Which pair do you want to protect?' : 'Pick a built wall';
     case 'chooseHandCard': return purpose === 'build' ? 'Pick a wall to build for free' : 'Pick a card to give away';
     case 'pickCards': return 'Pick your cards';
+    case 'pickHandCards': return card === 23 ? 'Pick the sets to build for free' : 'Pick the walls to build for free';
     default: return cardName(card);
   }
 }
@@ -119,6 +120,15 @@ export function toastFor(e: GameEvent): { text: string; tone: 'info' | 'alert' |
     case 'trainGuard': case 'trainGuardRemoved': case 'jail': case 'jailRelease': return { text: e.text, tone: 'info' };
     default: return null;
   }
+}
+
+/**
+ * Someone else's card moved a wall to or from `viewer` (Debt taking it, Afghanistan Pull Out giving one):
+ * worth telling them which one, straight away.
+ */
+export function wallToastFor(e: GameEvent, viewer: Seat): { text: string; tone: 'alert' } | null {
+  if (e.type !== 'wallMoved' || e.target !== viewer || e.seat === undefined || e.seat === viewer) return null;
+  return { text: e.text, tone: 'alert' };
 }
 
 /** The tutorial's BEST MOVE, worded from the Hard bot's choice (`Tip Think`). */
