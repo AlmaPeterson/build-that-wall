@@ -4,7 +4,7 @@
 // Online play (ui/online) plugs in by giving a different `humanDecider`/`startGame`; the board doesn't care.
 import {
   CARD_BACK, createLocalGame, redactEvent, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decider, type Decision,
-  type Game, type GameEvent, type GameSettings, type GameState, type Seat,
+  type CardId, type Game, type GameEvent, type GameSettings, type GameState, type Seat,
 } from '../game';
 import { createStore, type Store } from './store';
 
@@ -33,6 +33,19 @@ export interface GameSnapshot {
   openHands?: boolean;
   /** Pass'n'Play with 2+ people on this device: a hand is only shown to its player, never between turns. */
   sharedDevice?: boolean;
+  /** Online: the game is waiting for another person (on their own device) to answer this question. */
+  waitingFor?: Waiting | null;
+}
+
+/** Who the game is waiting on, and what for: only the kind of question and the card it's about (public). */
+export interface Waiting { seat: Seat; kind: Decision['kind']; card?: CardId; purpose?: string }
+
+/** The public part of a question: never its options, which can show a hidden hand. */
+export function waitingOn(d: Decision): Waiting {
+  const w: Waiting = { seat: d.seat, kind: d.kind };
+  if ('card' in d && typeof d.card === 'number') w.card = d.card;
+  if ('purpose' in d && typeof d.purpose === 'string') w.purpose = d.purpose;
+  return w;
 }
 
 export interface ControllerOptions {
@@ -278,6 +291,10 @@ export class GameController {
       skipped: this.skipSeat,
       openHands: this.allBots(),
       sharedDevice: this.passing(),
+      waitingFor: this.waiting(),
     });
   }
+
+  /** Online host: who on another device the game is waiting for (see HostController). */
+  protected waiting(): Waiting | null { return null; }
 }

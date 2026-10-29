@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeRelay, FakeTransport } from './fake-relay';
 import { topics, type AskMsg } from './protocol';
-import { OnlineRoom, cleanName, seatOwner, type GameHooks, type RoomEvents } from './room';
+import { OnlineRoom, STILL_GRACE_MS, STILL_MS, cleanName, roomAlive, seatOwner, type GameHooks, type RoomEvents } from './room';
 
 /** A tiny stand-in for the game: whose turn it is, and some shared data. */
 class FakeGame implements GameHooks {
@@ -27,6 +27,7 @@ function device(relay: FakeRelay, seq: number[] = []) {
   const game = new FakeGame();
   const events = {
     seats: [] as number[], myTurns: 0, endTurns: 0, left: [] as number[], lost: [] as boolean[], status: [] as string[], reconnected: 0,
+    still: [] as number[], dropped: 0, stillHere: [] as number[],
     ask: undefined as ((q: AskMsg) => Promise<string>) | undefined,
   };
   const hooks: RoomEvents = {
@@ -37,6 +38,9 @@ function device(relay: FakeRelay, seq: number[] = []) {
     onHostLost: (w) => events.lost.push(w),
     onStatus: (t) => events.status.push(t),
     onReconnected: () => events.reconnected++,
+    onStillAsk: (ms) => events.still.push(ms),
+    onDropped: () => events.dropped++,
+    onStillHere: (seat) => events.stillHere.push(seat),
     onAsk: (q) => (events.ask ? events.ask(q) : new Promise(() => {})),
   };
   let i = 0;
@@ -231,14 +235,17 @@ describe('OnlineRoom', () => {
     expect(host.room.count).toBe(2);
   });
 
-  it('heartbeat: a silent player is dropped after 30 seconds', async () => {
+  it('heartbeat: a player silent for 30 seconds is asked "Still here?", and dropped a minute (and a bit) later', async () => {
     const { host, guest } = await hostAndJoin();
     host.game.running = true;
     await run(150);
     (guest.room['transport'] as unknown as FakeTransport).silence();  // no goodbye, just gone
-    await run(20000);
-    expect(host.events.left).toEqual([]);
-    await run(15000);
+    await run(35000);
+    expect(host.events.left).toEqual([]);                    // asked, not dropped
+    expect(host.room.count).toBe(2);
+    await run(STILL_MS);
+    expect(host.events.left).toEqual([]);                    // the grace period for a slow device
+    await run(STILL_GRACE_MS + 5000);
     expect(host.events.left).toEqual([2]);
     expect(host.room.count).toBe(1);
   });
@@ -299,8 +306,122 @@ describe('OnlineRoom', () => {
     await run(5 * 60000);
     expect(host.events.left).toEqual([]);
     expect(host.room.count).toBe(2);
-    await run(6 * 60000);                                     // gone for good after 10 minutes
+    await run(6 * 60000);                                     // asked "Still here?" after 10 minutes...
+    expect(host.events.left).toEqual([]);
+    await run(STILL_MS + STILL_GRACE_MS);                     // ...and gone when nobody answers
     expect(host.events.left).toEqual([2]);
+  });
+
+  describe('"Still here?"', () => {
+    /** The guest's page stops sending heartbeats (frozen timers) but can still hear the host. */
+    const quiet = (guest: ReturnType<typeof device>) => guest.room['stopTimers']();
+
+    it('a quiet player is asked; "Still here" keeps their seat', async () => {
+      const { host, guest } = await hostAndJoin();
+      host.game.running = true;
+      await run(150);
+      quiet(guest);
+      await run(31000 + 4000);
+      expect(guest.events.still.length).toBeGreaterThan(0);
+      expect(guest.events.still[0]).toBeGreaterThan(STILL_MS - 5000);
+      expect(guest.events.still[0]).toBeLessThanOrEqual(STILL_MS);
+      guest.room.stillHere();
+      guest.room['startTimers']();
+      await run(100);
+      expect(host.events.stillHere).toEqual([2]);
+      await run(STILL_MS + STILL_GRACE_MS + 10000);
+      expect(host.events.left).toEqual([]);                  // still in the game
+      expect(guest.events.dropped).toBe(0);
+    });
+
+    it('no answer in time: the host marks them as left and tells their device', async () => {
+      const { host, guest } = await hostAndJoin();
+      host.game.running = true;
+      await run(150);
+      quiet(guest);
+      await run(35000 + STILL_MS + STILL_GRACE_MS + 5000);
+      expect(host.events.left).toEqual([2]);
+      expect(guest.events.dropped).toBe(1);
+      expect(guest.room.role).toBe('');
+    });
+
+    it('a device that comes back after the host asked sees the question straight away', async () => {
+      const { host, guest } = await hostAndJoin();
+      host.game.running = true;
+      await run(150);
+      guest.room.setAway(true);
+      await run(10);
+      (guest.room['transport'] as unknown as FakeTransport).silence();   // frozen in the background
+      await run(10 * 60000 + 10000);                          // the host has asked by now (nobody heard it)
+      expect(guest.events.still).toEqual([]);
+      expect(host.events.left).toEqual([]);
+      guest.room.setAway(false);                              // back: reconnects and hears the question
+      await run(200);
+      expect(guest.events.still.length).toBe(1);
+      expect(guest.events.still[0]).toBeLessThan(STILL_MS);   // the minute started when the host asked
+      guest.room.stillHere();
+      await run(100);
+      expect(host.events.stillHere).toEqual([2]);
+    });
+  });
+
+  describe('rooms left over by a host that has gone', () => {
+    const ghost = (code: string, info: Record<string, unknown>) =>
+      relay.publish(topics(code).room, JSON.stringify({ open: 1, players: 2, max: 6, running: 0, world: 1, ...info }), true);
+
+    it('roomAlive: old info means gone, unless the host said its page is in the background', () => {
+      expect(roomAlive({ open: 1, players: 1, max: 6, running: 0, world: 0, ts: 1000 }, 30000, 40000)).toBe(true);
+      expect(roomAlive({ open: 1, players: 1, max: 6, running: 0, world: 0, ts: 1000 }, 60000, 40000)).toBe(false);
+      expect(roomAlive({ open: 1, players: 1, max: 6, running: 0, world: 0, ts: 1000, away: 1 }, 5 * 60000, 40000)).toBe(true);
+    });
+
+    it('joining a stale room by code fails, and clears it so nobody tries it again', async () => {
+      ghost('GHOST', { world: 0, ts: Date.now() - 3600000 });
+      const guest = device(relay);
+      const joining = guest.room.join('GHOST');
+      await run(3000);
+      expect(await joining).toBe(0);
+      expect(guest.room.errorMessage).toBe('No game with that code is open.');
+      expect(relay.log.at(-1)).toMatchObject({ topic: topics('GHOST').room, payload: '', retain: true });
+    });
+
+    it('quick match skips stale rooms and rooms whose host never answers, and opens its own', async () => {
+      ghost('WOLD01', { ts: Date.now() - 3600000 });          // hours old
+      ghost('WDEAD1', { players: 3, ts: Date.now() });        // looks fresh, but nobody is there to answer
+      const p = device(relay, [0.5]);
+      const quick = p.room.quick(6);
+      await run(2000 + 4000 + 1000);
+      expect(await quick).toBe(1);
+      expect(p.room.role).toBe('host');                       // opened its own room in about 7 seconds
+      expect(relay.log.some(l => l.topic === topics('WOLD01').room && l.payload === '' && l.retain)).toBe(true);
+    });
+
+    it('quick match still finds a real room whose host is in the background', async () => {
+      const host = device(relay, [0]);
+      const opening = host.room.quick(6);
+      await run(2100);
+      expect(await opening).toBe(1);
+      const room = host.room.code;
+      host.room.setAway(true);
+      host.room['stopTimers']();                             // throttled: room info goes stale
+      await run(2 * 60000);
+      const guest = device(relay);
+      const q = guest.room.quick(6);
+      await run(2000 + 200);
+      expect(await q).toBe(2);
+      expect(guest.room.code).toBe(room);
+    });
+
+    it('a host in the background reconnects when its connection drops (joiners can still find it)', async () => {
+      const host = device(relay, [0]);
+      await host.room.host({ max: 4 });
+      host.room.setAway(true);
+      await run(10);
+      relay.dropAll();
+      await run(5000);
+      expect(host.events.reconnected).toBe(1);
+      expect(host.room.role).toBe('host');
+    });
   });
 
   it('coming back to the page reconnects if the connection died meanwhile', async () => {

@@ -24,6 +24,10 @@ export interface OnlineState {
   difficulties: BotLevel[];
   status: string;
   error: string;
+  /** "Still here?" is showing: when it runs out (Date.now() ms); 0 = not asked. */
+  still: number;
+  /** A message to show after being taken out of an online game (e.g. away too long); '' = none. */
+  notice: string;
 }
 
 export interface SessionDeps {
@@ -39,9 +43,12 @@ export interface SessionDeps {
   random?: () => number;
   /** Waits between auto-join tries (replaced in tests). */
   wait?: (ms: number) => Promise<void>;
+  /** Back to the main menu (this player left the online game). */
+  home?: () => void;
 }
 
-const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, difficulties: [], status: '', error: '' };
+const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, difficulties: [], status: '', error: '', still: 0, notice: '' };
+export const AWAY_NOTICE = "You didn't answer \"Still here?\" in time, so you've left the online game.";
 const AUTO_JOIN_TRIES = 20, AUTO_JOIN_MS = 2000;
 
 export class OnlineSession {
@@ -51,6 +58,7 @@ export class OnlineSession {
   private client: OnlineClientController | null = null;
   private names = new Map<number, string>();
   private running = false;
+  private stillTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly deps: SessionDeps) {
     this.room = this.makeRoom();
@@ -81,6 +89,10 @@ export class OnlineSession {
         if (this.room.role === 'client' && this.client) this.room.sendData(1, { k: 'resync' });
         else if (this.room.role === 'host') this.host?.resyncAll();
       },
+      onStillAsk: msLeft => this.askedStill(msLeft),
+      onDropped: () => this.away(),
+      // Host: they're back; send them everything again
+      onStillHere: seat => { const g = this.host?.gameSeat(seat) ?? -1; if (g > 0) this.host?.resyncSeat(g); },
     }, this.deps.random);
   }
 
@@ -138,7 +150,41 @@ export class OnlineSession {
     this.room.leave();
     this.running = false;
     this.host = null; this.client = null; this.names.clear();
+    this.clearStill();
     this.state.set({ ...IDLE });
+  }
+
+  // ---- "Still here?"
+
+  /** The host hasn't heard from us: show "Still here?" with a countdown (asked again every few seconds). */
+  private askedStill(msLeft: number): void {
+    if (this.state.get().still) return;                       // already showing: keep its own countdown
+    this.set({ still: Date.now() + msLeft });
+    this.stillTimer = setTimeout(() => this.away(), msLeft);
+  }
+
+  /** "Still here" was clicked: stay in the game and catch up on anything missed. */
+  stillHere(): void {
+    if (!this.state.get().still) return;
+    this.clearStill();
+    this.set({ still: 0 });
+    this.room.stillHere();
+    if (this.client) this.room.sendData(1, { k: 'resync' });
+  }
+
+  /** Too late (or the host gave up on us): we've left the game; back to the menu with a message. */
+  private away(): void {
+    this.leave();
+    this.set({ notice: AWAY_NOTICE });
+    this.deps.home?.();
+  }
+
+  /** The player has read the notice. */
+  clearNotice(): void { this.set({ notice: '' }); }
+
+  private clearStill(): void {
+    if (this.stillTimer) clearTimeout(this.stillTimer);
+    this.stillTimer = null;
   }
 
   /** Host: how many bots join the online players. */
@@ -230,6 +276,7 @@ export class OnlineSession {
     this.room.leave();
     this.running = false;
     this.host = null; this.client = null; this.names.clear();
+    this.clearStill();
     this.state.set({ ...IDLE, phase: 'connecting', status });
   }
 

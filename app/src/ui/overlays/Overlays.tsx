@@ -10,7 +10,7 @@ import { animatorFor } from '../anim';
 import { useStore } from '../store';
 import { PromptView } from './Prompt';
 import { BigNotice, PassScreen, Recap, TurnBanner, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
-import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, wallToastFor, type RecapLine } from './text';
+import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, waitingText, wallToastFor, type RecapLine } from './text';
 import './overlays.css';
 
 const TOAST_MS = 3200;
@@ -111,6 +111,13 @@ export function Overlays({ controller }: { controller: GameController }) {
     <div class="btw-overlays">
       {modal}
       <Toasts toasts={toasts} />
+      {/* Online: someone else is answering a question on their own device. Doesn't block the board. */}
+      {snap.waitingFor && snap.waitingFor.seat !== viewer && !prompt && !view.over && (
+        <div class="btw-waiting" role="status" aria-live="polite">
+          <span class="btw-waiting-dots" aria-hidden="true" />
+          {waitingText(snap.waitingFor, view)}
+        </div>
+      )}
       {tip && !modal && <TutorialTip best={tip.best} tips={tip.tips} onHide={() => setTipHidden(true)} />}
     </div>
   );

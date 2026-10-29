@@ -34,6 +34,8 @@ export interface RoomInfo {
   world: 0 | 1;
   /** Date.now() when the host last published it; old info means the host is gone. */
   ts: number;
+  /** The host's page is in the background: its timers barely run, so ts goes stale while it's still there. */
+  away?: 1;
 }
 
 // ---- game messages: can travel both ways, the host relays them between players
@@ -94,6 +96,7 @@ export type UpMsg =
   | { t: 'bye'; cid: string }
   | { t: 'hb'; cid: string }
   | { t: 'away' | 'back'; cid: string }       // this page went into the background / came back
+  | { t: 'here'; cid: string }                 // "Still here" was clicked
   | (GameMsg & { cid: string });
 
 // ---- host -> players (on /down, or /c/<cid> while joining)
@@ -104,6 +107,8 @@ export type DownMsg =
   | { t: 'playerleft'; seat: number }
   | { t: 'hb' }
   | { t: 'away' | 'back' }                     // the host's page went into the background / came back
+  | { t: 'still'; left: number }               // (on /c/<cid>) the host hasn't heard from you: still there? left = ms to answer
+  | { t: 'dropped' }                           // (on /c/<cid>) you didn't answer in time: you've left the game
   | { t: 'end' }
   /** _except: the seat this was relayed from, which ignores it. */
   | (GameMsg & { _except?: number; cid?: string });

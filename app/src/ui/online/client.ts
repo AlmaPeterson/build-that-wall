@@ -3,7 +3,7 @@
 // It looks like any other GameController to the board.
 import { Game, type Action, type ActionResult, type Answer, type Decision, type GameEvent, type GameState } from '../../game';
 import { cardRules } from '../../game/effects';
-import { GameController, type Prompt } from '../controller';
+import { GameController, type Prompt, type Waiting } from '../controller';
 import type { ToHost, ToPlayer } from './messages';
 
 const ACT_TIMEOUT_MS = 60000;
@@ -16,6 +16,7 @@ export class OnlineClientController extends GameController {
   private pending: Prompt[] = [];
   private actId = 0;
   private results = new Map<number, (r: ActionResult) => void>();
+  private waitingFor: Waiting | null = null;
 
   /** send: a message to the host. */
   constructor(private readonly send: (msg: ToHost) => void) {
@@ -55,6 +56,7 @@ export class OnlineClientController extends GameController {
     if (msg.k !== 'snap') return;
     this.seatNo = msg.seat;
     this.view = msg.view;
+    this.waitingFor = msg.waiting ?? null;
     this.reader = new Game(msg.view, {
       rules: cardRules,
       deciderFor: () => ({ decide: () => Promise.reject(new Error('read only')) }),
@@ -85,6 +87,6 @@ export class OnlineClientController extends GameController {
   get seat(): number { return this.seatNo; }
 
   private publishView(): void {
-    this.snapshot.set({ view: this.view, viewer: this.seatNo, events: this.received.slice(), prompt: this.pending[0] ?? null, passTo: null });
+    this.snapshot.set({ view: this.view, viewer: this.seatNo, events: this.received.slice(), prompt: this.pending[0] ?? null, passTo: null, waitingFor: this.waitingFor });
   }
 }
