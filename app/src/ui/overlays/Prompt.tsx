@@ -4,7 +4,7 @@ import type { ComponentChildren } from 'preact';
 import type { CardId, Decision, GameState, Seat, WallRef } from '../../game';
 import { CardImage } from '../components/CardImage';
 import { RESIZE_TITLE, useDraggable } from '../components/drag';
-import { showCard } from '../components/zoom';
+import { cardMenuProps, showCard } from '../components/zoom';
 import type { Prompt } from '../controller';
 import { cardName, optionLabel, promptTitle, seatName } from './text';
 
@@ -136,6 +136,7 @@ function CardButton({ id, onClick, badge, picked }: { id: CardId; onClick: () =>
   return (
     <span class="btw-ov-cardwrap">
       <button type="button" class={'btw-ov-card' + (picked ? ' btw-ov-card--picked' : '')} onClick={onClick}
+        onContextMenu={cardMenuProps(id).onContextMenu}
         aria-label={cardName(id) + (badge ? ', ' + badge : '')} aria-pressed={picked === undefined ? undefined : picked}>
         <CardImage id={id} size="thumb" aria-hidden="true" />
         {badge && <span class="btw-ov-badge">{badge}</span>}

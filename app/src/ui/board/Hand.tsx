@@ -8,6 +8,7 @@ import { useStore } from '../store';
 import { displayOrder, handOrderVersion, moveCard } from './hand-order';
 import { HAND_WIDTH_UNITS, setHandScroll } from '../anim/layout';
 import { cardImage } from '../assets';
+import { showCard } from '../components/zoom';
 
 export interface HandPicking {
   pickable: number[];   // slots that can be picked
@@ -28,6 +29,8 @@ interface Props {
   onLift?(slot: number, x: number, y: number, phase: 'move' | 'drop' | 'cancel'): void;
   /** Whose hand it says it is: "Your Hand" unless it's someone else's (a bots-only game). */
   title?: string;
+  /** Double-click or right-click: see the card full size (default: just open it). */
+  onZoom?(slot: number): void;
 }
 
 const DRAG_START_PX = 6;      // a mouse press that moves further than this is a drag, not a tap
@@ -37,7 +40,7 @@ const LIFT_PX = 30;           // pulling a card this far up takes it out of the 
 
 interface Drag { from: number; to: number; dx: number }
 
-export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand' }: Props) {
+export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand', onZoom }: Props) {
   const row = useRef<HTMLDivElement>(null);
   useStore(handOrderVersion);
   const [drag, setDragState] = useState<Drag | null>(null);
@@ -145,6 +148,12 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
     scroll();
     return () => { el.removeEventListener('wheel', wheel); el.removeEventListener('scroll', scroll); setHandScroll(0); };
   }, []);
+  // Double-click / right-click (a long touch on phones): full size, unless a card is being dragged
+  const zoom = (e: Event, slot: number, id: CardId) => {
+    e.preventDefault();
+    if (press.current?.active || dragNow.current) return;
+    if (onZoom) onZoom(slot); else showCard(id);
+  };
   return (
     <>
       <div class="at hand__title">{title}</div>
@@ -157,13 +166,14 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
           const cls = ['hand__card', picking && pickable && !picked ? 'hand__card--pickable' : '', picked ? 'hand__card--picked' : '',
             picking && !pickable ? 'hand__card--dim' : '', dragging ? 'hand__card--dragging' : '', lifted === slot ? 'hand__card--lifted' : ''].join(' ');
           return (
-            <button type="button" role="listitem" class={cls} key={slot} disabled={!pickable} data-slot={slot}
+            <button type="button" role="listitem" class={cls} key={slot} disabled={!pickable} data-slot={slot} data-card={id}
               // the dragged card follows the pointer from wherever it has been put in the row
               style={dragging ? { transform: `translateX(${drag.dx - (drag.to - drag.from) * pitch()}px)` } : undefined}
               aria-pressed={picking ? picked : undefined} title={cardById(id).name + (picking ? '' : ' (drag to move it)')}
               onPointerDown={e => down(e, order.indexOf(slot))} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
               onKeyDown={e => key(e, at)}
-              onClick={() => { if (swallowClick.current) { swallowClick.current = false; return; } onCard(slot); }}>
+              onClick={() => { if (swallowClick.current) { swallowClick.current = false; return; } onCard(slot); }}
+              onDblClick={e => zoom(e, slot, id)} onContextMenu={e => zoom(e, slot, id)}>
               <img src={cardImage(id, 'thumb')} alt={cardById(id).name} draggable={false} />
             </button>
           );

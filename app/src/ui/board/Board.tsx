@@ -22,6 +22,7 @@ import { Hand, HiddenHand } from './Hand';
 import { Piles } from './Piles';
 import { Scoreboard } from './Scoreboard';
 import { MyWalls, OtherWalls } from './Walls';
+import { showCard } from '../components/zoom';
 import './board.css';
 
 const AMAZON = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
@@ -163,7 +164,7 @@ export function Board({ controller }: { controller: GameController }) {
       {handSeat !== null
         ? snap.openHands
           ? <Hand seat={handSeat} cards={hand} onCard={() => {}} picking={null} title={displayName(view, handSeat) + "'s Hand"} />
-          : <Hand seat={handSeat} cards={hand} onCard={onCard} onLift={live && !picking ? onLift : undefined} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
+          : <Hand seat={handSeat} cards={hand} onCard={onCard} onZoom={slot => { setOpen(null); showCard(hand[slot]); }} onLift={live && !picking ? onLift : undefined} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
         : <HiddenHand message={view.turn < 0 ? 'Dealing the cards…' : snap.turnBanner != null || snap.passTo !== null ? 'Your cards are coming up…' : undefined} />}
 
       {picking && (
@@ -188,7 +189,8 @@ export function Board({ controller }: { controller: GameController }) {
 
 
       {open !== null && hand[open] !== undefined && (
-        <CardPopup card={hand[open]!} actions={cardActions(api, snap, open, busy)} onChoose={choose} onClose={() => setOpen(null)} />
+        <CardPopup card={hand[open]!} actions={cardActions(api, snap, open, busy)} onChoose={choose} onClose={() => setOpen(null)}
+          onDoubleClick={() => { const id = hand[open]; setOpen(null); showCard(id); }} />
       )}
       {menu && <BuildMenu options={buildMenu(api, snap, busy)} onChoose={choose} onClose={() => setMenu(false)} />}
       {confirm && <ConfirmEnd onYes={endGame} onNo={() => setConfirm(false)} />}
