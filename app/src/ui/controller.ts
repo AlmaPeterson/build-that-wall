@@ -31,6 +31,8 @@ export interface GameSnapshot {
   skipped?: Seat | null;
   /** Only bots are playing (a local game): every hand is face up, and the board shows the playing bot's. */
   openHands?: boolean;
+  /** Pass'n'Play with 2+ people on this device: a hand is only shown to its player, never between turns. */
+  sharedDevice?: boolean;
 }
 
 export interface ControllerOptions {
@@ -275,6 +277,7 @@ export class GameController {
       turnBanner: this.bannerSeat,
       skipped: this.skipSeat,
       openHands: this.allBots(),
+      sharedDevice: this.passing(),
     });
   }
 }

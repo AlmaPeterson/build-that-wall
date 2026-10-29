@@ -171,14 +171,17 @@ describe('Board', () => {
     expect(s.discard.slice(-2).sort()).toEqual([30, 32]);
   });
 
-  it("buttons are disabled and the hand hidden while it isn't your turn", async () => {
+  it("while it isn't your turn: buttons are disabled, your hand still shows but can't be played", async () => {
     const c = await setup([29, 14]);
     c.api!.state.turn = 1;   // the bot's turn
     await act(() => { c.refresh(); });
     expect(sideButton('End Turn').disabled).toBe(true);
     expect(sideButton('Build Wall').disabled).toBe(true);
     expect(sideButton('End Game').disabled).toBe(false);
-    expect($('.hand__hidden')?.textContent).toMatch(/Hands are hidden/);
+    expect($('.hand__hidden')).toBeNull();
+    expect(root!.querySelectorAll('.hand button[data-slot]').length).toBe(2);
+    await click(root!.querySelector<HTMLButtonElement>('.hand button[data-slot="0"]')!);
+    expect(root!.textContent).toContain('You can use this card on your turn.');     // look, but no actions
   });
 
   it('End Turn passes the turn to the bot and back', async () => {
@@ -204,10 +207,13 @@ describe('board-state', () => {
     expect(canInteract(snap({ viewer: 1 }))).toBe(false);
   });
 
-  it('shownHand hides hands during a bot turn and in watch mode', () => {
+  it('shownHand: one person sees their own hand on every turn; Pass\'n\'Play hides it during bot turns', () => {
     const v = snap({}).view!;
     expect(shownHand(snap({}))).toBe(0);
-    expect(shownHand(snap({ view: { ...v, turn: 1 } }))).toBeNull();
+    expect(shownHand(snap({ view: { ...v, turn: 1 } }))).toBe(0);                       // a bot's turn: still your hand
+    expect(shownHand(snap({ view: { ...v, turn: 1 }, turnBanner: 0 }))).toBe(0);
+    expect(shownHand(snap({ view: { ...v, turn: 1 }, sharedDevice: true }))).toBeNull(); // the device may be changing hands
+    expect(shownHand(snap({ turnBanner: 0, sharedDevice: true }))).toBeNull();
     expect(shownHand(snap({ viewer: 1 }))).toBeNull();
     expect(shownHand(snap({ passTo: 0 }))).toBeNull();                    // the pass screen slides over the board
     expect(shownHand(snap({ view: { ...v, turn: -1 } }))).toBeNull();     // dealing

@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryStorage, SaveStore } from '../../services/storage';
+import { browserStorage, MemoryStorage, SaveStore } from '../../services/storage';
 import { App } from '../app';
 import { controller, DEFAULT_UI_SETTINGS, screen, settings } from '../app-state';
 import { MenuScreen } from '../screens/Menu';
@@ -87,10 +87,16 @@ describe('settings', () => {
     expect(s.textSizes.popups).toBe(1);
   });
 
-  it('uses the saved player name for player 1', () => {
-    const store = fresh();
+  it('player 1 gets your name as it is when the game starts, so a changed name shows in the next game', () => {
+    const store = new SaveStore(browserStorage());
     store.set('name', 'Grandma Sue');
-    expect(loadUiSettings(store, DEFAULT_UI_SETTINGS).game.names[0]).toBe('Grandma Sue');
+    expect(gameSettingsFor(3, 2).names[0]).toBe('Grandma Sue');
+    store.set('name', 'Aunt Bea');                                    // changed on the Account screen
+    expect(gameSettingsFor(3, 2).names[0]).toBe('Aunt Bea');
+    expect(loadUiSettings(store, DEFAULT_UI_SETTINGS).game.names[0] ?? '').toBe('');   // not frozen into the settings
+    const typed = { ...DEFAULT_UI_SETTINGS.game, names: ['Sue at the table'] };   // a name typed in Settings wins
+    expect(gameSettingsFor(3, 2, typed).names[0]).toBe('Sue at the table');
+    expect(gameSettingsFor(3, 3).names[0] ?? '').toBe('');              // watch mode: no Player 1
   });
 
   it('saves changes made on the Settings screen', () => {

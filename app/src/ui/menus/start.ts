@@ -1,6 +1,8 @@
 // Starting games from the menu (docs/game-rules.md section 2, Cards › Start Request). No sign-in is
 // needed to play (owner decision: guest play).
 import type { GameSettings } from '../../game';
+import { getUser } from '../../services/account/user';
+import { browserStorage, SaveStore } from '../../services/storage';
 import { screen, settings, startLocalGame } from '../app-state';
 import { createStore } from '../store';
 import { MAX_PLAYERS } from './prefs';
@@ -11,13 +13,21 @@ export const onlineIntent = createStore<OnlineIntent | null>(null);
 
 /** The game's settings as the engine wants them: one difficulty per bot actually playing. */
 export function gameSettingsFor(players: number, bots: number, base: GameSettings = settings.get().game): GameSettings {
+  const names = base.names.slice(0, players);
+  // Player 1 is you: with no name typed for them in Settings, use your name from Account & Store as it is now
+  if (bots < players && !(names[0] ?? '').trim()) names[0] = playerOneName();
   return {
     ...base,
     players,
     bots,
     difficulties: base.difficulties.slice(0, MAX_PLAYERS).slice(0, bots),
-    names: base.names.slice(0, players),
+    names,
   };
+}
+
+/** The name you chose (or your Google name), read fresh each time; '' = none, so the seat is "Player 1". */
+export function playerOneName(store: SaveStore = new SaveStore(browserStorage())): string {
+  return (store.get('name') || getUser(store)?.name || store.get('gname') || '').trim().slice(0, 20);
 }
 
 /** Start Game in Pass'n'Play: everyone on this device. Bots for every seat is watch mode. */

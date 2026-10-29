@@ -16,7 +16,11 @@ export function canInteract(snap: GameSnapshot, busy = false): boolean {
   return !v.seats[v.turn]?.bot;
 }
 
-/** Whose hand is on screen. null = hidden ("Hands are hidden while the computer plays"). */
+/**
+ * Whose hand is on screen. null = hidden. One person on this device (or online): always their own hand,
+ * on other players' turns too (to look at, not to play). Pass'n'Play: only the player at the device, and
+ * nobody's between turns, so the next person never sees the last one's cards.
+ */
 export function shownHand(snap: GameSnapshot): Seat | null {
   const v = snap.view;
   if (!v) return null;
@@ -24,9 +28,11 @@ export function shownHand(snap: GameSnapshot): Seat | null {
   if (seat?.bot && snap.openHands && v.turn >= 0 && v.seats[v.turn]) return v.turn;   // only bots: show the one playing
   if (!seat || seat.bot) return null;                      // watch mode: no human hand to show
   if (v.turn < 0) return null;                             // dealing: nobody's hand is shown yet
-  if (snap.passTo !== null || (snap.turnBanner ?? null) !== null) return null;                   // the pass screen slides in over the board: show no one's hand
+  if (snap.passTo !== null) return null;                   // the pass screen slides in over the board: show no one's hand
+  if (!snap.sharedDevice) return snap.viewer;
+  if ((snap.turnBanner ?? null) !== null) return null;
   if (snap.prompt) return snap.viewer;
-  if (v.turn >= 0 && v.seats[v.turn]?.bot && !v.over) return null;   // a bot is playing
+  if (v.turn >= 0 && v.seats[v.turn]?.bot && !v.over) return null;   // a bot is playing: the device may be changing hands
   return snap.viewer;
 }
 
