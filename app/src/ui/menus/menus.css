@@ -14,6 +14,8 @@
 .menu__foot p { margin: 0 0 12px; font-family: var(--font); font-weight: 900; font-size: calc(1.1rem * var(--text-menu)); }
 .menu__foot a { color: #fff; font-family: var(--font); font-weight: bold; font-size: calc(1.2rem * var(--text-menu)); text-decoration: none; }
 .menu__foot a:hover, .menu__foot a:focus-visible { text-decoration: underline; }
+.menu__legal { margin-top: 7px; font-size: calc(0.85rem * var(--text-menu)); }
+.menu__legal a { font-size: inherit; font-weight: normal; }
 .menu__tm { display: block; text-align: right; font-family: Georgia, serif; font-size: 0.95em; margin-top: 4px; }
 @media (max-width: 640px) {
   .menu__logo { width: 100%; height: auto; max-width: 320px; }
