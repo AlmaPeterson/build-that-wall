@@ -1,6 +1,6 @@
 // Draws the animator's flying cards over the board with the Web Animations API, and the caption for a
 // played card. Tapping anywhere while cards are moving finishes the step.
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { CardPopup } from '../board/CardPopup';
 import { openCardBelow, showCard, zoomedCard } from '../components/zoom';
 import { cardById } from '../../data/cards';
@@ -13,7 +13,6 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
   const box = useRef<HTMLDivElement>(null);
   const front = useRef<HTMLDivElement>(null);
   const anims = useRef<Animation[]>([]);
-  const [visible, setVisible] = useState(flight.visibleAt === undefined);
   useLayoutEffect(() => {
     const el = box.current, face = front.current;
     if (!el || duration <= 0 || typeof el.animate !== 'function') return;
@@ -30,27 +29,26 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
     const faces = flight.keys.map(k => ({ offset: offset(k.t), opacity: k.face ? 1 : 0, easing: 'steps(1, end)' }));
     if (faces.at(-1)!.offset < 1) faces.push({ ...faces.at(-1)!, offset: 1 });
     const visibleAt = flight.visibleAt;
-    setVisible(visibleAt === undefined);
+    // A delayed result belongs to the flight layer from the outset, but remains hidden until
+    // its phase starts.  The separate stepped animation avoids easing opacity with its motion.
+    const visibility = visibleAt === undefined ? null : [
+      { offset: 0, opacity: 0 },
+      { offset: Math.max(0, offset(visibleAt) - 0.00001), opacity: 0 },
+      { offset: offset(visibleAt), opacity: 1 },
+    ];
     const a = el.animate(frames, { duration, fill: 'forwards' });
     const b = face?.animate(faces, { duration, fill: 'forwards' });
-    // Read the motion animation's clock rather than using a second CSS animation. That makes
-    // the result appear precisely at its phase boundary and respects a paused flight.
-    let frame = 0;
-    const reveal = () => {
-      if (visibleAt !== undefined && Number(a.currentTime) >= visibleAt) setVisible(true);
-      else if (visibleAt !== undefined) frame = requestAnimationFrame(reveal);
-    };
-    if (visibleAt !== undefined) frame = requestAnimationFrame(reveal);
+    const c = visibility ? el.animate(visibility, { duration, fill: 'forwards', easing: 'steps(1, end)' }) : null;
     // Cancelling rejects `finished`; nothing waits on it
-    a.finished.catch(() => {}); b?.finished.catch(() => {});
-    anims.current = [a, ...(b ? [b] : [])];
-    return () => { cancelAnimationFrame(frame); a.cancel(); b?.cancel(); anims.current = []; };
+    a.finished.catch(() => {}); b?.finished.catch(() => {}); c?.finished.catch(() => {});
+    anims.current = [a, ...(b ? [b] : []), ...(c ? [c] : [])];
+    return () => { a.cancel(); b?.cancel(); c?.cancel(); anims.current = []; };
   }, [flight, duration, unit]);
   useEffect(() => { for (const a of anims.current) { if (paused) a.pause(); else a.play(); } }, [paused]);
   const k = flight.keys[0]!;
   const back = flight.card === 4;
   return (
-    <div ref={box} class={'flight' + (flight.big ? ' flight--big' : '')} style={{ transform: `translate(${k.x * unit}px, ${k.y * unit}px)`, width: `${k.w * unit}px`, height: `${k.h * unit}px`, opacity: visible ? 1 : 0 }}
+    <div ref={box} class={'flight' + (flight.big ? ' flight--big' : '')} style={{ transform: `translate(${k.x * unit}px, ${k.y * unit}px)`, width: `${k.w * unit}px`, height: `${k.h * unit}px`, opacity: flight.visibleAt === undefined ? 1 : 0 }}
       onClick={flight.big && !back ? e => { e.stopPropagation(); onOpen(); } : undefined}
       // Right-click any face-up card in the air to see it full size (it pauses the game until closed)
       onContextMenu={!back ? e => { e.preventDefault(); e.stopPropagation(); onOpen(); } : undefined}
