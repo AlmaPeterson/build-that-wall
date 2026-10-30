@@ -247,6 +247,7 @@ describe('dealing and drawing', () => {
     const deal: GameEvent = { type: 'deal', seat: 0, cards: [31, 29], text: '' };
     const plan = planStep(snap(a, []), snap(b, [deal]), 1)!;
     expect(plan.flights.map(f => f.card)).toEqual([4, 4, 4, 4]);
+    expect(plan.flights.every(f => f.visibleAt === undefined)).toBe(true);
     const lands = plan.flights.map(f => f.keys.at(-1)!);
     expect(lands[0]!.x).not.toBe(lands[1]!.x);                            // seat 0, then seat 1, ...
     expect(lands[0]!.x).toBe(lands[2]!.x);
@@ -349,7 +350,7 @@ describe('discard before result', () => {
     const wall = plan.flights.find(f => f.card === 29)!;
     expect(costs).toHaveLength(2);
     expect(wall.keys[1]!.t).toBeGreaterThanOrEqual(Math.max(...costs.map(f => f.keys.at(-1)!.t)));
-    expect(wall.visibleAt).toBe(wall.keys[1]!.t);
+    expect(wall.visibleAt).toBe(Math.max(...costs.map(f => f.keys.at(-1)!.t)));
   });
 
   it('settles a card that was waiting for a response before animating its resolved effect', () => {

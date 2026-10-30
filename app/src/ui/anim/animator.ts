@@ -366,7 +366,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   flown.push(...shown);
   const each = dealing ? ms(T.deal) : ms(T.move);
   /** Schedule one named phase. The next phase receives the time this one finishes. */
-  const showPhase = (_phase: MovePhase, group: Move[], from: number): number => {
+  const showPhase = (phase: MovePhase, group: Move[], from: number): number => {
     const stagger = dealing ? ms(T.dealGap)
       : group.length > 1 ? Math.min(ms(T.stagger), ms(T.maxStagger) / (group.length - 1)) : 0;
     let end = from;
@@ -376,9 +376,10 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face }];
       if (t0 > 0) keys.push({ t: t0, ...at(m.from, 'from'), face });
       keys.push({ t: t1, ...at(m.to, 'to'), face });
-      // Result cards are created with the rest of the layer, but must not sit visibly over
-      // their old hand slot while a cost card is flying and that hand is reflowing.
-      flights.push({ id: id(), card: m.card, keys, visibleAt: t0 || undefined });
+      // A result delayed behind a cost is created with the rest of the layer, but must not
+      // sit visibly over its old hand slot while the cost card is flying and the hand reflows.
+      // Individual stagger delays (notably dealing) retain their original visible behaviour.
+      flights.push({ id: id(), card: m.card, keys, visibleAt: phase === 'result' && from > 0 ? from : undefined });
       end = Math.max(end, t1);
     });
     return end;
