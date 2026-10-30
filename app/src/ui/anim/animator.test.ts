@@ -73,11 +73,13 @@ describe('planStep', () => {
     const own: GameEvent = { type: 'play', seat: 0, card: 26, text: 'Player 1 played Trump.' };
     const mine = planStep(snap(a, []), snap(b, [own]), 1)!;
     expect(mine.flights[0]!.big).toBeFalsy();
+    expect(mine.flights[0]!.continuous).toBe(true);
     expect(mine.flights[0]!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
 
     const { prev, next } = debtStep();
     const watching = planStep({ ...prev, openHands: true }, { ...next, openHands: true }, 1)!;
     expect(watching.flights[0]!.big).toBeFalsy();
+    expect(watching.flights[0]!.continuous).toBe(true);
     expect(watching.flights[0]!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
   });
 

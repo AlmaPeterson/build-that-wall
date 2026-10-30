@@ -21,7 +21,9 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
       offset: offset(k.t),
       transform: `translate(${k.x * unit}px, ${k.y * unit}px)`,
       width: `${k.w * unit}px`, height: `${k.h * unit}px`,
-      easing: 'ease-in-out',
+      // A direct hand-to-destination route has a midpoint only to resize the card. It must not look
+      // as if it stopped there (especially in bot-watch mode).
+      easing: flight.continuous ? 'linear' : 'ease-in-out',
     }));
     if (frames.at(-1)!.offset < 1) frames.push({ ...frames.at(-1)!, offset: 1 });
     const faces = flight.keys.map(k => ({ offset: offset(k.t), opacity: k.face ? 1 : 0, easing: 'steps(1, end)' }));

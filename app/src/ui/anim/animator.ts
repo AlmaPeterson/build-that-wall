@@ -13,7 +13,11 @@ import { diffViews, midView, type Move, type Place } from './moves';
 export interface Key extends Rect { t: number; face: boolean }
 
 /** `big`: a played card that stops large in the middle, drawn from the high-quality picture. */
-export interface Flight { id: number; card: CardId; keys: Key[]; big?: boolean }
+export interface Flight {
+  id: number; card: CardId; keys: Key[]; big?: boolean;
+  /** Travel through intermediate keyframes without slowing to an apparent stop. */
+  continuous?: boolean;
+}
 
 /** Your own Play Immediately card, shown large until you tap Continue. */
 export interface Confirm { card: CardId; text: string }
@@ -306,7 +310,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
         const end = m.to.at === 'center' ? sized(CENTER, PASSING) : at(m.to, 'to');   // waiting in the middle: not big
         keys.push({ t: start + ms(T.across) / 2, ...passBy(src, end), face: true }, { t: t1, ...end, face: true });
       }
-      flights.push({ id: id(), card, keys });
+      flights.push({ id: id(), card, keys, continuous: true });
       flown.push(m);
       // Effects (a draw, stealing a wall, etc.) happen after the played card has landed, not while
       // it is still being discarded. A held, blockable card has no effect yet.
