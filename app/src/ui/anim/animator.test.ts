@@ -349,6 +349,7 @@ describe('discard before result', () => {
     const wall = plan.flights.find(f => f.card === 29)!;
     expect(costs).toHaveLength(2);
     expect(wall.keys[1]!.t).toBeGreaterThanOrEqual(Math.max(...costs.map(f => f.keys.at(-1)!.t)));
+    expect(wall.visibleAt).toBe(wall.keys[1]!.t);
   });
 
   it('settles a card that was waiting for a response before animating its resolved effect', () => {
