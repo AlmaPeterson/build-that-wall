@@ -42,7 +42,7 @@ describe('planStep', () => {
     expect(card!.keys).toHaveLength(5);                          // hand, middle, (hold), the player, discard
     // The wall moves after the card has been seen
     expect(wall!.card).toBe(33);
-    expect(wall!.keys[1]!.t).toBeGreaterThanOrEqual(card!.keys[3]!.t);
+    expect(wall!.keys[1]!.t).toBeGreaterThanOrEqual(card!.keys.at(-1)!.t); // discard lands before Debt takes the wall
     expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t));
     // While they fly, the board shows neither the card in the hand nor the wall anywhere
     expect(plan.mid.seats[1]!.hand).toHaveLength(1);
@@ -51,7 +51,7 @@ describe('planStep', () => {
     expect(plan.mid.discard).toEqual([]);
   });
 
-  it("a bot's card not played on you just flies across at a normal size, without stopping big in the middle", () => {
+  it("another player's card stops in the middle so people can read it", () => {
     const a = base();
     const b = clone(a);
     b.seats[1]!.hand = [30];
@@ -60,12 +60,25 @@ describe('planStep', () => {
     const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
     const [card] = plan.flights;
     expect(card!.card).toBe(7);
-    expect(card!.big).toBeFalsy();
-    expect(card!.keys.every(k => k.face)).toBe(true);             // you can tell which card it is all the way
-    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
-    expect(card!.keys[1]).toMatchObject({ w: 44, h: 61 });         // halfway: the size of the draw pile
+    expect(card!.big).toBe(true);
+    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(true);
+    expect(card!.keys[1]).toMatchObject(CENTER);
     expect(card!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });  // on the discard pile
     expect(plan.duration).toBeLessThan(planStep(debtStep().prev, debtStep().next, 1)!.duration);
+  });
+
+  it('your own card goes straight to its destination, while a bot-only watch game never pauses a play in the middle', () => {
+    const a = base(); a.seats[0]!.hand = [26];
+    const b = clone(a); b.seats[0]!.hand = []; b.discard = [26];
+    const own: GameEvent = { type: 'play', seat: 0, card: 26, text: 'Player 1 played Trump.' };
+    const mine = planStep(snap(a, []), snap(b, [own]), 1)!;
+    expect(mine.flights[0]!.big).toBeFalsy();
+    expect(mine.flights[0]!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
+
+    const { prev, next } = debtStep();
+    const watching = planStep({ ...prev, openHands: true }, { ...next, openHands: true }, 1)!;
+    expect(watching.flights[0]!.big).toBeFalsy();
+    expect(watching.flights[0]!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
   });
 
   it('Spy Balloon on you: one balloon, straight on to the discard pile (the hidden hand looks unchanged)', () => {

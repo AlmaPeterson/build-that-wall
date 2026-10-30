@@ -273,9 +273,13 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     m.card = card;
     // Not on any pile yet and played on nobody: it stays in the middle (it lands with a later step)
     if (m.to.at === 'seat' && target === undefined) m.to = { at: 'center' };
-    // Only a card you play, or one played on you, stops in the middle for you to read
+    // In a bot-only watch game, cards keep moving. In a game with people, your own cards go
+    // straight to their destination while other players' cards pause in the middle to be read.
     const me = next.view && !next.view.seats[next.viewer]?.bot ? next.viewer : -1;
-    if (reveal.seat !== me && target !== me) {
+    const watchBots = !!next.openHands;
+    // An unresolved play still needs to remain in the middle, and your Play Immediately card
+    // must be readable before it continues. Every other card you play travels straight through.
+    if (watchBots || (reveal.seat === me && !confirming && m.to.at !== 'center')) {
       const src = at(m.from, 'from');
       const keys: Key[] = [{ t: 0, ...src, face: true }];
       if (start > 0) keys.push({ ...keys[0]!, t: start });
@@ -293,7 +297,9 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       }
       flights.push({ id: id(), card, keys });
       flown.push(m);
-      start = t1;
+      // Effects (a draw, stealing a wall, etc.) happen after the played card has landed, not while
+      // it is still being discarded. A held, blockable card has no effect yet.
+      start = heldAfter ? t1 : keys.at(-1)!.t;
     } else {
       const t1 = start + ms(T.toCenter), t2 = t1 + (confirming ? 0 : ms(T.hold)), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
       const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
@@ -315,7 +321,9 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       }
       flights.push({ id: id(), card, keys, big: true });
       flown.push(m);
-      start = t3;
+      // Don't start the card's effect until its discard flight has finished. A blockable card is
+      // held at its target instead, so its resolution is necessarily a later snapshot.
+      start = heldAfter ? t3 : t4;
       if (confirming) splitAt = t1;
     }
   }

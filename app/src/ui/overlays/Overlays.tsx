@@ -20,7 +20,7 @@ export function Overlays({ controller }: { controller: GameController }) {
   // What the board shows now: prompts and notices wait until the cards before them have moved
   const { snap } = useStore(animatorFor(controller).state);
   const { tutorial } = useStore(settings);
-  const { view, viewer, events, prompt, passTo } = snap;
+  const { view, viewer, events, prompt, passTo, openHands } = snap;
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [notices, setNotices] = useState<GameEvent[]>([]);
@@ -40,7 +40,8 @@ export function Overlays({ controller }: { controller: GameController }) {
     const wallsToasted = new Set<number>();
     for (const e of fresh) {
       if (e.type === 'gameStart') { setWinClosed(false); setRecap(null); setNotices([]); }
-      if (e.type === 'finalRound') { setNotices(n => [...n, e]); playSfx('alert'); continue; }
+      // A bot-only watch game has no one to acknowledge a modal; let its animations and turns run on.
+      if (e.type === 'finalRound') { if (!openHands) { setNotices(n => [...n, e]); playSfx('alert'); } continue; }
       if (e.type === 'gameOver') { playSfx('win'); continue; }
       // Only the player whose turn it is, on their own screen (not another player's, online or in Pass'n'Play)
       if (e.type === 'turnStart' && e.seat !== undefined && !view.seats[e.seat]?.bot && e.seat === viewer) {
@@ -61,7 +62,7 @@ export function Overlays({ controller }: { controller: GameController }) {
       const ids = new Set(newToasts.map(t => t.id));
       setTimeout(() => setToasts(ts => ts.filter(t => !ids.has(t.id))), TOAST_MS);
     }
-  }, [events, view, viewer]);
+  }, [events, view, viewer, openHands]);
 
   // A sound when a question comes up
   useEffect(() => { if (prompt) playSfx('prompt'); }, [prompt]);
