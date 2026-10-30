@@ -148,13 +148,11 @@ export function Board({ controller }: { controller: GameController }) {
     screen.set('menu');
   }
 
-  const running = !view.over;
-
   return (
     <>
     <div class="stage board" ref={stage}>
       <div class="board__header" style={{ backgroundImage: `url(${HEADER_IMAGE})` }} role="banner" aria-label="Build That Wall" />
-      {running && <ActionLog events={snap.events} />}
+      <ActionLog events={snap.events} />
 
       <Scoreboard state={view} />
       <Piles state={view} />

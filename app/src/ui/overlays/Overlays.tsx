@@ -88,7 +88,7 @@ export function Overlays({ controller }: { controller: GameController }) {
   } else if (prompt) {
     modal = <PromptView prompt={prompt} view={view} />;
   } else if (view.over && !winClosed) {
-    modal = <WinScreen result={view.over} view={view} onAgain={playAgain} onMenu={() => { setWinClosed(true); toMenu(); }} />;
+    modal = <WinScreen result={view.over} view={view} onAgain={playAgain} onLog={() => setWinClosed(true)} onMenu={() => { setWinClosed(true); toMenu(); }} />;
   } else if (notices.length) {
     const n = notices[0]!;
     modal = <BigNotice head="FINAL ROUND" title={n.text.startsWith('The last card') ? 'LAST CARD!' : 'FINAL ROUND!'} sub={n.text}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Entitlements } from '../gold/entitlements';
-import { AccountService, OWNER_EMAIL_SHA256, sha256Hex } from './account';
+import { AccountService, sha256Hex } from './account';
 import { ServerApi, isError } from './api';
 import { GoogleSignIn, decodeIdToken, shortName } from './google';
 import { SERVER, fakeApi, makeStore, signIn } from './test-fakes';
@@ -113,11 +113,11 @@ describe('AccountService', () => {
     expect(calls[0]!.body).toMatchObject({ miles: 12, won: true, walls: 3, name: 'A very long name tha' });
   });
 
-  it('owner check uses the email hash', async () => {
+  it('owner check never grants browser-side privileges from an email', async () => {
     const { acct } = setup();
     expect(await acct.ownerCheck()).toBe(false);
     expect(await sha256Hex(' X@Y.com ')).toBe(await sha256Hex('x@y.com'));
-    expect(OWNER_EMAIL_SHA256).toMatch(/^[0-9a-f]{64}$/);
+    expect(acct.isOwner()).toBe(false);
   });
 
   it('admin search and delete on this device', async () => {

@@ -58,6 +58,19 @@ describe('diffViews', () => {
     expect(moves).toContainEqual({ card: 33, from: { at: 'walls', seat: 0, kind: 33 }, to: { at: 'walls', seat: 1, kind: 33 } });
   });
 
+  it('matches the played copy first when that card is also stolen during the same action', () => {
+    // Controlled Opposition (6) is played by the hidden hand while it steals another 6 from us.
+    // The played card must be the one that goes to discard, never the stolen copy.
+    const a = game([[6], [6, 30]]);
+    const b = clone(a);
+    b.seats[0]!.hand = [];
+    b.seats[1]!.hand = [30, 6];
+    b.discard = [6];
+    const moves = diffViews(viewFor(a, 0), viewFor(b, 0), { played: { seat: 1, card: 6 } });
+    expect(moves).toContainEqual({ card: 6, from: { at: 'hand', seat: 1, slot: 0 }, to: { at: 'discard' } });
+    expect(midView(viewFor(a, 0), moves).seats[1]!.hand).toEqual([4]);
+  });
+
   it('a card held nowhere (Quarantine) goes to the player it was played on', () => {
     const a = game([[17, 29], [30]]);
     const b = clone(a);

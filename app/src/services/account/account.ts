@@ -3,8 +3,8 @@ import { ACCOUNT_KEYS, type SaveStore } from '../storage';
 import { isError, isServerUrl, type Entitlements as ServerEntitlements, type ServerApi } from './api';
 import { accountId, getUser, setUser, userEmail, verifiedUser } from './user';
 
-// SHA-256 of the owner's email, lowercased. The server checks OWNER_EMAIL for real; this only shows owner tools.
-export const OWNER_EMAIL_SHA256 = 'f27ff759e0e7b427a39011639395ca15ee74b6aff0faf9e80f6d96059442c6db';
+// The server's OWNER_EMAIL setting controls server administration.  Do not grant browser-side
+// privileges from an email hash: this used to make one ordinary player behave differently online.
 
 export interface AdminRow { id: string; name: string; games: number }
 
@@ -72,11 +72,7 @@ export class AccountService {
   }
 
   // ---- owner tools
-  async ownerCheck(): Promise<boolean> {
-    const mail = userEmail(this.store);
-    try { this.ent.isOwner = !!mail && (await sha256Hex(mail)) === OWNER_EMAIL_SHA256; } catch { this.ent.isOwner = false; }
-    return this.ent.isOwner;
-  }
+  async ownerCheck(): Promise<boolean> { this.ent.isOwner = false; return false; }
 
   isOwner(): boolean { return this.ent.isOwner; }
 

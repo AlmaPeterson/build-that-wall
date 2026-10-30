@@ -59,6 +59,7 @@ export class OnlineSession {
   private names = new Map<number, string>();
   private running = false;
   private stillTimer: ReturnType<typeof setTimeout> | null = null;
+  private stopWatchingEnd: (() => void) | null = null;
 
   constructor(private readonly deps: SessionDeps) {
     this.room = this.makeRoom();
@@ -151,6 +152,7 @@ export class OnlineSession {
     this.running = false;
     this.host = null; this.client = null; this.names.clear();
     this.clearStill();
+    this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
     this.state.set({ ...IDLE });
   }
 
@@ -219,6 +221,7 @@ export class OnlineSession {
     this.running = true;
     this.set({ phase: 'playing', status: '', error: '' });
     this.deps.show(this.host);
+    this.watchForEnd(this.host);
     return this.host.start(settings, seed);
   }
 
@@ -237,6 +240,7 @@ export class OnlineSession {
       this.running = true;
       this.set({ phase: 'playing', status: '' });
       this.deps.show(this.client);
+      this.watchForEnd(this.client);
     }
     this.client.receive(data);
   }
@@ -277,7 +281,22 @@ export class OnlineSession {
     this.running = false;
     this.host = null; this.client = null; this.names.clear();
     this.clearStill();
+    this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
     this.state.set({ ...IDLE, phase: 'connecting', status });
+  }
+
+  /** The result screen may stay open, but this room is no longer a running game. */
+  private finished(): void {
+    if (!this.running) return;
+    this.running = false;
+    this.set({ phase: 'ended', status: '' });
+  }
+
+  private watchForEnd(c: GameController): void {
+    this.stopWatchingEnd?.();
+    this.stopWatchingEnd = c.snapshot.subscribe(() => {
+      if (c.state?.over) this.finished();
+    });
   }
 
   private failed(): false {

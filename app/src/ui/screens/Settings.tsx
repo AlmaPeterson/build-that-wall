@@ -9,6 +9,8 @@ import {
   ENDING_NAMES, initSettingsPersistence, MAX_PLAYERS, MIN_PLAYERS, TEXT_STEPS, updateSettings, type BotLevel,
 } from '../menus/prefs';
 import { playerOneName } from '../menus/start';
+import { SaveStore, browserStorage } from '../../services/storage';
+import { cleanName } from '../../services/online';
 import { useStore } from '../store';
 import '../menus/menus.css';
 
@@ -115,7 +117,12 @@ export function SettingsScreen() {
         {Array.from({ length: humans }, (_, k) => (
           <Row key={'n' + k} label={`Player ${k + 1} name`} id={`set-name${k}`}>
             <input id={`set-name${k}`} type="text" maxLength={20} placeholder={(k === 0 && playerOneName()) || `Player ${k + 1}`} value={g.names[k] ?? ''}
-              onInput={e => setGame({ names: Array.from({ length: MAX_PLAYERS }, (_, j) => (j === k ? e.currentTarget.value : g.names[j] ?? '')) })} />
+              onInput={e => {
+                const name = e.currentTarget.value;
+                setGame({ names: Array.from({ length: MAX_PLAYERS }, (_, j) => (j === k ? name : g.names[j] ?? '')) });
+                // Player 1 is this device's identity. Keep online play, scores and Account & Store in sync.
+                if (k === 0) new SaveStore(browserStorage()).set('name', cleanName(name));
+              }} />
           </Row>
         ))}
         <Row label="Sound Effects"><Toggle label="Sound Effects" on={s.sound} onChange={sound => set({ sound })} /></Row>

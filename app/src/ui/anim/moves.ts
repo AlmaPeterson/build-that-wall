@@ -78,14 +78,29 @@ export function diffViews(before: GameState, after: GameState, hints: DiffHints 
     if (key(g.place) === key(c.place) && (g.place.at === 'draw' || g.place.at === 'discard' || g.place.at === 'jail')) return;
     moves.push({ card: g.card !== CARD_BACK ? g.card : c.card, from: g.place, to: c.place });
   };
-  // 1. The same face on both sides
+  // 1. The card named by a play event gets first claim on its source and destination.  Doing this
+  // before the general same-face pass matters when a deck has two copies of an action card: otherwise
+  // another copy can be paired first, leaving the played card both in its hand and flying on screen.
+  const played = hints.played;
+  if (played) {
+    const g = gone.find(x => x.place.at === 'hand' && x.place.seat === played.seat && (x.card === played.card || x.card === CARD_BACK));
+    const c = came.find(x => x.card === played.card);
+    if (g && c) take(g, c);
+    else if (c) {
+      // A hidden hand can lose the played card and gain a stolen card in the same snapshot, so its
+      // card-back count is unchanged and there is no `gone` entry. Reserve the destination anyway;
+      // otherwise another visible copy is incorrectly matched to it and both copies get animated.
+      came.splice(came.indexOf(c), 1);
+      moves.push({ card: played.card, from: { at: 'hand', seat: played.seat, slot: 0 }, to: c.place });
+    }
+  }
+  // 2. The same face on both sides
   for (const g of [...gone]) {
     if (g.card === CARD_BACK) continue;
     const c = came.find(x => x.card === g.card);
     if (c) take(g, c);
   }
-  // 2. A hidden card becoming a face (or the other way round): the played card first, then in order
-  const played = hints.played;
+  // 3. A hidden card becoming a face (or the other way round), then in order
   if (played) {
     const g = gone.find(x => x.card === CARD_BACK && x.place.at === 'hand' && x.place.seat === played.seat);
     const c = came.find(x => x.card === played.card);

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { cleanName } from '../../services/online';
 import { deviceInfo, openFeedbackBox } from '../../services/feedback';
 import { userEmail } from '../../services/account';
-import { screen } from '../app-state';
+import { screen, settings } from '../app-state';
+import { updateSettings, MAX_PLAYERS } from '../menus/prefs';
 import { Message, Page } from '../account/Page';
 import { buyMessage, codeMessage, nameMessage, trialMessage, type Said } from '../account/results';
 import { Button } from '../components/Button';
@@ -109,7 +110,12 @@ function AccountCard({ player, googleReady, busy, run, said, say }: { player: Pl
           const clean = cleanName(name);
           if (!clean) { say(nameMessage('empty')); return; }
           const r = player.verified ? await services.account.claimName(services.server(), clean) : 'local';
-          if (r === 'ok' || r === 'local' || r === 'noserver') services.store.set('name', clean);
+          if (r === 'ok' || r === 'local' || r === 'noserver') {
+            services.store.set('name', clean);
+            // The first Settings name is the same player, not a competing source of truth.
+            const g = settings.get().game;
+            updateSettings(s => ({ ...s, game: { ...s.game, names: Array.from({ length: MAX_PLAYERS }, (_, i) => i === 0 ? clean : g.names[i] ?? '') } }));
+          }
           say(nameMessage(r));
           services.refresh();
         })}>Save name</Button>
