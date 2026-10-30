@@ -27,14 +27,18 @@ async function afghanistan(ctx: EffectContext): Promise<void> {
 /** 8 Deep State (whole hand) and 24 Trafficking (Savings, Trump, Trump Train, Man Hour): hand them out, unless blocked. */
 async function handOut(ctx: EffectContext): Promise<void> {
   if (await ctx.defend(ctx.player, ctx.player, ctx.card)) return;
-  await distribute(ctx, ctx.player, ctx.card === 8 ? 'all' : 'traffic');
-  announce(ctx, seatName(ctx, ctx.player) + ' handed cards around the table.');
+  const given = await distribute(ctx, ctx.player, ctx.card === 8 ? 'all' : 'traffic');
+  announce(ctx, given
+    ? seatName(ctx, ctx.player) + ' handed cards around the table.'
+    : cardName(ctx.card) + ': no qualifying cards to hand out. No effect.');
 }
 
 /** 12 Lawfare: hand out the Wall Sections in your hand. Not blockable. */
 async function lawfare(ctx: EffectContext): Promise<void> {
-  await distribute(ctx, ctx.player, 'walls');
-  announce(ctx, seatName(ctx, ctx.player) + ' handed their walls around the table.');
+  const given = await distribute(ctx, ctx.player, 'walls');
+  announce(ctx, given
+    ? seatName(ctx, ctx.player) + ' handed their walls around the table.'
+    : 'Lawfare: no Wall Sections to hand out. No effect.');
 }
 
 /**
@@ -49,6 +53,7 @@ async function fakeNews(ctx: EffectContext): Promise<void> {
   if (lo === hi) { announce(ctx, 'Fake News: everyone has the same miles. No effect.'); return; }
   const lowest = seats.filter(s => miles.get(s) === lo);
   let next = 0;
+  let given = 0;
   for (const giver of seats) {
     if (lowest.includes(giver)) continue;
     const slots = qualifyingSlots(ctx, giver, 'fake');
@@ -58,22 +63,29 @@ async function fakeNews(ctx: EffectContext): Promise<void> {
     const slot = (await askHandCard(ctx, giver, 'give', slots, false, to))!;
     const card = ctx.takeFromHand(giver, slot);
     ctx.addToHand(to, card);
+    given++;
     ctx.emit({ type: 'cardMoved', seat: giver, target: to, card, text: seatName(ctx, giver) + ' gave a card to ' + seatName(ctx, to) + '.' });
   }
-  announce(ctx, 'Fake News: cards went to the lowest wall builder.');
+  announce(ctx, given
+    ? 'Fake News: cards went to the lowest wall builder.'
+    : 'Fake News: nobody has a qualifying card to give. No effect.');
 }
 
 /** 15 Mostly Peaceful Riot: in seat order, everyone with an eligible built wall pulls one back into their own hand, unless they block. */
 async function riot(ctx: EffectContext): Promise<void> {
+  let moved = 0;
   for (const s of ctx.activeSeats()) {
     if (!ctx.eligibleWalls(s).length) continue;
     if (await ctx.defend(s, ctx.player, 15)) continue;
     const w = await askWall(ctx, s, ctx.eligibleWalls(s));
     if (!w) continue;
     ctx.moveWall(w, { hand: s });
+    moved++;
     ctx.emit({ type: 'wallMoved', seat: s, target: s, card: w.kind, text: seatName(ctx, s) + ' pulled ' + cardName(w.kind) + ' back into their hand.' });
   }
-  announce(ctx, 'Mostly Peaceful Riot: everyone pulled a wall back into their hand.');
+  announce(ctx, moved
+    ? 'Mostly Peaceful Riot: everyone pulled a wall back into their hand.'
+    : 'Mostly Peaceful Riot: no eligible walls to pull back. No effect.');
 }
 
 /** 18 Redistribution: everyone tied for the most cards in hand (if any) hands out their whole hand, in seat order. Not blockable. */
@@ -82,7 +94,9 @@ async function redistribution(ctx: EffectContext): Promise<void> {
   const most = Math.max(0, ...seats.map(s => hand(ctx, s).length));
   const givers: Seat[] = most > 0 ? seats.filter(s => hand(ctx, s).length === most) : [];
   for (const g of givers) await distribute(ctx, g, 'all');
-  announce(ctx, 'Redistribution: ' + givers.length + ' player(s) handed out their whole hand.');
+  announce(ctx, givers.length
+    ? 'Redistribution: ' + givers.length + ' player(s) handed out their whole hand.'
+    : 'Redistribution: nobody has cards to hand out. No effect.');
 }
 
 const IMMEDIATES: Record<number, (ctx: EffectContext) => Promise<void>> = {

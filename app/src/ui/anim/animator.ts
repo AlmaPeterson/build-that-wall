@@ -2,7 +2,7 @@
 // for every event; the animator queues them and shows each in a fixed pipeline:
 // cost/discard → presentation → response (if required) → result. A later phase never starts before the
 // preceding phase lands. No DOM here: FlightLayer draws the flights it publishes.
-import { CARD_BACK, type CardId, type GameState, type Seat } from '../../game';
+import { CARD_BACK, isImmediate, type CardId, type GameState, type Seat } from '../../game';
 import { shownHand } from '../board/board-state';
 import type { GameSnapshot } from '../controller';
 import { createStore, type Store } from '../store';
@@ -155,9 +155,9 @@ export class Animator {
     const speed = backlog >= BACKLOG * 2 ? 0 : this.opts.speed() * (backlog >= BACKLOG ? 0.4 : 1);
     let held = this.state.get().held;
     if (speed <= 0 || !prev.view || prev.viewer !== next.viewer || next.events.length < prev.events.length) held = null;
-    // Your own Play Immediately card always waits for Continue, even with animations off
-    const own = ownImmediate(prev, next);
-    const plan = speed > 0 || own ? planStep(prev, next, Math.max(speed, own ? 0.01 : 0), () => this.nextId++, held) : null;
+    // Drawing a Play Immediately card always waits for its human owner to acknowledge it, even with animations off.
+    const immediateDraw = ownImmediateDraw(prev, next);
+    const plan = speed > 0 || immediateDraw !== null ? planStep(prev, next, Math.max(speed, immediateDraw !== null ? 0.01 : 0), () => this.nextId++, held) : null;
     if (!plan) { this.show(next, held); return; }
     this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null, turnBanner: null, skipped: null }, flights: plan.flights, duration: plan.duration,
       caption: plan.caption, target: plan.target, held: null });
@@ -177,17 +177,24 @@ export interface Held { card: CardId; rect: Rect; target: Seat }
 
 export interface StepPlan {
   mid: GameState; flights: Flight[]; duration: number; caption: string | null; target: Rect | null;
+  /** A short readable beat after an important caption, before the board settles. */
+  captionHold: number;
   /** The card left waiting at the end of this step, if any. */
   held: Held | null;
-  /** Your own Play Immediately card: `flights` stop with it in the middle; after Continue, `then` plays. */
+  /** A newly drawn Play Immediately card: after Continue, the normal next snapshot plays it. */
   confirm?: { card: Confirm; then: { flights: Flight[]; duration: number } };
 }
 
-/** The viewer drew a Play Immediately card on this step (and is a person, not a bot). */
-function ownImmediate(prev: GameSnapshot, next: GameSnapshot): boolean {
-  if (!next.view || prev.viewer !== next.viewer || next.events.length < prev.events.length) return false;
+/** The card a human viewer just drew and needs to acknowledge before it is played. */
+function ownImmediateDraw(prev: GameSnapshot, next: GameSnapshot): CardId | null {
+  if (!next.view || prev.viewer !== next.viewer || next.events.length < prev.events.length) return null;
   const seat = next.view.seats[next.viewer];
-  return !!seat && !seat.bot && next.events.slice(prev.events.length).some(e => e.type === 'immediate' && e.seat === next.viewer);
+  if (!seat || seat.bot) return null;
+  for (const e of next.events.slice(prev.events.length)) {
+    const card = e.type === 'draw' && e.seat === next.viewer ? e.cards?.find(isImmediate) : undefined;
+    if (card !== undefined) return card;
+  }
+  return null;
 }
 
 /** Where a blocked card and the Self-Defense meet when the card wasn't already waiting somewhere. */
@@ -206,13 +213,14 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   const blocked = fresh.find(e => e.type === 'blocked' && e.card !== undefined && e.seat !== undefined) ?? null;
   const main = reveal ?? blocked ?? fresh.find(e => e.seat !== undefined && !ROUTINE.includes(e.type)) ?? fresh.find(e => e.seat !== undefined) ?? null;
   const dealing = fresh.some(e => e.type === 'deal');
-  const confirming = reveal?.type === 'immediate' && ownImmediate(prev, next);
+  const immediateDraw = ownImmediateDraw(prev, next);
   const target = reveal?.target;
   const fallback: Place = target !== undefined ? { at: 'seat', seat: target }
     : main?.seat !== undefined ? { at: 'seat', seat: main.seat } : { at: 'center' };
   const moves = diffViews(before, after, { played: reveal ? { seat: reveal.seat!, card: reveal.card! } : undefined, fallback })
     // Cards coming off the draw pile are never shown, not even your own (they appear in your hand when they land)
-    .map(m => (m.from.at === 'draw' ? { ...m, card: CARD_BACK } : m));
+    // except a Play Immediately card drawn by this human, which must be read before it is played.
+    .map(m => (m.from.at === 'draw' && m.card !== immediateDraw ? { ...m, card: CARD_BACK } : m));
   if (!moves.length && !reveal && !blocked && !(held && fresh.length)) return null;
   if (dealing) moves.sort((a, b) => dealOrder(a) - dealOrder(b));    // one card to each player in turn
 
@@ -228,7 +236,6 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   let start = 0;
   let targetRect: Rect | null = null;
   let heldAfter: Held | null = null;
-  let splitAt = -1;
   const fromNowhere = (m: Move) => m.from.at === 'seat' || m.from.at === 'center';
 
   // A blocked card: the Self-Defense flies onto it (where it was waiting), then both go to the discard pile
@@ -281,9 +288,9 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     // straight to their destination while other players' cards pause in the middle to be read.
     const me = next.view && !next.view.seats[next.viewer]?.bot ? next.viewer : -1;
     const watchBots = !!next.openHands;
-    // An unresolved play still needs to remain in the middle, and your Play Immediately card
-    // must be readable before it continues. Every other card you play travels straight through.
-    if (watchBots || (reveal.seat === me && !confirming && m.to.at !== 'center')) {
+    // An unresolved ordinary play needs to remain in the middle. Every card you play, including a
+    // Play Immediately card, travels to its discard destination before its effect may begin.
+    if (watchBots || (reveal.seat === me && m.to.at !== 'center')) {
       const src = at(m.from, 'from');
       const keys: Key[] = [{ t: 0, ...src, face: true }];
       if (start > 0) keys.push({ ...keys[0]!, t: start });
@@ -293,7 +300,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
         targetRect = rowRect(after, to, target);
         const spot = grow(seatRect(after, to, target));
         keys.push({ t: start + ms(T.across) / 2, ...passBy(src, spot), face: true }, { t: t1, ...spot, face: true });
-        if (m.to.at === 'seat') heldAfter = { card, rect: spot, target };   // they may still block it: it waits there
+        if (m.to.at === 'seat' && reveal.type !== 'immediate') heldAfter = { card, rect: spot, target };   // they may still block it: it waits there
         else keys.push({ t: t1 + ms(T.atTarget), ...spot, face: true }, { t: t1 + ms(T.atTarget) + ms(T.move), ...at(m.to, 'to'), face: true });
       } else {
         const end = m.to.at === 'center' ? sized(CENTER, PASSING) : at(m.to, 'to');   // waiting in the middle: not big
@@ -305,14 +312,14 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       // it is still being discarded. A held, blockable card has no effect yet.
       start = heldAfter ? t1 : keys.at(-1)!.t;
     } else {
-      const t1 = start + ms(T.toCenter), t2 = t1 + (confirming ? 0 : ms(T.hold)), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
+      const t1 = start + ms(T.toCenter), t2 = t1 + ms(T.hold), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
       const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
       if (start > 0) keys.push({ ...keys[0]!, t: start });   // waits in the hand until the block is over
       keys.push({ t: t1, ...CENTER, face: true }, { t: t2, ...CENTER, face: true });
       if (target !== undefined) {
         targetRect = rowRect(after, to, target);
         const spot = grow(seatRect(after, to, target));
-        if (m.to.at === 'seat') {
+        if (m.to.at === 'seat' && reveal.type !== 'immediate') {
           // Held nowhere yet: they may still block it, so it waits halfway
           const half = lerp(CENTER, spot, 0.5);
           keys.push({ t: t3, ...half, face: true });
@@ -328,7 +335,6 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       // Don't start the card's effect until its discard flight has finished. A blockable card is
       // held at its target instead, so its resolution is necessarily a later snapshot.
       start = heldAfter ? t3 : t4;
-      if (confirming) splitAt = t1;
     }
   }
 
@@ -359,20 +365,19 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   const resultAt = costs.length ? showPhase('cost', costs, start) : start;
   showPhase('result', results, resultAt);
   if (!flights.length) return null;
-  const duration = Math.max(...flights.map(f => f.keys.at(-1)!.t));
-  const plan: StepPlan = { mid: midView(before, flown), flights, duration, target: targetRect, held: heldAfter,
-    caption: main && !ROUTINE.includes(main.type) ? main.text : null };
-  if (splitAt < 0 || !reveal) return plan;
-  // Stop with the card in the middle; everything after that plays once Continue is tapped
-  const upToMiddle = flights.map(f => ({ ...f, keys: [...f.keys.filter(k => k.t <= splitAt)] }));
-  const afterContinue = flights.map(f => {
-    const at = [...f.keys].reverse().find(k => k.t <= splitAt)!;
-    return { ...f, id: id(), keys: [{ ...at, t: 0 }, ...f.keys.filter(k => k.t > splitAt).map(k => ({ ...k, t: k.t - splitAt }))] };
-  });
-  return {
-    ...plan, flights: upToMiddle, duration: splitAt, caption: null,
-    confirm: { card: { card: reveal.card!, text: reveal.text }, then: { flights: afterContinue, duration: Math.max(0, duration - splitAt) } },
+  const flightDuration = Math.max(...flights.map(f => f.keys.at(-1)!.t));
+  const caption = main && !ROUTINE.includes(main.type) ? main.text : null;
+  const captionHold = caption && !next.openHands ? 500 * speed : 0;
+  // Extending the plan duration holds its final keyframes in place, so one tap still skips both the
+  // flight and its readable caption beat.
+  const duration = flightDuration + captionHold;
+  const plan: StepPlan = { mid: midView(before, flown), flights, duration, target: targetRect, held: heldAfter, caption, captionHold,
+    // Bot-watch mode never pauses between plays. A short after-beat lets people read important human-game actions.
   };
+  if (immediateDraw !== null) {
+    return { ...plan, confirm: { card: { card: immediateDraw, text: 'PLAY IMMEDIATELY: You drew this card.' }, then: { flights: [], duration: 0 } } };
+  }
+  return plan;
 }
 
 /** Dealing: round by round, seat by seat. */

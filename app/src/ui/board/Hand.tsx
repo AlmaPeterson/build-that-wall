@@ -2,7 +2,7 @@
 // cards that can be picked are clickable. Cards can be dragged to arrange them (hand-order.ts): with a
 // mouse, just drag; on a touch screen, hold a card for a moment, then drag. Alt+←/→ moves a focused card.
 import { cardById, type CardId } from '../../data/cards';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Seat } from '../../game';
 import { useStore } from '../store';
 import { displayOrder, handOrderVersion, moveCard } from './hand-order';
@@ -42,6 +42,10 @@ interface Drag { from: number; to: number; dx: number }
 
 export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand', onZoom }: Props) {
   const row = useRef<HTMLDivElement>(null);
+  // A card leaving a flex row would normally make every later card jump left. Remember each card's
+  // last rectangle, then animate it from there after the browser lays out the new hand.
+  const previousPositions = useRef(new Map<string, DOMRect>());
+  const reflowAnimations = useRef(new Map<HTMLElement, Animation>());
   useStore(handOrderVersion);
   const [drag, setDragState] = useState<Drag | null>(null);
   const dragNow = useRef<Drag | null>(null);           // the latest, for pointerup (state may not have re-rendered yet)
@@ -50,6 +54,7 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
   const [lifted, setLifted] = useState<number | null>(null);
   const swallowClick = useRef(false);
   const order = displayOrder(seat, cards);
+  const identities = cards.map((card, slot) => card + ':' + cards.slice(0, slot).filter(c => c === card).length);
   /** Width of one card plus the gap, in pixels. */
   const pitch = () => ((row.current?.offsetWidth || HAND_WIDTH_UNITS) / HAND_WIDTH_UNITS) * 60;
 
@@ -61,6 +66,30 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
     el.addEventListener('touchmove', touch, { passive: false });
     return () => el.removeEventListener('touchmove', touch);
   }, []);
+  useLayoutEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const next = new Map<string, DOMRect>();
+    for (const card of el.querySelectorAll<HTMLElement>('.hand__card[data-hand-key]')) {
+      const key = card.dataset.handKey!;
+      const now = card.getBoundingClientRect();
+      const before = previousPositions.current.get(key);
+      next.set(key, now);
+      // Dragging already owns transform; do not overwrite it with the reflow animation.
+      if (!before || drag || !('animate' in card)) continue;
+      const dx = before.left - now.left, dy = before.top - now.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+      reflowAnimations.current.get(card)?.cancel();
+      const animation = card.animate([
+        { transform: `translate(${dx}px, ${dy}px)` },
+        { transform: 'translate(0, 0)' },
+      ], { duration: 240, easing: 'cubic-bezier(.2, .8, .25, 1)' });
+      animation.finished.catch(() => {});
+      reflowAnimations.current.set(card, animation);
+    }
+    previousPositions.current = next;
+  });
+  useEffect(() => () => { for (const animation of reflowAnimations.current.values()) animation.cancel(); }, []);
 
   function down(e: PointerEvent, from: number) {
     if (picking || e.button > 0) return;
@@ -166,7 +195,7 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
           const cls = ['hand__card', picking && pickable && !picked ? 'hand__card--pickable' : '', picked ? 'hand__card--picked' : '',
             picking && !pickable ? 'hand__card--dim' : '', dragging ? 'hand__card--dragging' : '', lifted === slot ? 'hand__card--lifted' : ''].join(' ');
           return (
-            <button type="button" role="listitem" class={cls} key={slot} disabled={!pickable} data-slot={slot} data-card={id}
+            <button type="button" role="listitem" class={cls} key={identities[slot]} data-hand-key={identities[slot]} disabled={!pickable} data-slot={slot} data-card={id}
               // the dragged card follows the pointer from wherever it has been put in the row
               style={dragging ? { transform: `translateX(${drag.dx - (drag.to - drag.from) * pitch()}px)` } : undefined}
               aria-pressed={picking ? picked : undefined} title={cardById(id).name + (picking ? '' : ' (drag to move it)')}

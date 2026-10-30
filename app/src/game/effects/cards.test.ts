@@ -450,6 +450,7 @@ describe('Play Immediately cards', () => {
     const s = makeState([{}, {}]);
     const ctx = await immediate(s, 18);
     expect(ctx.asked).toEqual([]);
+    expect(ctx.events.at(-1)!.text).toContain('No effect');
   });
 });
 

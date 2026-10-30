@@ -43,7 +43,7 @@ describe('planStep', () => {
     // The wall moves after the card has been seen
     expect(wall!.card).toBe(33);
     expect(wall!.keys[1]!.t).toBeGreaterThanOrEqual(card!.keys.at(-1)!.t); // discard lands before Debt takes the wall
-    expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t));
+    expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t) + plan.captionHold);
     // While they fly, the board shows neither the card in the hand nor the wall anywhere
     expect(plan.mid.seats[1]!.hand).toHaveLength(1);
     expect(plan.mid.seats[0]!.walls).toEqual([]);
@@ -238,26 +238,27 @@ describe('dealing and drawing', () => {
 });
 
 describe('reading cards', () => {
-  /** Seat 0 (a person) draws Abduction (1), a Play Immediately card, and it's played straight away. */
-  function immediate() {
+  /** Seat 0 (a person) draws Abduction (1), a Play Immediately card. */
+  function immediateDraw() {
     const a = base();
     a.turn = 0;
-    a.seats[0]!.hand = [29, 1];
+    a.seats[0]!.hand = [29];
+    a.draw = [14, 14, 1];
     const b = clone(a);
-    b.seats[0]!.hand = [29];
-    b.discard = [1];
-    const e: GameEvent = { type: 'immediate', seat: 0, card: 1, text: 'PLAY IMMEDIATELY: Player 1 drew Abduction.' };
+    b.seats[0]!.hand = [29, 1];
+    b.draw = [14, 14];
+    const e: GameEvent = { type: 'draw', seat: 0, cards: [1], text: 'Player 1 drew 1 card.' };
     return { prev: snap(a, []), next: snap(b, [e]) };
   }
 
-  it('your own Play Immediately card stops in the middle, sharp, until you tap Continue', async () => {
+  it('shows your Play Immediately card when you draw it, before it is played', async () => {
     vi.useFakeTimers();
     try {
-      const { prev, next } = immediate();
+      const { prev, next } = immediateDraw();
       const plan = planStep(prev, next, 1)!;
-      expect(plan.flights[0]!.big).toBe(true);
-      expect(plan.flights[0]!.keys.at(-1)).toMatchObject(CENTER);           // stops in the middle
-      expect(plan.confirm?.then.flights[0]!.keys[0]).toMatchObject(CENTER);  // and goes on from there
+      expect(plan.flights[0]!.card).toBe(1);
+      expect(plan.flights[0]!.keys.at(-1)).toMatchObject({ y: 222.5 }); // lands in the hand
+      expect(plan.confirm).toMatchObject({ card: { card: 1 } });
       const source = createStore(prev);
       const anim = new Animator(source, { speed: () => 0 });                 // even with animations off
       source.set(next);
@@ -270,10 +271,19 @@ describe('reading cards', () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it("a bot's Play Immediately card doesn't wait", () => {
-    const { prev, next } = immediate();
+  it("a bot's Play Immediately draw doesn't wait", () => {
+    const { prev, next } = immediateDraw();
     const bot = { ...next, view: { ...next.view!, seats: next.view!.seats.map((s, i) => (i === 0 ? { ...s, bot: 'easy' as const } : s)) } };
     expect(planStep(prev, bot, 1)!.confirm).toBeUndefined();
+  });
+
+  it('plays a previously acknowledged Play Immediately card directly to discard without another pause', () => {
+    const a = base(); a.turn = 0; a.seats[0]!.hand = [29, 1];
+    const b = clone(a); b.seats[0]!.hand = [29]; b.discard = [1];
+    const e: GameEvent = { type: 'immediate', seat: 0, card: 1, text: 'PLAY IMMEDIATELY: Player 1 drew Abduction.' };
+    const plan = planStep(snap(a, []), snap(b, [e]), 1)!;
+    expect(plan.confirm).toBeUndefined();
+    expect(plan.flights[0]!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });
   });
 
   it('pausing (a card opened full size) stops the clock', async () => {
