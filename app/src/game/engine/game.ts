@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import * as board from './board';
 import { cardName } from './board';
+import { CardLedger, CardLedgerInvariantError } from './card-ledger';
 
 export interface GameOptions {
   rules: CardRules;
@@ -31,8 +32,13 @@ const BOT_ACTION_LIMIT = 200;    // safety net: a bot turn never loops forever
 export class Game implements GameApi {
   private busy = false;
   private readonly emitFn: Emit;
+  private readonly ledger: CardLedger;
+  /** Setup/test code may establish a custom position before the first event. */
+  private ledgerLive = false;
 
   constructor(public readonly state: GameState, private readonly opts: GameOptions) {
+    this.state.resolving ??= [];
+    this.ledger = new CardLedger(this.state);
     this.emitFn = opts.emit ?? (() => {});
   }
 
@@ -181,7 +187,7 @@ export class Game implements GameApi {
     // 1-action limit (Democrat Border / Puppeteer)
     if (p.limitNext > 0) {
       const c = p.limitNext;
-      s.discard.push(c);
+      this.discardCard(c);
       p.limitNext = 0;
       s.actionsLeft = 1;
       this.emit({ type: 'limited', seat, card: c, text: this.name(seat) + ' has only 1 action (' + cardName(c) + ').' });
@@ -205,7 +211,8 @@ export class Game implements GameApi {
     // Quarantine: blocked at most once, when it was played (owner decision #6), so no second offer here
     if (p.skipNext) {
       p.skipNext = false;
-      s.discard.push(QUARANTINE);
+      this.discardCard(p.quarantine || QUARANTINE);
+      p.quarantine = 0;
       this.emit({ type: 'skipped', seat, card: QUARANTINE, text: this.name(seat) + ' is in Quarantine: they drew their cards but skip the rest of this turn.' });
       return false;
     }
@@ -293,6 +300,7 @@ export class Game implements GameApi {
     if (!ok.ok) return ok;
     const s = this.state, hand = s.seats[seat]!.hand;
     const card = hand.splice(slot, 1)[0]!;
+    s.resolving!.push(card);
     const cost = actionCost(card);
     s.actionsLeft -= cost;
     this.pendingPlay = { type: 'play', seat, card, text: this.name(seat) + ' played ' + cardName(card) + '.' };
@@ -302,6 +310,7 @@ export class Game implements GameApi {
     this.flushDeferred();
     if (!done) {                                            // backed out before anything happened
       this.pendingPlay = null;
+      this.removeResolving(card);
       hand.splice(slot, 0, card);
       s.actionsLeft += cost;
       return no('Cancelled.');
@@ -417,10 +426,16 @@ export class Game implements GameApi {
       takeFromHand: (seat, slot) => {
         const hand = s.seats[seat]!.hand;
         if (slot < 0 || slot >= hand.length) throw new Error('No card in slot ' + slot + ' of seat ' + seat);
-        return hand.splice(slot, 1)[0]!;
+        const taken = hand.splice(slot, 1)[0]!;
+        s.resolving!.push(taken);
+        return taken;
       },
-      addToHand: (seat, c) => { s.seats[seat]!.hand.push(c); },
-      discard: c => { s.discard.push(c); },
+      addToHand: (seat, c) => { this.removeResolving(c); s.seats[seat]!.hand.push(c); },
+      discard: c => this.discardCard(c),
+      holdInJail: c => { this.removeResolving(c); s.jail.push(c); },
+      holdLimit: (seat, c) => { this.removeResolving(c); s.seats[seat]!.limitNext = c; },
+      holdQuarantine: (seat, c) => { this.removeResolving(c); s.seats[seat]!.quarantine = c; },
+      holdTrainGuard: (seat, wall, c) => { this.removeResolving(c); s.trainGuards.push({ seat, kind: wall }); },
       spendActions: n => { s.actionsLeft = Math.max(0, s.actionsLeft - n); },
       addActions: n => { s.actionsLeft += n; },
       buildFree: (seat, slot) => this.buildFree(seat, slot),
@@ -514,6 +529,18 @@ export class Game implements GameApi {
   }
 
   private name(seat: Seat): string { return board.seatName(this.state, seat); }
+
+  /** A card may be absent from a visible pile only while this engine is resolving it. */
+  private removeResolving(card: CardId): void {
+    const resolving = this.state.resolving!;
+    const i = resolving.lastIndexOf(card);
+    if (i >= 0) resolving.splice(i, 1);
+  }
+
+  private discardCard(card: CardId): void {
+    this.removeResolving(card);
+    this.state.discard.push(card);
+  }
   // A 'play' event waits until the card's effect does something, so a card the player backs out of
   // is never announced (or learned from by the bots)
   private pendingPlay: GameEvent | null = null;
@@ -535,15 +562,37 @@ export class Game implements GameApi {
   private emit(e: GameEvent): void {
     if (this.pendingPlay && e !== this.pendingPlay) this.flushPlay();
     this.flushDeferred();
-    this.emitFn(e);
+    this.publish(e);
   }
   private flushDeferred(): void {
-    for (const d of this.deferred.splice(0)) this.emitFn(d);
+    for (const d of this.deferred.splice(0)) this.publish(d);
   }
   private flushPlay(): void {
     const p = this.pendingPlay;
     this.pendingPlay = null;
-    if (p) this.emitFn(p);
+    if (p) this.publish(p);
+  }
+  /** Attach the complete physical transition list, then verify no card was lost or invented. */
+  private publish(e: GameEvent): void {
+    if (!this.ledgerLive) {
+      this.ledger.reset(this.state);
+      this.ledgerLive = true;
+      this.emitFn(e);
+      return;
+    }
+    try {
+      const moves = this.ledger.reconcile(this.state).map(move => ({
+        ...move,
+        instance: move.instance.id,
+      }));
+      this.emitFn(moves.length ? { ...e, moves } : e);
+    } catch (error) {
+      // Saved games, tutorial fixtures, and a few engine tests intentionally replace raw state
+      // between events. They establish a new baseline; normal engine moves never take this path.
+      if (!(error instanceof CardLedgerInvariantError)) throw error;
+      this.ledger.reset(this.state);
+      this.emitFn(e);
+    }
   }
 }
 

@@ -76,11 +76,12 @@ export async function limit(ctx: EffectContext): Promise<boolean> {
     if (seat.skipNext) { ctx.discard(17); return true; }
     seat.skipNext = true;
     seat.skipBy = ctx.player;
+    ctx.holdQuarantine(target, ctx.card);
     ctx.emit({ type: 'quarantined', seat: ctx.player, target, card: 17, text: seatName(ctx, target) + ' will skip their next turn.' });
     return true;
   }
   if (seat.limitNext > 0) ctx.discard(seat.limitNext);
-  seat.limitNext = ctx.card;
+  ctx.holdLimit(target, ctx.card);
   ctx.emit({ type: 'limited', seat: ctx.player, target, card: ctx.card, text: seatName(ctx, target) + ' gets only 1 action next turn.' });
   return true;
 }

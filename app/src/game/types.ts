@@ -46,6 +46,8 @@ export interface GameState {
   draw: CardId[];
   discard: CardId[];
   jail: CardId[];                // Freedom of the Press: jailed cards, including the card itself
+  /** Cards an effect has taken out of a hand but has not placed yet. Never rendered as a pile. */
+  resolving?: CardId[];
   jailRelease: number;           // turnCount at which the jail empties
   trainGuards: WallRef[];        // pairs protected by a Trump Train (the Trump Train card is held here)
   turn: Seat;                    // whose turn it is; -1 before the first turn
@@ -66,6 +68,8 @@ export interface SeatState {
   walls: CardId[];               // built sections, one entry each (a pair is two equal entries)
   skipNext: boolean;             // Quarantined for the next turn
   skipBy: Seat;                  // who Quarantined them
+  /** The Quarantine card waiting for this seat's next turn (0 = none). */
+  quarantine?: CardId;
   limitNext: CardId;             // 9 or 16 held here: 1 action next turn; 0 = none
   left: boolean;                 // an online player who left the game
 }
@@ -124,6 +128,26 @@ export type GameEventType =
   | 'cardMoved' | 'wallMoved' | 'jail' | 'jailRelease' | 'limited' | 'quarantined' | 'skipped'
   | 'trainGuard' | 'trainGuardRemoved' | 'finalRound' | 'gameOver' | 'announce';
 
+/** Opaque, per-game identity for one physical copy of a card. */
+export type CardInstanceId = string;
+
+/** A card's exact rules-side location. Unlike a card face, this can identify duplicate copies. */
+export type CardLocation =
+  | { zone: 'draw' | 'discard' | 'jail'; index: number }
+  | { zone: 'hand' | 'wall'; seat: Seat; index: number }
+  | { zone: 'limit' | 'quarantine'; seat: Seat }
+  | { zone: 'trainGuard'; seat: Seat; wall: CardId; index: number }
+  | { zone: 'resolving'; index: number };
+
+/** An authoritative physical-card transition attached to the event that caused it. */
+export interface CardMove {
+  instance: CardInstanceId;
+  card: CardId;
+  from: CardLocation;
+  to: CardLocation;
+  kind: 'reposition' | 'transfer';
+}
+
 export interface GameEvent {
   type: GameEventType;
   text: string;                  // one plain sentence, e.g. "Bot 2 played Debt on Player 1's Wall Section 4."
@@ -131,6 +155,8 @@ export interface GameEvent {
   target?: Seat;                 // who it happened to
   card?: CardId;                 // the card involved
   cards?: CardId[];
+  /** Every physical card that changed location before this event was published. */
+  moves?: readonly CardMove[];
 }
 
 export type Emit = (e: GameEvent) => void;

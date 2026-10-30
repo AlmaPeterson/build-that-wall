@@ -35,6 +35,11 @@ export interface EffectContext {
   takeFromHand(seat: Seat, slot: number): CardId;
   addToHand(seat: Seat, card: CardId): void;
   discard(card: CardId): void;
+  /** Put the card currently being resolved into a persistent rules location. */
+  holdInJail(card: CardId): void;
+  holdLimit(seat: Seat, card: CardId): void;
+  holdQuarantine(seat: Seat, card: CardId): void;
+  holdTrainGuard(seat: Seat, wall: CardId, card: CardId): void;
   spendActions(n: number): void;
   addActions(n: number): void;
 

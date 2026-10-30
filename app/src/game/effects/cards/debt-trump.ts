@@ -51,7 +51,7 @@ export async function trumpTrain(ctx: EffectContext): Promise<boolean> {
   }
   const w = await askWall(ctx, ctx.player, pairs, true);
   if (!w) return false;
-  ctx.state.trainGuards.push({ seat: w.seat, kind: w.kind });
+  ctx.holdTrainGuard(w.seat, w.kind, 25);
   ctx.emit({ type: 'trainGuard', seat: ctx.player, card: 25, text: cardName(w.kind) + ' is safe from Debt now.' });
   return true;
 }

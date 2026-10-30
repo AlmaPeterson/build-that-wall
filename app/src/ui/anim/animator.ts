@@ -7,7 +7,7 @@ import { shownHand } from '../board/board-state';
 import type { GameSnapshot } from '../controller';
 import { createStore, type Store } from '../store';
 import { CENTER, placeRect, seatRect, type Rect, type Seating } from './layout';
-import { diffViews, midView, type Move, type Place } from './moves';
+import { authoritativeMoves, diffViews, midView, type Move, type Place } from './moves';
 
 /** One point of a card's path: at time `t` (ms from the start of the step) it is at this rect. */
 export interface Key extends Rect { t: number; face: boolean }
@@ -221,7 +221,10 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   const target = reveal?.target;
   const fallback: Place = target !== undefined ? { at: 'seat', seat: target }
     : main?.seat !== undefined ? { at: 'seat', seat: main.seat } : { at: 'center' };
-  const moves = diffViews(before, after, { played: reveal ? { seat: reveal.seat!, card: reveal.card! } : undefined, fallback })
+  const ledgerMoves = fresh.flatMap(e => e.moves ?? []);
+  // The engine ledger is authoritative: it is the only source used once a game event supplies it.
+  // Snapshot comparison remains solely for restored/legacy games that predate the ledger.
+  const moves = (ledgerMoves.length ? authoritativeMoves(ledgerMoves) : diffViews(before, after, { played: reveal ? { seat: reveal.seat!, card: reveal.card! } : undefined, fallback }))
     // Cards coming off the draw pile are never shown, not even your own (they appear in your hand when they land)
     // except a Play Immediately card drawn by this human, which must be read before it is played.
     .map(m => (m.from.at === 'draw' && m.card !== immediateDraw ? { ...m, card: CARD_BACK } : m));
@@ -286,6 +289,9 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     const m: Move = arrived && fromHand(arrived) ? arrived
       : { card, from: handPlace(before, reveal.seat!, card), to: arrived?.to ?? fallback };
     m.card = card;
+    // The engine keeps a card in its resolving zone while a target chooses a response. On the board
+    // that is the target itself—not a duplicated card at the center and the target.
+    if (target !== undefined && m.to.at === 'center') m.to = { at: 'seat', seat: target };
     // Not on any pile yet and played on nobody: it stays in the middle (it lands with a later step)
     if (m.to.at === 'seat' && target === undefined) m.to = { at: 'center' };
     // In a bot-only watch game, cards keep moving. In a game with people, your own cards go

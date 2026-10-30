@@ -51,6 +51,20 @@ describe('dealing and drawing', () => {
   });
 });
 
+describe('card transition ledger', () => {
+  it('publishes the exact physical cards drawn from the pile', async () => {
+    const { game, state, events } = setup({ draw: [14, 20, 19] });
+    await begin(game, state, [[], []]);
+    const draw = events.find(e => e.type === 'draw' && e.seat === 0)!;
+    expect(draw.moves).toEqual(expect.arrayContaining([
+      expect.objectContaining({ card: 19, from: { zone: 'draw', index: 2 }, to: { zone: 'hand', seat: 0, index: 0 } }),
+      expect.objectContaining({ card: 20, from: { zone: 'draw', index: 1 }, to: { zone: 'hand', seat: 0, index: 1 } }),
+      expect.objectContaining({ card: 14, from: { zone: 'draw', index: 0 }, to: { zone: 'hand', seat: 0, index: 2 } }),
+    ]));
+    expect(new Set(draw.moves?.map(move => move.instance)).size).toBe(3);
+  });
+});
+
 describe('the draw pile running out', () => {
   // Seat 0's first turn takes the last 3 cards. The discard pile has 3 more for the second run-out.
   async function run(ending: Ending, endingTimes: 1 | 2) {

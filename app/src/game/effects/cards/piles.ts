@@ -23,7 +23,7 @@ export async function pilePick(ctx: EffectContext): Promise<boolean> {
   // Discarded before it's announced (after the picks, so it can't pick itself), so it's seen going to the pile
   if (card === 27) ctx.discard(27);
   if (card === 11) {
-    state.jail.push(11);
+    ctx.holdInJail(11);
     state.jailRelease = state.turnCount + 3 * state.seats.length;
     ctx.emit({ type: 'jail', seat: ctx.player, card: 11, cards: picks,
       text: seatName(ctx, ctx.player) + ' jailed ' + picks.length + ' card(s) with Freedom of the Press.' });

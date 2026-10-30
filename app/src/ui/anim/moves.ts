@@ -1,8 +1,6 @@
-// Which cards moved between two views of the game, worked out by comparing them. Every card effect
-// changes the state its own way, so comparing what the viewer could see before and after is simpler
-// (and safer) than having every effect describe its moves. Both views are already redacted, so a card
-// the viewer may not see stays a card back here too. Pure functions, so they're easy to test.
-import { CARD_BACK, type CardId, type GameState, type Seat } from '../../game';
+// Board locations and the adapter for the engine's physical-card ledger. `diffViews` below remains
+// only for restored/legacy snapshots that have no ledger moves; live games use exact transitions.
+import { CARD_BACK, type CardId, type CardMove as CardMotion, type GameState, type Seat } from '../../game';
 
 /** Where a card can be on the board. */
 export type Place =
@@ -16,8 +14,49 @@ export type Place =
 export interface Move {
   /** The card's face, or CARD_BACK if the viewer may not see it. */
   card: CardId;
+  /** Stable physical-card identity when this came from the engine ledger. */
+  instance?: string;
   from: Place;
   to: Place;
+}
+
+/** Convert the engine's exact card transitions into board locations. Repositions are hand layout work, not flights. */
+export function authoritativeMoves(motions: readonly CardMotion[]): Move[] {
+  const moves: Move[] = [];
+  const lastByInstance = new Map<string, Move>();
+  for (const motion of motions) {
+    if (motion.kind === 'reposition') continue;
+    const from = fromLocation(motion.from, motion.card);
+    const to = fromLocation(motion.to, motion.card);
+    if (!from || !to) continue;
+    const move: Move = { instance: motion.instance, card: motion.card, from, to };
+    const previous = lastByInstance.get(motion.instance);
+    // Online snapshots can arrive after several engine events. Keep that one physical card as
+    // one route through the batch, rather than rendering the same instance in two flights.
+    if (previous && samePlace(previous.to, from)) {
+      previous.to = to;
+    } else {
+      moves.push(move);
+      lastByInstance.set(motion.instance, move);
+    }
+  }
+  return moves;
+}
+
+function samePlace(a: Place, b: Place): boolean { return JSON.stringify(a) === JSON.stringify(b); }
+
+function fromLocation(location: CardMotion['from'], card: CardId): Place | null {
+  switch (location.zone) {
+    case 'draw': return { at: 'draw' };
+    case 'discard': return { at: 'discard' };
+    case 'jail': return { at: 'jail' };
+    case 'hand': return { at: 'hand', seat: location.seat, slot: location.index };
+    case 'wall': return { at: 'walls', seat: location.seat, kind: card };
+    case 'limit': return { at: 'limit', seat: location.seat };
+    case 'trainGuard': return { at: 'guard', seat: location.seat, kind: location.wall };
+    // A resolving or quarantined card is deliberately off the board, never invented from nowhere.
+    case 'resolving': case 'quarantine': return { at: 'center' };
+  }
 }
 
 interface Entry { card: CardId; place: Place }
