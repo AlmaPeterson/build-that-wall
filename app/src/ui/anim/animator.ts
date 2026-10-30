@@ -1,8 +1,7 @@
 // Plays the game back one step at a time so people can follow it. The controller publishes a snapshot
-// for every event; the animator queues them and shows each in turn: cards that moved fly from where they
-// were to where they went (a card you play, or one played on you, stops in the middle first, face up, with
-// what happened; other players' cards just fly across, big enough to tell which card it is), and only then
-// does the board show the new state. No DOM here: FlightLayer draws the flights it publishes.
+// for every event; the animator queues them and shows each in a fixed pipeline:
+// cost/discard → presentation → response (if required) → result. A later phase never starts before the
+// preceding phase lands. No DOM here: FlightLayer draws the flights it publishes.
 import { CARD_BACK, type CardId, type GameState, type Seat } from '../../game';
 import { shownHand } from '../board/board-state';
 import type { GameSnapshot } from '../controller';
@@ -53,6 +52,7 @@ const BACKLOG = 8;
 const REVEAL: readonly string[] = ['play', 'immediate'];
 /** Happen every turn: no caption while their cards move. */
 const ROUTINE: readonly string[] = ['deal', 'draw', 'turnStart', 'turnEnd', 'gameStart'];
+type MovePhase = 'cost' | 'result';
 
 export interface AnimatorOptions {
   /** Duration multiplier: 1 normal, >1 slower, 0 = no animation. Read at every step. */
@@ -249,7 +249,8 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       ] });
     }
     if (held?.card === card) held = null;
-    start = t2;
+    // Both cards must finish reaching the discard pile before any result of the blocked play moves.
+    start = t3;
   }
 
   // A card left waiting by the last step goes on to where it ended up (or into the player it was played on)
@@ -258,6 +259,9 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     const own = take(m => m.card === h.card && fromNowhere(m));
     const end = own ? at(own.to, 'to') : seatRect(after, to, h.target);
     flights.push({ id: id(), card: h.card, keys: [{ t: 0, ...h.rect, face: true }, { t: ms(T.move), ...end, face: true }] });
+    // This is the later snapshot that resolves a card that was held at its target. Its effect
+    // must wait for the card itself to finish being discarded (or otherwise landing).
+    start = ms(T.move);
   }
 
   if (reveal) {
@@ -332,16 +336,28 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   const shown = moves.slice(0, cap);
   flown.push(...shown);
   const each = dealing ? ms(T.deal) : ms(T.move);
-  const stagger = dealing ? ms(T.dealGap)
-    : shown.length > 1 ? Math.min(ms(T.stagger), ms(T.maxStagger) / (shown.length - 1)) : 0;
-  shown.forEach((m, n) => {
-    const t0 = start + n * stagger, t1 = t0 + each;
-    const face = m.card !== CARD_BACK;
-    const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face }];
-    if (t0 > 0) keys.push({ t: t0, ...at(m.from, 'from'), face });
-    keys.push({ t: t1, ...at(m.to, 'to'), face });
-    flights.push({ id: id(), card: m.card, keys });
-  });
+  /** Schedule one named phase. The next phase receives the time this one finishes. */
+  const showPhase = (_phase: MovePhase, group: Move[], from: number): number => {
+    const stagger = dealing ? ms(T.dealGap)
+      : group.length > 1 ? Math.min(ms(T.stagger), ms(T.maxStagger) / (group.length - 1)) : 0;
+    let end = from;
+    group.forEach((m, n) => {
+      const t0 = from + n * stagger, t1 = t0 + each;
+      const face = m.card !== CARD_BACK;
+      const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face }];
+      if (t0 > 0) keys.push({ t: t0, ...at(m.from, 'from'), face });
+      keys.push({ t: t1, ...at(m.to, 'to'), face });
+      flights.push({ id: id(), card: m.card, keys });
+      end = Math.max(end, t1);
+    });
+    return end;
+  };
+  // Paying/discarding is always phase one. This covers build costs and effects which only discard
+  // their card after a target/choice has been resolved. Everything else is the action's result.
+  const costs = shown.filter(m => m.to.at === 'discard');
+  const results = shown.filter(m => m.to.at !== 'discard');
+  const resultAt = costs.length ? showPhase('cost', costs, start) : start;
+  showPhase('result', results, resultAt);
   if (!flights.length) return null;
   const duration = Math.max(...flights.map(f => f.keys.at(-1)!.t));
   const plan: StepPlan = { mid: midView(before, flown), flights, duration, target: targetRect, held: heldAfter,

@@ -307,3 +307,36 @@ describe('a played card with nowhere to go yet', () => {
     expect(plan.flights[0]!.keys.at(-1)).toMatchObject(CENTER);
   });
 });
+
+describe('discard before result', () => {
+  it('flies build costs to the discard pile before showing the wall being built', () => {
+    const a = base();
+    a.turn = 0;
+    a.seats[0]!.hand = [29, 30, 31];
+    const b = clone(a);
+    b.seats[0]!.hand = [];
+    b.seats[0]!.walls = [33, 29];
+    b.discard = [30, 31];
+    const build: GameEvent = { type: 'build', seat: 0, card: 29, cards: [30, 31], text: 'Player 1 built a wall.' };
+    const plan = planStep(snap(a, []), snap(b, [build]), 1)!;
+    const costs = plan.flights.filter(f => f.card === 30 || f.card === 31);
+    const wall = plan.flights.find(f => f.card === 29)!;
+    expect(costs).toHaveLength(2);
+    expect(wall.keys[1]!.t).toBeGreaterThanOrEqual(Math.max(...costs.map(f => f.keys.at(-1)!.t)));
+  });
+
+  it('settles a card that was waiting for a response before animating its resolved effect', () => {
+    const a = base();
+    a.seats[1]!.hand = [30];       // Debt was already shown at its target, outside either view
+    const b = clone(a);
+    b.discard = [7];
+    b.seats[0]!.walls = [];
+    b.seats[1]!.walls = [33];
+    const resolved: GameEvent = { type: 'wallMoved', seat: 0, target: 1, card: 33, text: 'Debt took a wall.' };
+    const held = { card: 7, rect: CENTER, target: 0 };
+    const plan = planStep(snap(a, []), snap(b, [resolved]), 1, undefined, held)!;
+    const debt = plan.flights.find(f => f.card === 7)!;
+    const wall = plan.flights.find(f => f.card === 33)!;
+    expect(wall.keys[1]!.t).toBeGreaterThanOrEqual(debt.keys.at(-1)!.t);
+  });
+});
