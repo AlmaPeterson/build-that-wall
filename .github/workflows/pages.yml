@@ -38,6 +38,7 @@ jobs:
         run: |
           mkdir -p ../_site
           cp -r dist/. ../_site/
+          cp ../google97310b67928dedc3.html ../_site/
           cp -r ../classic ../_site/classic
           cp public/game-settings.json ../_site/classic/      # the old game reads the same settings
           cp ../privacy.html ../terms.html ../_site/
