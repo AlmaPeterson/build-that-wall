@@ -4,8 +4,7 @@
 .flights--paused .flights__target { animation-play-state: paused; }
 .flight { position: absolute; left: 0; top: 0; will-change: transform, width, height; filter: drop-shadow(0 calc(var(--u) * 2) calc(var(--u) * 3) rgba(0, 0, 0, .45)); }
 .flight__face { position: absolute; inset: 0; }
-/* The played action card remains the focal card while its effects resolve. */
-.flight--big { z-index: 1; cursor: zoom-in; }
+.flight--big { cursor: zoom-in; }
 .flight--held { border-radius: calc(var(--u) * 2); }
 .flight img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: calc(var(--u) * 2); }
 .flights__caption {

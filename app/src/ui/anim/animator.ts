@@ -17,8 +17,6 @@ export interface Flight {
   id: number; card: CardId; keys: Key[]; big?: boolean;
   /** Travel through intermediate keyframes without slowing to an apparent stop. */
   continuous?: boolean;
-  /** Keep a later phase out of sight until its scheduled flight begins. */
-  visibleAt?: number;
 }
 
 /** Your own Play Immediately card, shown large until you tap Continue. */
@@ -376,9 +374,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face }];
       if (t0 > 0) keys.push({ t: t0, ...at(m.from, 'from'), face });
       keys.push({ t: t1, ...at(m.to, 'to'), face });
-      // Result cards are created with the rest of the layer, but must not sit visibly over
-      // their old hand slot while a cost card is flying and that hand is reflowing.
-      flights.push({ id: id(), card: m.card, keys, visibleAt: t0 || undefined });
+      flights.push({ id: id(), card: m.card, keys });
       end = Math.max(end, t1);
     });
     return end;
