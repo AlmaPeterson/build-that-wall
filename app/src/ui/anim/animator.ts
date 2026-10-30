@@ -43,7 +43,7 @@ export interface AnimState {
 }
 
 // Timings at Normal speed (ms)
-const T = { toCenter: 450, hold: 1000, toTarget: 450, move: 550, stagger: 90, maxStagger: 900, blockIn: 550, blockHold: 800, deal: 380, dealGap: 110,
+const T = { toCenter: 450, hold: 1000, toTarget: 450, move: 550, lift: 220, stagger: 90, maxStagger: 900, blockIn: 550, blockHold: 800, deal: 380, dealGap: 110,
   across: 800, atTarget: 250 };
 /** A card someone else plays, as it crosses the board: the size of the draw pile, so you can tell which it is. */
 const PASSING = { w: 44, h: 61 };
@@ -382,9 +382,35 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   // Paying/discarding is always phase one. This covers build costs and effects which only discard
   // their card after a target/choice has been resolved. Everything else is the action's result.
   const costs = shown.filter(m => m.to.at === 'discard');
-  const results = shown.filter(m => m.to.at !== 'discard');
+  let results = shown.filter(m => m.to.at !== 'discard');
+  // Building has an intentional preparation beat: pull the wall clear of the hand before its
+  // payment starts. This lets the remaining hand reflow without a stationary wall covering it.
+  const buildWall = main?.type === 'build' && costs.length
+    ? results.find(m => m.from.at === 'hand' && m.to.at === 'walls')
+    : undefined;
+  let prepared: { move: Move; staging: Rect; flight: Flight } | undefined;
+  if (buildWall) {
+    results = results.filter(m => m !== buildWall);
+    const source = at(buildWall.from, 'from');
+    const liftEnd = start + ms(T.lift);
+    const staging = { ...source, y: Math.max(0, source.y - source.h - 8) };
+    const flight: Flight = { id: id(), card: buildWall.card, keys: [
+      { t: 0, ...source, face: buildWall.card !== CARD_BACK },
+      { t: liftEnd, ...staging, face: buildWall.card !== CARD_BACK },
+    ] };
+    flights.push(flight);
+    prepared = { move: buildWall, staging, flight };
+    start = liftEnd;
+  }
   const resultAt = costs.length ? showPhase('cost', costs, start) : start;
   showPhase('result', results, resultAt);
+  if (prepared) {
+    // The same flight holds above the hand through payment, then finishes its trip to the wall.
+    prepared.flight.keys.push(
+      { t: resultAt, ...prepared.staging, face: prepared.move.card !== CARD_BACK },
+      { t: resultAt + each, ...at(prepared.move.to, 'to'), face: prepared.move.card !== CARD_BACK },
+    );
+  }
   if (!flights.length) return null;
   const flightDuration = Math.max(...flights.map(f => f.keys.at(-1)!.t));
   const caption = main && !ROUTINE.includes(main.type) ? main.text : null;

@@ -335,7 +335,7 @@ describe('a played card with nowhere to go yet', () => {
 });
 
 describe('discard before result', () => {
-  it('flies build costs to the discard pile before showing the wall being built', () => {
+  it('lifts a wall clear of the hand, pays its build costs, then flies it to the wall', () => {
     const a = base();
     a.turn = 0;
     a.seats[0]!.hand = [29, 30, 31];
@@ -348,7 +348,12 @@ describe('discard before result', () => {
     const costs = plan.flights.filter(f => f.card === 30 || f.card === 31);
     const wall = plan.flights.find(f => f.card === 29)!;
     expect(costs).toHaveLength(2);
-    expect(wall.keys[1]!.t).toBeGreaterThanOrEqual(Math.max(...costs.map(f => f.keys.at(-1)!.t)));
+    expect(wall.keys).toHaveLength(4);
+    expect(wall.keys[1]!.y).toBeLessThan(wall.keys[0]!.y);                 // lifted above the hand
+    expect(costs.every(f => f.keys[1]!.t >= wall.keys[1]!.t)).toBe(true);  // payment follows lift
+    expect(wall.keys[2]!.t).toBeGreaterThanOrEqual(Math.max(...costs.map(f => f.keys.at(-1)!.t)));
+    expect(wall.keys[2]).toMatchObject({ ...wall.keys[1]!, t: wall.keys[2]!.t }); // waits above the hand
+    expect(wall.keys.at(-1)!.y).not.toBe(wall.keys[2]!.y);                 // then travels to built walls
   });
 
   it('settles a card that was waiting for a response before animating its resolved effect', () => {
