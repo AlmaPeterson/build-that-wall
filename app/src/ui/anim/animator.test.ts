@@ -204,6 +204,20 @@ describe('blocking', () => {
     expect(plan.held).toBeNull();
   });
 
+  it('does not duplicate a Play Immediately card that was already discarded before Self-Defense', () => {
+    const a = base();
+    a.seats[1]!.hand = [20];
+    a.discard = [1];
+    const b = clone(a);
+    b.seats[1]!.hand = [];
+    b.discard = [1, 20];
+    const immediate: GameEvent = { type: 'immediate', seat: 1, card: 1, text: 'PLAY IMMEDIATELY: Bot drew Abduction.' };
+    const blocked: GameEvent = { type: 'blocked', seat: 1, card: 1, text: 'Bot blocked Abduction with Self-Defense.' };
+    const plan = planStep(snap(a, [immediate]), snap(b, [immediate, blocked]), 1)!;
+    expect(plan.flights.map(f => f.card)).toEqual([20]);
+    expect(plan.mid.discard).toEqual([1]);
+  });
+
   it('not blocked: the waiting card goes on to where it ended up', () => {
     const { b, play, next } = attack();
     const held = planStep(snap(attack().a, []), next, 1)!.held!;

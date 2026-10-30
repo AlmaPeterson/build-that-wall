@@ -253,18 +253,29 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     const sd = take(m => m.from.at === 'hand' && m.from.seat === blocked.seat && (m.card === SELF_DEFENSE || m.card === CARD_BACK));
     const t1 = ms(T.blockIn), t2 = t1 + ms(T.blockHold), t3 = t2 + ms(T.move);
     const discard = at({ at: 'discard' }, 'to');
-    flights.push({ id: id(), card, keys: [{ t: 0, ...meet, face: true }, { t: t2, ...meet, face: true }, { t: t3, ...(own ? at(own.to, 'to') : discard), face: true }] });
+    // Play Immediately cards are discarded before their effect asks about Self-Defense. In that
+    // case the card is already on the discard pile: do not conjure a second copy in the air.
+    const showBlockedCard = held?.card === card || own !== null;
+    if (showBlockedCard) {
+      flights.push({ id: id(), card, keys: [{ t: 0, ...meet, face: true }, { t: t2, ...meet, face: true }, { t: t3, ...(own ? at(own.to, 'to') : discard), face: true }] });
+    }
     if (sd) {
       flown.push(sd);
-      const onTop = { ...meet, x: meet.x + meet.w * 0.12, y: meet.y + meet.h * 0.08 };
-      flights.push({ id: id(), card: SELF_DEFENSE, keys: [
-        { t: 0, ...at(sd.from, 'from'), face: true }, { t: t1, ...onTop, face: true }, { t: t2, ...onTop, face: true },
-        { t: t3, ...at(sd.to, 'to'), face: true },
-      ] });
+      if (showBlockedCard) {
+        const onTop = { ...meet, x: meet.x + meet.w * 0.12, y: meet.y + meet.h * 0.08 };
+        flights.push({ id: id(), card: SELF_DEFENSE, keys: [
+          { t: 0, ...at(sd.from, 'from'), face: true }, { t: t1, ...onTop, face: true }, { t: t2, ...onTop, face: true },
+          { t: t3, ...at(sd.to, 'to'), face: true },
+        ] });
+      } else {
+        flights.push({ id: id(), card: SELF_DEFENSE, keys: [
+          { t: 0, ...at(sd.from, 'from'), face: true }, { t: ms(T.move), ...at(sd.to, 'to'), face: true },
+        ] });
+      }
     }
     if (held?.card === card) held = null;
     // Both cards must finish reaching the discard pile before any result of the blocked play moves.
-    start = t3;
+    start = showBlockedCard ? t3 : sd ? ms(T.move) : 0;
   }
 
   // A card left waiting by the last step goes on to where it ended up (or into the player it was played on)
