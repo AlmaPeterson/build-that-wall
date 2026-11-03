@@ -166,6 +166,14 @@ export class Animator {
     this.set({ snap: { ...next, view: plan.mid, prompt: null, passTo: null, turnBanner: null, skipped: null }, flights: plan.flights, duration: plan.duration,
       caption: plan.caption, target: plan.target, held: null });
     await this.wait(plan.duration);
+    if (plan.captionHold && !plan.confirm) {
+      // Everything has landed and the game carries on at once; only the caption stays a moment longer to be read
+      this.show(next, plan.held);
+      const caption = plan.caption;
+      this.set({ caption });
+      setTimeout(() => { if (this.state.get().caption === caption && !this.state.get().flights.length) this.set({ caption: null }); }, plan.captionHold);
+      return;
+    }
     if (plan.confirm) {
       this.set({ confirm: plan.confirm.card });
       await new Promise<void>(r => { this.continueNow = () => { this.continueNow = null; r(); }; });
@@ -424,9 +432,9 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   const flightDuration = Math.max(...flights.map(f => f.keys.at(-1)!.t));
   const caption = main && !ROUTINE.includes(main.type) ? main.text : null;
   const captionHold = caption && !next.openHands ? 500 * speed : 0;
-  // Extending the plan duration holds its final keyframes in place, so one tap still skips both the
-  // flight and its readable caption beat.
-  const duration = flightDuration + captionHold;
+  // The caption stays up a little after the cards have landed (see Animator.step); the cards themselves
+  // don't wait on top of where they landed.
+  const duration = flightDuration;
   const plan: StepPlan = { mid: midView(before, flown), moves: flown, flights, duration, target: targetRect, held: heldAfter, caption, captionHold,
     // Bot-watch mode never pauses between plays. A short after-beat lets people read important human-game actions.
   };

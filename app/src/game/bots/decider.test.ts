@@ -120,8 +120,8 @@ describe('choosing hand cards', () => {
 describe('picking from piles', () => {
   it('takes the most valuable cards, first on ties', () => {
     const s = makeState([bot('hard'), {}]);
-    expect(ask(s, { kind: 'pickCards', seat: 0, card: 22, pool: [12, 14, 30, 7, 29, 25], max: 3 })).toEqual([30, 29, 14]);
-    expect(ask(s, { kind: 'pickCards', seat: 0, card: 27, pool: [12], max: 3 })).toEqual([12]);
+    expect(ask(s, { kind: 'pickCards', seat: 0, card: 22, pool: [12, 14, 30, 7, 29, 25], max: 3 })).toEqual([2, 4, 1]);
+    expect(ask(s, { kind: 'pickCards', seat: 0, card: 27, pool: [12], max: 3 })).toEqual([0]);
   });
 });
 

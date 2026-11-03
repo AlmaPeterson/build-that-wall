@@ -100,8 +100,11 @@ export type Decision =
    * while a card is being played). Answer: the slots, in the order picked.
    */
   | { kind: 'pickHandCards'; seat: Seat; card: CardId; purpose: 'build'; options: number[]; cards: CardId[]; min: number; max: number }
-  /** Pick up to `max` cards from a pool (piles shown grouped by kind). Answer: card ids. */
-  | { kind: 'pickCards'; seat: Seat; card: CardId; pool: CardId[]; max: number }
+  /**
+   * Pick up to `max` cards from a pool (piles shown grouped by kind). When the pool holds both piles,
+   * pool[0..fromDiscard) is the draw pile and the rest the discard pile. Answer: pool positions.
+   */
+  | { kind: 'pickCards'; seat: Seat; card: CardId; pool: CardId[]; max: number; fromDiscard?: number }
   /** Pick one of named options, e.g. Trump Train 'draw' | 'protect', Spy Balloon 'take' | 'remove'. */
   | { kind: 'chooseOption'; seat: Seat; card: CardId; options: string[]; cancellable: boolean };
 
@@ -111,7 +114,7 @@ export type Answer<D extends Decision> =
   D extends { kind: 'chooseSeat' } ? Seat | null :
   D extends { kind: 'chooseWall' } ? WallRef | null :
   D extends { kind: 'chooseHandCard' } ? number | null :
-  D extends { kind: 'pickCards' } ? CardId[] :
+  D extends { kind: 'pickCards' } ? number[] :
   D extends { kind: 'pickHandCards' } ? number[] :
   D extends { kind: 'chooseOption' } ? string | null :
   never;

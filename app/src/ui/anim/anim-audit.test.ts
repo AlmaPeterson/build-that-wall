@@ -1,6 +1,6 @@
 // Plays whole bot games and checks every animation step against the card-animation rules:
-// a card never appears, vanishes or jumps, is never in two places, and a card everyone can see
-// never flies face down.
+// a card never appears, vanishes or jumps, is never in two places, a card everyone can see never
+// flies face down, and a card only some players may see is never shown face up to the others.
 import { describe, expect, it } from 'vitest';
 import { CARD_BACK, createLocalGame, type Difficulty, DEFAULT_SETTINGS, redactEvent, viewFor, type GameEvent, type GameState } from '../../game';
 import type { GameSnapshot } from '../controller';
@@ -84,6 +84,8 @@ function audit(snaps: GameSnapshot[], seed: number, watch: boolean): Problem[] {
     }
     for (const m of plan.moves) {
       if (m.card === CARD_BACK && m.from.at !== 'draw' && (isPublic(m.from, 0, watch) || isPublic(m.to, 0, watch))) say('face down but public', `${zone(m.from)} → ${zone(m.to)}`);
+      // Another player's hand gets a card face up only if everyone saw it before (a wall, a pile, your own hand)
+      if (!watch && m.card !== CARD_BACK && m.to.at === 'hand' && m.to.seat !== 0 && !isPublic(m.from, 0, watch)) say('secret card shown', `${zone(m.from)} → ${zone(m.to)}`);
       if ((m.from.at === 'center' || m.from.at === 'seat') && m.card !== heldIn?.card && !fresh.some(e => e.type === 'play' || e.type === 'immediate')) say('from nowhere', `${zone(m.from)} → ${zone(m.to)}`);
     }
     for (const f of plan.flights) {

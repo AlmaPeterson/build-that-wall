@@ -312,7 +312,7 @@ describe('Trump (26) and Trump Train (25)', () => {
 describe('pile picks: Freedom of the Press (11), Supreme Court Nominee (22), Vote Recount (27)', () => {
   it('Supreme Court Nominee: up to 3 from the draw pile into the hand', async () => {
     const s = makeState([{ hand: [22] }, {}], { draw: [14, 7, W1, 19], discard: [20] });
-    const { ctx } = await play(s, 22, { pickCards: [[W1, 19]] });
+    const { ctx } = await play(s, 22, { pickCards: [[2, 3]] });
     expect(ctx.asked[0]).toMatchObject({ kind: 'pickCards', pool: [14, 7, W1, 19], max: 3 });
     expect(s.seats[0]!.hand).toEqual([W1, 19]);
     expect(counts(s.draw)).toEqual(counts([14, 7]));
@@ -321,7 +321,7 @@ describe('pile picks: Freedom of the Press (11), Supreme Court Nominee (22), Vot
 
   it('Vote Recount: up to 3 from the discard pile, then the card is discarded', async () => {
     const s = makeState([{ hand: [27] }, {}], { draw: [14], discard: [7, W1, 7] });
-    const { ctx } = await play(s, 27, { pickCards: [[7, 7]] });
+    const { ctx } = await play(s, 27, { pickCards: [[0, 2]] });
     expect(ctx.asked[0]).toMatchObject({ pool: [7, W1, 7], max: 3 });
     expect(s.seats[0]!.hand).toEqual([7, 7]);
     expect(s.discard).toEqual([W1, 27]);
@@ -332,10 +332,10 @@ describe('pile picks: Freedom of the Press (11), Supreme Court Nominee (22), Vot
   it('Freedom of the Press: up to 4 from both piles into jail, with the card; release in 3 rounds; draw shuffled', async () => {
     const s = makeState([{ hand: [11] }, {}, {}], { draw: [14, W1], discard: [W1, 7], turnCount: 5 });
     const before = everything(s);
-    const { ctx } = await play(s, 11, { pickCards: [[W1, W1, 14]] });
-    expect(ctx.asked[0]).toMatchObject({ pool: [14, W1, W1, 7], max: 4 });
+    const { ctx } = await play(s, 11, { pickCards: [[2, 1, 0]] });
+    expect(ctx.asked[0]).toMatchObject({ pool: [14, W1, W1, 7], max: 4, fromDiscard: 2 });
     expect(s.jail).toEqual([W1, W1, 14, 11]);
-    expect(s.discard).toEqual([7]);     // the first W1 came from the discard pile, the second from the draw pile
+    expect(s.discard).toEqual([7]);     // the first W1 was picked from the discard pile, the second from the draw pile
     expect(s.draw).toEqual([]);
     expect(s.jailRelease).toBe(5 + 3 * 3);
     expect(everything(s)).toEqual(before);

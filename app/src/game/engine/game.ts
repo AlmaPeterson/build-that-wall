@@ -613,14 +613,18 @@ export class Game implements GameApi {
 
 /** One move per card for an event: a card that went A → B → C went A → C (and A → B → A didn't move). */
 function joinPaths(moves: CardMove[]): CardMove[] {
-  const byCard = new Map<string, CardMove>();
+  // A path that goes through the draw pile is cut there: the shuffled pile hides where a drawn card came from
+  const paths: CardMove[] = [];
+  const open = new Map<string, CardMove>();
   for (const m of moves) {
-    const first = byCard.get(m.instance);
-    byCard.set(m.instance, first ? { ...first, to: m.to } : m);
+    const first = open.get(m.instance);
+    const path = first ? { ...first, to: m.to } : m;
+    if (first) paths[paths.indexOf(first)] = path; else paths.push(path);
+    if (m.to.zone === 'draw') open.delete(m.instance); else open.set(m.instance, path);
   }
   const same = (a: CardMove['from'], b: CardMove['from']) => JSON.stringify(a) === JSON.stringify(b);
   const zone = (l: CardMove['from']) => l.zone + ('seat' in l ? ':' + l.seat : '');
-  return [...byCard.values()].filter(m => !same(m.from, m.to))
+  return paths.filter(m => !same(m.from, m.to))
     .map(m => ({ ...m, kind: zone(m.from) === zone(m.to) ? 'reposition' as const : 'transfer' as const }));
 }
 

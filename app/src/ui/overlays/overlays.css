@@ -58,6 +58,7 @@
   font: bold 0.8em Arial, sans-serif; padding: 1px 7px;
 }
 .btw-ov-picked { display: flex; align-items: center; gap: 6px; justify-content: center; flex-wrap: wrap; font-weight: bold; }
+.btw-ov-pile { text-align: center; font-weight: bold; margin: 4px 0 2px; }
 .btw-ov-walls { display: flex; flex-direction: column; gap: 8px; }
 .btw-ov-wallrow { border-top: 2px solid #f0e4e2; padding-top: 6px; }
 .btw-ov-wallseat { font-weight: bold; color: var(--red-dark); }

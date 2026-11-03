@@ -98,15 +98,15 @@ export async function distribute(ctx: EffectContext, giver: Seat, kind: GiveKind
  * the answer is card ids, checked against what is really there. Pack cards (45-49) can be picked
  * too (fixed; the old game only offered ids 1-44).
  */
-export async function poolPick(ctx: EffectContext, pool: CardId[], max: number): Promise<CardId[]> {
+/** Ask for up to `max` cards from `pool`; the pool positions picked (each at most once). */
+export async function poolPick(ctx: EffectContext, pool: CardId[], max: number, fromDiscard?: number): Promise<number[]> {
   if (!pool.length || max < 1) return [];
-  const answer = await ctx.decide({ kind: 'pickCards', seat: ctx.player, card: ctx.card, pool: [...pool], max });
-  const left = [...pool], picks: CardId[] = [];
-  for (const id of Array.isArray(answer) ? answer : []) {
-    const at = left.indexOf(id);
-    if (at < 0 || picks.length >= max) continue;
-    left.splice(at, 1);
-    picks.push(id);
+  const answer = await ctx.decide({ kind: 'pickCards', seat: ctx.player, card: ctx.card, pool: [...pool], max,
+    ...(fromDiscard !== undefined ? { fromDiscard } : {}) });
+  const picks: number[] = [];
+  for (const at of Array.isArray(answer) ? answer : []) {
+    if (!Number.isInteger(at) || at < 0 || at >= pool.length || picks.includes(at) || picks.length >= max) continue;
+    picks.push(at);
   }
   return picks;
 }

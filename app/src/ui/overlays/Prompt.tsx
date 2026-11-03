@@ -193,14 +193,17 @@ function PickHandCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pick
   );
 }
 
-/** Pick up to `max` cards from a pool shown grouped by kind with counts, before the timer runs out. */
-function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCards' }>; view: GameState; onDone: (ids: CardId[]) => void }) {
-  const [picks, setPicks] = useState<CardId[]>([]);
+/**
+ * Pick up to `max` cards from a pool shown grouped by kind with counts, before the timer runs out.
+ * When the pool holds both piles (Freedom of the Press) the draw pile and the discard pile are shown apart.
+ */
+function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCards' }>; view: GameState; onDone: (at: number[]) => void }) {
+  const [picks, setPicks] = useState<number[]>([]);
   const [left, setLeft] = useState(PICK_SECONDS);
   const picksRef = useRef(picks);
   picksRef.current = picks;
   const finished = useRef(false);
-  const finish = (ids: CardId[]) => { if (finished.current) return; finished.current = true; onDone(ids); };
+  const finish = (at: number[]) => { if (finished.current) return; finished.current = true; onDone(at); };
 
   useEffect(() => {
     const t = setInterval(() => setLeft(s => s - 1), 1000);
@@ -208,15 +211,22 @@ function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCard
   }, []);
   useEffect(() => { if (left <= 0) finish(picksRef.current); }, [left]);
 
-  const groups = useMemo(() => {
-    const counts = new Map<CardId, number>();
-    for (const id of d.pool) counts.set(id, (counts.get(id) ?? 0) + 1);
-    return [...counts].sort((a, b) => a[0] - b[0]);
-  }, [d.pool]);
-  const remaining = (id: CardId) => (groups.find(g => g[0] === id)?.[1] ?? 0) - picks.filter(p => p === id).length;
-  const add = (id: CardId) => {
-    if (picks.length >= d.max || remaining(id) <= 0) return;
-    const next = [...picks, id];
+  /** Each section: the pool positions of each kind, kinds in order. */
+  const sections = useMemo(() => {
+    const group = (from: number, to: number) => {
+      const at = new Map<CardId, number[]>();
+      for (let i = from; i < to; i++) at.set(d.pool[i]!, [...(at.get(d.pool[i]!) ?? []), i]);
+      return [...at].sort((a, b) => a[0] - b[0]);
+    };
+    const split = d.fromDiscard;
+    return split === undefined ? [{ title: null, groups: group(0, d.pool.length) }]
+      : [{ title: 'Draw pile', groups: group(0, split) }, { title: 'Discard pile', groups: group(split, d.pool.length) }]
+        .filter(x => x.groups.length);
+  }, [d.pool, d.fromDiscard]);
+  const add = (spots: number[]) => {
+    const at = spots.find(i => !picks.includes(i));
+    if (picks.length >= d.max || at === undefined) return;
+    const next = [...picks, at];
     setPicks(next);
     if (next.length >= d.max) finish(next);
   };
@@ -224,19 +234,24 @@ function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCard
   return (
     <Shell d={d} view={view} title={promptTitle(d.kind, d.card)}
       sub={'Pick up to ' + d.max + (d.max === 1 ? ' card' : ' cards') + '. ' + Math.max(0, left) + ' seconds left.'}>
-      <div class="btw-ov-cards btw-ov-cards--pool">
-        {groups.map(([id]) => {
-          const n = remaining(id);
-          return n > 0 ? <CardButton key={id} id={id} badge={'×' + n} onClick={() => add(id)} /> : null;
-        })}
-      </div>
+      {sections.map(sec => (
+        <div key={sec.title ?? 'pool'}>
+          {sec.title && <div class="btw-ov-pile">{sec.title}</div>}
+          <div class="btw-ov-cards btw-ov-cards--pool">
+            {sec.groups.map(([id, spots]) => {
+              const n = spots.filter(i => !picks.includes(i)).length;
+              return n > 0 ? <CardButton key={id} id={id} badge={'×' + n} onClick={() => add(spots)} /> : null;
+            })}
+          </div>
+        </div>
+      ))}
       {picks.length > 0 && (
         <div class="btw-ov-picked">
           <span>Your picks:</span>
-          {picks.map((id, i) => (
-            <button type="button" key={i} class="btw-ov-card btw-ov-card--small" aria-label={'Put back ' + cardName(id)}
+          {picks.map((at, i) => (
+            <button type="button" key={i} class="btw-ov-card btw-ov-card--small" aria-label={'Put back ' + cardName(d.pool[at]!)}
               onClick={() => setPicks(picks.filter((_, j) => j !== i))}>
-              <CardImage id={id} size="mini" aria-hidden="true" />
+              <CardImage id={d.pool[at]!} size="mini" aria-hidden="true" />
             </button>
           ))}
         </div>

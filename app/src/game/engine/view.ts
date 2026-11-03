@@ -19,10 +19,13 @@ export function viewFor(state: GameState, viewer: Seat, allHands = false): GameS
 /** Hide which cards another player drew or was dealt, and any card that moves only between places the viewer can't see. */
 export function redactEvent(e: GameEvent, viewer: Seat): GameEvent {
   const hideDraw = (e.type === 'draw' || e.type === 'deal') && e.seat !== viewer;
-  const cards = hideDraw && e.cards ? e.cards.map(() => CARD_BACK) : e.cards;
-  // The card an event names (a played card) is public. Otherwise a card's face is seen when it leaves or
-  // reaches a face-up place: the piles, the walls, a held card, or the viewer's own hand.
-  const named = hideDraw ? undefined : e.card;
+  // Cards taken or given between two other players stay secret too
+  const hideMoved = e.type === 'cardMoved' && e.seat !== viewer && e.target !== viewer;
+  const cards = (hideDraw || hideMoved) && e.cards ? e.cards.map(() => CARD_BACK) : e.cards;
+  // A played (or blocking) card is public. Otherwise a card's face is seen when it leaves or reaches a
+  // face-up place: the piles, the walls, a held card, or the viewer's own hand. A card an event merely
+  // mentions (the card given in a 'gave a card' event) is not public.
+  const named = e.type === 'play' || e.type === 'immediate' || e.type === 'blocked' ? e.card : undefined;
   const seen = (l: CardLocation) => l.zone === 'discard' || l.zone === 'jail' || l.zone === 'wall' || l.zone === 'limit'
     || l.zone === 'quarantine' || l.zone === 'trainGuard' || (l.zone === 'hand' && l.seat === viewer);
   // An instance id is only a rendering token, but keeping an id for a hidden card across events

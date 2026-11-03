@@ -116,7 +116,7 @@ describe('prompts', () => {
     click('Wall Section 1');
     expect(buttons().some(x => x.getAttribute('aria-label')?.startsWith('Wall Section 1,'))).toBe(false);   // none left
     click('Man Hour');
-    expect(a).toEqual([[29, 29, 14]]);
+    expect(a).toEqual([[0, 1, 2]]);
   });
 
   it('pickCards: Done takes the picks so far, and putting one back works', () => {
@@ -125,7 +125,18 @@ describe('prompts', () => {
     click('Debt');
     click('Put back Man Hour');
     click('Done');
-    expect(a).toEqual([[7]]);
+    expect(a).toEqual([[2]]);
+  });
+
+  it('pickCards: Freedom of the Press shows the draw pile and the discard pile apart', () => {
+    const a = ask({ kind: 'pickCards', seat: 0, card: 11, pool: [14, 29, 29, 7], max: 4, fromDiscard: 2 });
+    expect(root.textContent).toContain('Draw pile');
+    expect(root.textContent).toContain('Discard pile');
+    const wall = buttons().filter(x => x.getAttribute('aria-label')?.startsWith('Wall Section 1'));
+    expect(wall.length).toBe(2);                      // one in each pile
+    act(() => { wall[1]!.click(); });                 // the discard pile's copy
+    click('Done');
+    expect(a).toEqual([[2]]);
   });
 
   it('pickCards: the timer takes the picks when it runs out', () => {
@@ -135,7 +146,7 @@ describe('prompts', () => {
     act(() => { vi.advanceTimersByTime((PICK_SECONDS - 1) * 1000); });
     expect(a).toEqual([]);
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(a).toEqual([[14]]);
+    expect(a).toEqual([[1]]);
   });
 });
 

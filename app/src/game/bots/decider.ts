@@ -142,12 +142,13 @@ function giveSlot(hand: CardId[], options: number[], self: boolean): number {
 }
 
 /** `ai pool pick`: the N most valuable cards, first in the pool on ties. */
-function poolPick(pool: CardId[], max: number): CardId[] {
-  const rest = [...pool], picks: CardId[] = [];
-  for (let n = 0; n < max && rest.length; n++) {
+/** The most valuable cards, first on ties: their pool positions. */
+function poolPick(pool: CardId[], max: number): number[] {
+  const picks: number[] = [];
+  for (let n = 0; n < max && picks.length < pool.length; n++) {
     let best = -1, at = 0;
-    rest.forEach((c, i) => { if (cardValue(c) > best) { best = cardValue(c); at = i; } });
-    picks.push(rest.splice(at, 1)[0]!);
+    pool.forEach((c, i) => { if (!picks.includes(i) && cardValue(c) > best) { best = cardValue(c); at = i; } });
+    picks.push(at);
   }
   return picks;
 }

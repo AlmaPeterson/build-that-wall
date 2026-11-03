@@ -6,19 +6,20 @@ import { announce, cardName, poolPick, seatName, takeFromPile } from '../shared'
 /**
  * 22: up to 3 from the draw pile into the hand, then shuffle the draw pile.
  * 27: up to 3 from the discard pile into the hand; then the Vote Recount card goes to the discard pile.
- * 11: up to 4 from both piles (taken from the discard pile if that card is there, else the draw pile)
+ * 11: up to 4 from both piles (from whichever pile the player picked them in)
  *     into jail with the Freedom of the Press card; jail empties at turnCount + 3 × players; then shuffle.
  */
 export async function pilePick(ctx: EffectContext): Promise<boolean> {
   const { state, card } = ctx;
   if (card === 22) ctx.discard(22);
-  const pool = [...(card !== 27 ? state.draw : []), ...(card !== 22 ? state.discard : [])];
-  const picks = await poolPick(ctx, pool, card === 11 ? 4 : 3);
-  for (const id of picks) {
-    if (card !== 22 && takeFromPile(state.discard, id)) { /* taken from the discard pile */ }
-    else takeFromPile(state.draw, id);
-    if (card === 11) state.jail.push(id);
-    else ctx.addToHand(ctx.player, id);
+  const draw = card !== 27 ? state.draw : [], split = draw.length;
+  const pool = [...draw, ...(card !== 22 ? state.discard : [])];
+  const at = await poolPick(ctx, pool, card === 11 ? 4 : 3, card === 11 ? split : undefined);
+  const picks = at.map(i => pool[i]!);
+  for (const i of at) {
+    takeFromPile(i < split ? state.draw : state.discard, pool[i]!);
+    if (card === 11) state.jail.push(pool[i]!);
+    else ctx.addToHand(ctx.player, pool[i]!);
   }
   // Discarded before it's announced (after the picks, so it can't pick itself), so it's seen going to the pile
   if (card === 27) ctx.discard(27);

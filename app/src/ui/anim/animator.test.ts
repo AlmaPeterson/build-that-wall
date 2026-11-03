@@ -43,7 +43,7 @@ describe('planStep', () => {
     // The wall moves after the card has been seen
     expect(wall!.card).toBe(33);
     expect(wall!.keys[1]!.t).toBeGreaterThanOrEqual(card!.keys.at(-1)!.t); // discard lands before Debt takes the wall
-    expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t) + plan.captionHold);
+    expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t));   // the caption's beat comes after, with the cards landed
     // While they fly, the board shows neither the card in the hand nor the wall anywhere
     expect(plan.mid.seats[1]!.hand).toHaveLength(1);
     expect(plan.mid.seats[0]!.walls).toEqual([]);

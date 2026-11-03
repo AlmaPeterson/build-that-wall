@@ -53,7 +53,8 @@ export function parseAnswer<D extends Decision>(d: D, text: string): Answer<D> {
       case 'chooseOption': return v === null ? d.cancellable : d.options.includes(v as string);
       case 'chooseWall': return v === null ? d.cancellable
         : d.options.some(w => w.seat === (v as { seat?: number }).seat && w.kind === (v as { kind?: number }).kind);
-      case 'pickCards': return Array.isArray(v) && v.length <= d.max && v.every(x => typeof x === 'number');
+      case 'pickCards': return Array.isArray(v) && v.length <= d.max && new Set(v).size === v.length
+        && v.every(x => Number.isInteger(x) && (x as number) >= 0 && (x as number) < d.pool.length);
       case 'pickHandCards': return Array.isArray(v) && v.length >= d.min && v.length <= d.max
         && new Set(v).size === v.length && v.every(x => d.options.includes(x as number));
     }
