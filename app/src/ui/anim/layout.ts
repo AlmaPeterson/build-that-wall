@@ -61,7 +61,7 @@ export function placeRect(place: Place, view: GameState, seating: Seating): Rect
       const r = wallRect(view, seating, place.seat, place.kind);
       return { x: r.x + r.w * 0.55, y: r.y - 3, w: r.w * 0.45, h: r.h * 0.45 };
     }
-    case 'limit': return { x: 170, y: 86.4 + place.seat * 12.945, w: 9, h: 12 };
+    case 'limit': case 'skip': return { x: 170, y: 86.4 + place.seat * 12.945, w: 9, h: 12 };
     case 'seat': return seatRect(view, seating, place.seat);
     case 'draw': return DRAW;
     case 'discard': return DISCARD;

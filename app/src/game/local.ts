@@ -20,6 +20,7 @@ export interface LocalGameOptions {
   beforeTurn?(seat: Seat): Promise<void>;
   beforeBotAction?(seat: Seat): Promise<void>;
   afterSkip?(seat: Seat): Promise<void>;
+  strictCards?: boolean;
 }
 
 export function createLocalGame(o: LocalGameOptions): Game {
@@ -42,6 +43,7 @@ export function createLocalGame(o: LocalGameOptions): Game {
     beforeTurn: o.beforeTurn,
     beforeBotAction: o.beforeBotAction,
     afterSkip: o.afterSkip,
+    strictCards: o.strictCards,
   });
 }
 

@@ -42,10 +42,12 @@ interface Drag { from: number; to: number; dx: number }
 
 export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand', onZoom }: Props) {
   const row = useRef<HTMLDivElement>(null);
-  // A card leaving a flex row would normally make every later card jump left. Remember each card's
-  // last rectangle, then animate it from there after the browser lays out the new hand.
-  const previousPositions = useRef(new Map<string, DOMRect>());
+  // A card leaving a flex row would normally make every later card jump left. Remember where each card
+  // was laid out, then slide it from there after the browser lays out the new hand.
+  const previousPositions = useRef(new Map<string, { x: number; y: number }>());
   const reflowAnimations = useRef(new Map<HTMLElement, Animation>());
+  const known = useRef<{ seat: Seat; cards: readonly CardId[]; keys: string[] }>({ seat, cards: [], keys: [] });
+  const nextKey = useRef(1);
   useStore(handOrderVersion);
   const [drag, setDragState] = useState<Drag | null>(null);
   const dragNow = useRef<Drag | null>(null);           // the latest, for pointerup (state may not have re-rendered yet)
@@ -54,7 +56,10 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
   const [lifted, setLifted] = useState<number | null>(null);
   const swallowClick = useRef(false);
   const order = displayOrder(seat, cards);
-  const identities = cards.map((card, slot) => card + ':' + cards.slice(0, slot).filter(c => c === card).length);
+  // Each card keeps its key while it stays in the hand, even when an identical card leaves before it
+  const identities = known.current.seat === seat && known.current.cards === cards ? known.current.keys
+    : keepKeys(known.current.seat === seat ? known.current : { cards: [], keys: [] }, cards, () => 'card' + nextKey.current++);
+  known.current = { seat, cards, keys: identities };
   /** Width of one card plus the gap, in pixels. */
   const pitch = () => ((row.current?.offsetWidth || HAND_WIDTH_UNITS) / HAND_WIDTH_UNITS) * 60;
 
@@ -66,20 +71,29 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
     el.addEventListener('touchmove', touch, { passive: false });
     return () => el.removeEventListener('touchmove', touch);
   }, []);
+  const layoutKey = order.map(slot => identities[slot]).join(' ');
   useLayoutEffect(() => {
     const el = row.current;
     if (!el) return;
-    const next = new Map<string, DOMRect>();
+    const next = new Map<string, { x: number; y: number }>();
     for (const card of el.querySelectorAll<HTMLElement>('.hand__card[data-hand-key]')) {
       const key = card.dataset.handKey!;
-      const now = card.getBoundingClientRect();
+      // Where it's laid out, not where it's drawn: a card halfway through a slide (or raised because it's
+      // picked) isn't somewhere else
+      const now = { x: card.offsetLeft, y: card.offsetTop };
       const before = previousPositions.current.get(key);
       next.set(key, now);
       // Dragging already owns transform; do not overwrite it with the reflow animation.
-      if (!before || drag || !('animate' in card)) continue;
-      const dx = before.left - now.left, dy = before.top - now.top;
+      if (!before || dragNow.current || !('animate' in card)) continue;
+      let dx = before.x - now.x, dy = before.y - now.y;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
-      reflowAnimations.current.get(card)?.cancel();
+      // Still sliding from the last change: carry on from where it is drawn now
+      const running = reflowAnimations.current.get(card);
+      if (running && running.playState === 'running') {
+        const m = new DOMMatrixReadOnly(getComputedStyle(card).transform);
+        dx += m.m41; dy += m.m42;
+      }
+      running?.cancel();
       const animation = card.animate([
         { transform: `translate(${dx}px, ${dy}px)` },
         { transform: 'translate(0, 0)' },
@@ -88,7 +102,7 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
       reflowAnimations.current.set(card, animation);
     }
     previousPositions.current = next;
-  });
+  }, [layoutKey]);
   useEffect(() => () => { for (const animation of reflowAnimations.current.values()) animation.cancel(); }, []);
 
   function down(e: PointerEvent, from: number) {
@@ -222,4 +236,27 @@ export function HiddenHand({ message = 'Hands are hidden while the computer play
       </div>
     </>
   );
+}
+
+/**
+ * Keys for `cards` that keep each card's key from `before` while it stays in the hand. Matches the
+ * longest run of cards left in the same order, so when one of two equal cards leaves, the one that
+ * stayed keeps its own key (and doesn't seem to slide to the other one's place).
+ */
+export function keepKeys(before: { cards: readonly CardId[]; keys: readonly string[] }, cards: readonly CardId[], fresh: () => string): string[] {
+  const a = before.cards, n = a.length, m = cards.length;
+  // lcs[i][j]: how many cards of a[i..] and cards[j..] can be matched in order
+  const lcs = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+    lcs[i]![j] = a[i] === cards[j] ? lcs[i + 1]![j + 1]! + 1 : Math.max(lcs[i + 1]![j]!, lcs[i]![j + 1]!);
+  }
+  const keys = new Array<string>(m);
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === cards[j] && lcs[i]![j] === lcs[i + 1]![j + 1]! + 1) { keys[j] = before.keys[i]!; i++; j++; }
+    else if (lcs[i + 1]![j]! >= lcs[i]![j + 1]!) i++;
+    else j++;
+  }
+  for (let k = 0; k < m; k++) keys[k] ??= fresh();
+  return keys;
 }

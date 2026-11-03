@@ -185,6 +185,8 @@ export interface StepPlan {
   captionHold: number;
   /** The card left waiting at the end of this step, if any. */
   held: Held | null;
+  /** The cards that leave the board for the air this step, and where each lands. */
+  moves: Move[];
   /** A newly drawn Play Immediately card: after Continue, the normal next snapshot plays it. */
   confirm?: { card: Confirm; then: { flights: Flight[]; duration: number } };
 }
@@ -250,6 +252,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     const card = blocked.card!;
     const meet = held?.card === card ? held.rect : MEET;
     const own = take(m => m.card === card && fromNowhere(m));
+    if (own) flown.push(own);
     const sd = take(m => m.from.at === 'hand' && m.from.seat === blocked.seat && (m.card === SELF_DEFENSE || m.card === CARD_BACK));
     const t1 = ms(T.blockIn), t2 = t1 + ms(T.blockHold), t3 = t2 + ms(T.move);
     const discard = at({ at: 'discard' }, 'to');
@@ -282,6 +285,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   if (held && fresh.length) {
     const h = held;
     const own = take(m => m.card === h.card && fromNowhere(m));
+    if (own) flown.push(own);
     const end = own ? at(own.to, 'to') : seatRect(after, to, h.target);
     flights.push({ id: id(), card: h.card, keys: [{ t: 0, ...h.rect, face: true }, { t: ms(T.move), ...end, face: true }] });
     // This is the later snapshot that resolves a card that was held at its target. Its effect
@@ -360,8 +364,12 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   }
 
   const cap = dealing ? DEAL_FLIGHTS : MAX_FLIGHTS;
-  const shown = moves.slice(0, cap);
-  flown.push(...shown);
+  // A whole pile moving (a reshuffle, the jail emptying) shows a few cards flying; the rest leave with
+  // them and land with them, so the pile never just jumps
+  const pile = (p: Place) => p.at === 'draw' || p.at === 'discard' || p.at === 'jail';
+  const piles = moves.filter(m => pile(m.from) && pile(m.to));
+  const shown = [...moves.filter(m => !piles.includes(m)), ...piles].slice(0, cap);
+  flown.push(...shown, ...piles.filter(m => !shown.includes(m)));
   const each = dealing ? ms(T.deal) : ms(T.move);
   /** Schedule one named phase. The next phase receives the time this one finishes. */
   const showPhase = (_phase: MovePhase, group: Move[], from: number): number => {
@@ -385,8 +393,9 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   let results = shown.filter(m => m.to.at !== 'discard');
   // Building has an intentional preparation beat: pull the wall clear of the hand before its
   // payment starts. This lets the remaining hand reflow without a stationary wall covering it.
+  // Only the hand at the bottom has cards that could slide over it; another player's wall waits at their row
   const buildWall = main?.type === 'build' && costs.length
-    ? results.find(m => m.from.at === 'hand' && m.to.at === 'walls')
+    ? results.find(m => m.from.at === 'hand' && m.from.seat === from.hand && m.to.at === 'walls')
     : undefined;
   let prepared: { move: Move; staging: Rect; flight: Flight } | undefined;
   if (buildWall) {
@@ -418,7 +427,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
   // Extending the plan duration holds its final keyframes in place, so one tap still skips both the
   // flight and its readable caption beat.
   const duration = flightDuration + captionHold;
-  const plan: StepPlan = { mid: midView(before, flown), flights, duration, target: targetRect, held: heldAfter, caption, captionHold,
+  const plan: StepPlan = { mid: midView(before, flown), moves: flown, flights, duration, target: targetRect, held: heldAfter, caption, captionHold,
     // Bot-watch mode never pauses between plays. A short after-beat lets people read important human-game actions.
   };
   if (immediateDraw !== null) {

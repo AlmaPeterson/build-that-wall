@@ -80,7 +80,12 @@ export async function limit(ctx: EffectContext): Promise<boolean> {
     ctx.emit({ type: 'quarantined', seat: ctx.player, target, card: 17, text: seatName(ctx, target) + ' will skip their next turn.' });
     return true;
   }
-  if (seat.limitNext > 0) ctx.discard(seat.limitNext);
+  if (seat.limitNext > 0) {
+    // the old one comes off the player before it goes to the discard pile, so it's never in two places
+    const old = seat.limitNext;
+    seat.limitNext = 0;
+    ctx.discard(old);
+  }
   ctx.holdLimit(target, ctx.card);
   ctx.emit({ type: 'limited', seat: ctx.player, target, card: ctx.card, text: seatName(ctx, target) + ' gets only 1 action next turn.' });
   return true;

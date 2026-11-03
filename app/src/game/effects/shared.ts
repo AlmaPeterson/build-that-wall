@@ -74,20 +74,22 @@ export const qualifyingSlots = (ctx: EffectContext, seat: Seat, kind: GiveKind):
 export async function distribute(ctx: EffectContext, giver: Seat, kind: GiveKind, includeSelf = true): Promise<number> {
   const order = [...ctx.opponents(giver), ...(includeSelf ? [giver] : [])];
   if (!order.length) return 0;
-  const kept: CardId[] = [];
+  // A card the giver keeps goes to the end of their own hand straight away (it never leaves it), and
+  // isn't offered again
+  let kept = 0;
   let given = 0;
   for (let i = 0; i < 200; i++) {
-    const slots = qualifyingSlots(ctx, giver, kind);
+    const end = ctx.state.seats[giver]!.hand.length - kept;
+    const slots = qualifyingSlots(ctx, giver, kind).filter(s => s < end);
     if (!slots.length) break;
     const to = order[i % order.length]!;
     const slot = (await askHandCard(ctx, giver, 'give', slots, false, to))!;
     const card = ctx.takeFromHand(giver, slot);
-    if (to === giver) { kept.push(card); continue; }
     ctx.addToHand(to, card);
+    if (to === giver) { kept++; continue; }
     given++;
     ctx.emit({ type: 'cardMoved', seat: giver, target: to, card, text: seatName(ctx, giver) + ' gave a card to ' + seatName(ctx, to) + '.' });
   }
-  for (const c of kept) ctx.addToHand(giver, c);
   return given;
 }
 

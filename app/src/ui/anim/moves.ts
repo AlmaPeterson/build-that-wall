@@ -8,6 +8,7 @@ export type Place =
   | { at: 'walls'; seat: Seat; kind: CardId }
   | { at: 'guard'; seat: Seat; kind: CardId }   // a Trump Train protecting a pair
   | { at: 'limit'; seat: Seat }                 // Democrat Border / Puppeteer waiting for that seat's next turn
+  | { at: 'skip'; seat: Seat }                  // a Quarantine waiting for that seat's next turn
   | { at: 'seat'; seat: Seat }                  // "at that player" (cards played on them that are held nowhere)
   | { at: 'draw' } | { at: 'discard' } | { at: 'jail' } | { at: 'center' };
 
@@ -55,7 +56,8 @@ function fromLocation(location: CardMotion['from'], card: CardId): Place | null 
     case 'limit': return { at: 'limit', seat: location.seat };
     case 'trainGuard': return { at: 'guard', seat: location.seat, kind: location.wall };
     // A resolving or quarantined card is deliberately off the board, never invented from nowhere.
-    case 'resolving': case 'quarantine': return { at: 'center' };
+    case 'quarantine': return { at: 'skip', seat: location.seat };
+    case 'resolving': return { at: 'center' };
   }
 }
 
@@ -162,6 +164,7 @@ export function key(p: Place): string {
     case 'walls': return 'walls' + p.seat;
     case 'guard': return 'guard';
     case 'limit': return 'limit' + p.seat;
+    case 'skip': return 'skip' + p.seat;
     case 'seat': return 'seat' + p.seat;
     default: return p.at;
   }
@@ -179,6 +182,7 @@ export function midView(before: GameState, moves: readonly Move[]): GameState {
     if (f.at === 'hand') handSlots.set(f.seat, [...(handSlots.get(f.seat) ?? []), f.slot]);
     else if (f.at === 'walls') removeOne(v.seats[f.seat]!.walls, f.kind);
     else if (f.at === 'limit') v.seats[f.seat]!.limitNext = 0;
+    else if (f.at === 'skip') v.seats[f.seat]!.quarantine = 0;
     else if (f.at === 'guard') {
       const i = v.trainGuards.findIndex(g => g.seat === f.seat && g.kind === f.kind);
       if (i >= 0) v.trainGuards.splice(i, 1);
