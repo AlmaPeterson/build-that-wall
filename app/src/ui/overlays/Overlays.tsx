@@ -44,7 +44,9 @@ export function Overlays({ controller }: { controller: GameController }) {
       if (e.type === 'finalRound') { if (!openHands) { setNotices(n => [...n, e]); playSfx('alert'); } continue; }
       if (e.type === 'gameOver') { playSfx('win'); continue; }
       // Only the player whose turn it is, on their own screen (not another player's, online or in Pass'n'Play)
-      if (e.type === 'turnStart' && e.seat !== undefined && !view.seats[e.seat]?.bot && e.seat === viewer) {
+      // Playing alone against bots you watch everything happen, so there's no "while you were away" box
+      const aloneWithBots = view.seats.every((x, i) => i === viewer || !!x.bot);
+      if (e.type === 'turnStart' && e.seat !== undefined && !view.seats[e.seat]?.bot && e.seat === viewer && !aloneWithBots) {
         const lines = recapFor(events.slice(0, events.indexOf(e) + 1), e.seat, view);
         if (lines.length) setRecap({ lines, myTurn: true });
         continue;

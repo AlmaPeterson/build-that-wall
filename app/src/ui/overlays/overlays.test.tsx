@@ -266,6 +266,30 @@ describe('Overlays with a real game', () => {
     expect(root.textContent).not.toContain('Pass the device to');
   });
 
+  it('alone against bots: no "while you were away" box, even when something happened to you', async () => {
+    const c = new GameController();
+    act(() => render(<Overlays controller={c} />, root));
+    void c.start(settings(4, 3), 3);
+    const tick = () => act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    let happened = false;
+    for (let turn = 0; turn < 12 && !c.snapshot.get().view?.over; turn++) {
+      for (let i = 0; i < 50; i++) {
+        await tick();
+        const { prompt, view } = c.snapshot.get();
+        if (prompt) {
+          const d = prompt.decision as Decision;
+          prompt.answer((d.kind === 'block' || d.kind === 'paySavings' ? false : d.kind === 'pickCards' ? [] : 'options' in d ? d.options[0] ?? null : null) as never);
+        } else if (view?.turn === 0 && i > 0) break;
+      }
+      const v = c.snapshot.get().view!;
+      if (recapFor(c.snapshot.get().events, 0, v).length) happened = true;
+      expect(root.textContent).not.toContain('WHILE YOU WERE AWAY');
+      void c.act({ type: 'endTurn' });
+      await tick();
+    }
+    expect(happened).toBe(true);    // there was something the box would have shown
+  }, 20000);
+
   it('a finished bots-only game shows the win screen', async () => {
     const c = new GameController();
     await c.start(settings(3, 3), 11);
