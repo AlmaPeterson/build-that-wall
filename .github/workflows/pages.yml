@@ -1,5 +1,5 @@
-# Publishes the game to GitHub Pages on every push to main: the new game (app/) at the site root,
-# the old PenguinMod game at /classic/, plus the privacy and terms pages.
+# Publishes the game to GitHub Pages on every push to main: the game (app/) at the site root, plus the
+# privacy and terms pages. /classic/ (the old PenguinMod game, removed) only redirects to the game.
 # Settings → Pages → Source must be "GitHub Actions".
 name: Publish the game
 
@@ -39,10 +39,8 @@ jobs:
           mkdir -p ../_site
           cp -r dist/. ../_site/
           cp ../google97310b67928dedc3.html ../_site/
-          cp -r ../classic ../_site/classic
-          cp public/game-settings.json ../_site/classic/      # the old game reads the same settings
+          cp -r ../classic ../_site/classic                    # just a redirect for old links
           cp ../privacy.html ../terms.html ../_site/
-          cp ../privacy.html ../terms.html ../_site/classic/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

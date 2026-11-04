@@ -72,7 +72,7 @@ export class GoogleSignIn {
   signOut(): void {
     this.store.stash(accountId(this.store));
     setUser(this.store, null);
-    // The older pop-up sign-in (the classic game, on the same site) counts as signed in too
+    // The old game's pop-up sign-in (it was on the same site) left these behind; clear them too
     this.store.remove('gname');
     this.store.remove('gemail');
     try { gis()?.disableAutoSelect(); } catch { /* GIS not loaded */ }

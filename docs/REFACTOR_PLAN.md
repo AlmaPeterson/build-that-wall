@@ -117,6 +117,8 @@ How to build it:
   `app/` on every push to `main` and publishes it at the site root with `/classic/`, `privacy.html` and
   `terms.html` (Pages source: GitHub Actions). One settings file now: `app/public/game-settings.json`
   (copied to `/classic/` for the old game).
+- 2026-11-03: the old game was removed from the site (owner's call); `/classic/` now only redirects to the
+  game. Its files are in git history (last at commit 78781ec).
 - Went live without video ads, owner tools, online spectators and confetti (owner's call); online play
   still to be tried against the real broker.
 
