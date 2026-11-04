@@ -43,7 +43,7 @@ export interface AnimState {
 }
 
 // Timings at Normal speed (ms)
-const T = { toCenter: 450, hold: 1000, toTarget: 450, move: 550, lift: 220, stagger: 90, maxStagger: 900, blockIn: 550, blockHold: 800, deal: 380, dealGap: 110,
+const T = { toCenter: 450, move: 550, lift: 220, stagger: 90, maxStagger: 900, blockIn: 550, blockHold: 800, deal: 380, dealGap: 110,
   across: 800, atTarget: 250 };
 /** A card someone else plays, as it crosses the board: the size of the draw pile, so you can tell which it is. */
 const PASSING = { w: 44, h: 61 };
@@ -345,29 +345,14 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
       // it is still being discarded. A held, blockable card has no effect yet.
       start = heldAfter ? t1 : keys.at(-1)!.t;
     } else {
-      const t1 = start + ms(T.toCenter), t2 = t1 + ms(T.hold), t3 = t2 + (target !== undefined ? ms(T.toTarget) : 0), t4 = t3 + ms(T.move);
-      const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: from.hand === reveal.seat }];
-      if (start > 0) keys.push({ ...keys[0]!, t: start });   // waits in the hand until the block is over
-      keys.push({ t: t1, ...CENTER, face: true }, { t: t2, ...CENTER, face: true });
-      if (target !== undefined) {
-        targetRect = rowRect(after, to, target);
-        const spot = grow(seatRect(after, to, target));
-        if (m.to.at === 'seat' && reveal.type !== 'immediate') {
-          // Held nowhere yet: they may still block it, so it waits halfway
-          const half = lerp(CENTER, spot, 0.5);
-          keys.push({ t: t3, ...half, face: true });
-          heldAfter = { card, rect: half, target };
-        } else {
-          keys.push({ t: t3, ...spot, face: true }, { t: t4, ...at(m.to, 'to'), face: true });
-        }
-      } else {
-        keys.push({ t: t4, ...at(m.to, 'to'), face: true });
-      }
+      // Your own card with nowhere to go yet (waiting for your choice): big in the middle
+      const t1 = start + ms(T.toCenter);
+      const keys: Key[] = [{ t: 0, ...at(m.from, 'from'), face: true }];
+      if (start > 0) keys.push({ ...keys[0]!, t: start });
+      keys.push({ t: t1, ...CENTER, face: true });
       flights.push({ id: id(), card, keys, big: true });
       flown.push(m);
-      // Don't start the card's effect until its discard flight has finished. A blockable card is
-      // held at its target instead, so its resolution is necessarily a later snapshot.
-      start = heldAfter ? t3 : t4;
+      start = t1;
     }
   }
 
