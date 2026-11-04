@@ -31,16 +31,16 @@ function debtStep() {
 }
 
 describe('planStep', () => {
-  it("a bot's played card flies to the middle face up, to the player it's played on, then to the discard pile", () => {
+  it("a bot's played card crosses to the player it's played on face up, without stopping, then to the discard pile", () => {
     const { prev, next } = debtStep();
     const plan = planStep(prev, next, 1)!;
     expect(plan.caption).toBe('Bot played Debt on Player 1.');
     const [card, wall] = plan.flights;
     expect(card!.card).toBe(7);
-    expect(card!.keys[0]!.face).toBe(false);                     // still hidden in the bot's hand
-    expect(card!.keys[1]).toMatchObject({ ...CENTER, face: true });
-    expect(card!.keys).toHaveLength(5);                          // hand, middle, (hold), the player, discard
-    // The wall moves after the card has been seen
+    expect(card!.continuous).toBe(true);
+    expect(card!.keys.every(k => k.face)).toBe(true);            // a played card is public
+    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);   // no stop in the middle
+    // The wall moves after the card has landed
     expect(wall!.card).toBe(33);
     expect(wall!.keys[1]!.t).toBeGreaterThanOrEqual(card!.keys.at(-1)!.t); // discard lands before Debt takes the wall
     expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t));   // the caption's beat comes after, with the cards landed
@@ -51,7 +51,7 @@ describe('planStep', () => {
     expect(plan.mid.discard).toEqual([]);
   });
 
-  it("another player's card stops in the middle so people can read it", () => {
+  it("another player's card goes straight to the discard pile: no stop to read it", () => {
     const a = base();
     const b = clone(a);
     b.seats[1]!.hand = [30];
@@ -60,11 +60,11 @@ describe('planStep', () => {
     const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
     const [card] = plan.flights;
     expect(card!.card).toBe(7);
-    expect(card!.big).toBe(true);
-    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(true);
-    expect(card!.keys[1]).toMatchObject(CENTER);
+    expect(card!.big).toBeFalsy();
+    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
     expect(card!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });  // on the discard pile
-    expect(plan.duration).toBeLessThan(planStep(debtStep().prev, debtStep().next, 1)!.duration);
+    // never still: every leg of the trip moves
+    for (let k = 1; k < card!.keys.length; k++) expect(card!.keys[k]!.x !== card!.keys[k - 1]!.x || card!.keys[k]!.y !== card!.keys[k - 1]!.y).toBe(true);
   });
 
   it('your own card goes straight to its destination, while a bot-only watch game never pauses a play in the middle', () => {

@@ -317,13 +317,13 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     if (target !== undefined && m.to.at === 'center') m.to = { at: 'seat', seat: target };
     // Not on any pile yet and played on nobody: it stays in the middle (it lands with a later step)
     if (m.to.at === 'seat' && target === undefined) m.to = { at: 'center' };
-    // In a bot-only watch game, cards keep moving. In a game with people, your own cards go
-    // straight to their destination while other players' cards pause in the middle to be read.
+    // Played cards never stop to be read: they cross the board face up, straight to where they go
+    // (a card that can still be blocked waits at its target). Only your own card that has nowhere to
+    // go yet (it waits for your choice) is shown big in the middle.
     const me = next.view && !next.view.seats[next.viewer]?.bot ? next.viewer : -1;
     const watchBots = !!next.openHands;
-    // An unresolved ordinary play needs to remain in the middle. Every card you play, including a
-    // Play Immediately card, travels to its discard destination before its effect may begin.
-    if (watchBots || (reveal.seat === me && m.to.at !== 'center')) {
+    // Every card, including a Play Immediately card, travels to its discard destination before its effect may begin.
+    if (watchBots || reveal.seat !== me || m.to.at !== 'center') {
       const src = at(m.from, 'from');
       const keys: Key[] = [{ t: 0, ...src, face: true }];
       if (start > 0) keys.push({ ...keys[0]!, t: start });
