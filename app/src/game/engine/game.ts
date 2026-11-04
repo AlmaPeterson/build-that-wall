@@ -388,7 +388,12 @@ export class Game implements GameApi {
     if (s.over) return;
     const maxSets = Math.max(0, ...s.seats.map((_, i) => board.sets(s, i)));
     let end = false, reason = '';
-    if ((ending === 1 || ending === 3) && maxSets >= 3) { end = true; reason = 'Someone built 3 sets of 3 walls.'; }
+    if ((ending === 1 || ending === 3) && maxSets >= 3) {
+      end = true;
+      const done = s.seats.flatMap((_, i) => (board.sets(s, i) >= 3 ? [i] : []));
+      const who = done.includes(s.turn) ? s.turn : done[0]!;
+      reason = this.name(who) + ' built 3 sets of 3 walls.';
+    }
     if ((ending === 2 || ending === 3) && s.deckDone) { end = true; reason = 'The deck ran out and the final turns are done.'; }
     if (ending === 4 && s.deckDone && maxSets >= 3) { end = true; reason = 'Both the deck and 3 sets are done.'; }
     if (finalDone) {

@@ -41,8 +41,8 @@ const SHOW: Record<string, () => preact.JSX.Element> = {
   option: () => <PromptView view={view} prompt={prompt({ kind: 'chooseOption', seat: 0, card: 25, options: ['draw', 'protect'], cancellable: true })} />,
   pass: () => <PassScreen name="Ben" why="Ann played Debt on you. It's your turn." onReady={() => {}} />,
   recap: () => <Recap lines={recapFor(events, 0, view)} myTurn onClose={() => {}} />,
-  notice: () => <BigNotice head="FINAL ROUND" title="FINAL ROUND!" sub="Final round! Someone built 3 sets of 3 walls. Everyone else gets one final turn." onClose={() => {}} />,
-  win: () => <WinScreen result={{ winners: [1], miles: [19, 27, 11], reason: 'Someone built 3 sets of 3 walls.' }} view={view} onAgain={() => {}} onMenu={() => {}} />,
+  notice: () => <BigNotice head="FINAL ROUND" title="FINAL ROUND!" sub="Final round! Bot Eagle built 3 sets of 3 walls. Everyone else gets one final turn." onClose={() => {}} />,
+  win: () => <WinScreen result={{ winners: [1], miles: [19, 27, 11], reason: 'Bot Eagle built 3 sets of 3 walls.' }} view={view} onAgain={() => {}} onMenu={() => {}} />,
   toasts: () => <Toasts toasts={[{ id: 1, text: 'PLAY IMMEDIATELY: Ann drew Deep State.', tone: 'alert' }, { id: 2, text: 'Ben blocked Debt with Self-Defense.', tone: 'good' }, { id: 3, text: 'The discard pile was shuffled into the draw pile.', tone: 'info' }]} />,
   tip: () => <TutorialTip best="Build Wall Section 2 with your Man Hour." tips={['Use your Man Hour to build a wall without discarding other walls.', 'Protect a pair with Trump Train so nobody can take it.', 'You have 3 actions left. Use them all before ending your turn.']} onHide={() => {}} />,
 };

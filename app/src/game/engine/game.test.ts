@@ -110,14 +110,14 @@ describe('endings', () => {
     const { game, state, events } = setup({ settings: { ending: 1, players: 3 }, draw: filler(30) });
     state.seats[0]!.walls = [...THREE_SETS];
     await begin(game, state, [[], [], []]);
-    expect(state.final).toEqual({ kind: 'sets', stop: 0, reason: 'Someone built 3 sets of 3 walls.' });
+    expect(state.final).toEqual({ kind: 'sets', stop: 0, reason: 'Player 1 built 3 sets of 3 walls.' });
     await game.act(0, { type: 'endTurn' });
     expect(state.over).toBeNull();
     await game.act(1, { type: 'endTurn' });
     expect(state.over).toBeNull();
     await game.act(2, { type: 'endTurn' });
-    expect(state.over).toEqual({ winners: [0], miles: [48, 0, 0], reason: 'Someone built 3 sets of 3 walls.' });
-    expect(events.at(-1)!.text).toBe('Player 1 wins! Someone built 3 sets of 3 walls. Most miles: 48.');
+    expect(state.over).toEqual({ winners: [0], miles: [48, 0, 0], reason: 'Player 1 built 3 sets of 3 walls.' });
+    expect(events.at(-1)!.text).toBe('Player 1 wins! Player 1 built 3 sets of 3 walls. Most miles: 48.');
   });
 
   it('ending 2 ignores sets and ends after the deck final round', async () => {
@@ -139,7 +139,7 @@ describe('endings', () => {
     expect(state.final?.kind).toBe('sets');
     await game.act(0, { type: 'endTurn' });
     await game.act(1, { type: 'endTurn' });
-    expect(state.over?.reason).toBe('Someone built 3 sets of 3 walls.');
+    expect(state.over?.reason).toBe('Player 1 built 3 sets of 3 walls.');
   });
 
   it('ending 4: a deck final round without 3 sets lets play go on until someone has 3 sets', async () => {

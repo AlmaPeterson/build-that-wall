@@ -29,8 +29,7 @@ export async function debt(ctx: EffectContext): Promise<boolean> {
 /** 26 Trump: discard it and draw 3 cards. */
 export async function trump(ctx: EffectContext): Promise<boolean> {
   ctx.discard(26);
-  const drawn = ctx.draw(ctx.player, 3);
-  ctx.emit({ type: 'draw', seat: ctx.player, card: 26, cards: drawn, text: seatName(ctx, ctx.player) + ' drew ' + drawn.length + ' card(s).' });
+  ctx.draw(ctx.player, 3);    // (drawing reports itself: "<name> drew 3 cards.")
   return true;
 }
 
@@ -45,8 +44,7 @@ export async function trumpTrain(ctx: EffectContext): Promise<boolean> {
   if (choice === null) return false;
   if (choice === 'draw') {
     ctx.discard(25);
-    const drawn = ctx.draw(ctx.player, 3);
-    ctx.emit({ type: 'draw', seat: ctx.player, card: 25, cards: drawn, text: seatName(ctx, ctx.player) + ' drew ' + drawn.length + ' card(s).' });
+    ctx.draw(ctx.player, 3);
     return true;
   }
   const w = await askWall(ctx, ctx.player, pairs, true);
