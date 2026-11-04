@@ -11,6 +11,10 @@ import { useStore } from '../store';
 import { PromptView } from './Prompt';
 import { BigNotice, PassScreen, Recap, TurnBanner, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
 import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, waitingText, wallToastFor, type RecapLine } from './text';
+import { amazonUrl } from '../links';
+import { services } from '../services';
+import { ads } from './ads';
+import { VideoAd } from './VideoAd';
 import './overlays.css';
 
 const TOAST_MS = 3200;
@@ -26,6 +30,8 @@ export function Overlays({ controller }: { controller: GameController }) {
   const [notices, setNotices] = useState<GameEvent[]>([]);
   const [recap, setRecap] = useState<{ lines: RecapLine[]; myTurn: boolean } | null>(null);
   const [winClosed, setWinClosed] = useState(false);
+  const [adSeen, setAdSeen] = useState(false);
+  const [adThen, setAdThen] = useState<(() => void) | null>(null);
   const [tipHidden, setTipHidden] = useState(false);
   const seen = useRef(0);
   const toastId = useRef(0);
@@ -39,7 +45,7 @@ export function Overlays({ controller }: { controller: GameController }) {
     const newToasts: Toast[] = [];
     const wallsToasted = new Set<number>();
     for (const e of fresh) {
-      if (e.type === 'gameStart') { setWinClosed(false); setRecap(null); setNotices([]); }
+      if (e.type === 'gameStart') { setWinClosed(false); setRecap(null); setNotices([]); setAdSeen(false); setAdThen(null); }
       // A bot-only watch game has no one to acknowledge a modal; let its animations and turns run on.
       if (e.type === 'finalRound') { if (!openHands) { setNotices(n => [...n, e]); playSfx('alert'); } continue; }
       if (e.type === 'gameOver') { playSfx('win'); continue; }
@@ -84,14 +90,23 @@ export function Overlays({ controller }: { controller: GameController }) {
 
   const playAgain = () => { const s = controller.state?.settings; if (s) startLocalGame(s); };
   const toMenu = () => { currentController.set(null); screen.set('menu'); };
+  /** Leaving the win screen: players without Gold see the video ad first (once per game). */
+  const afterAd = (then: () => void) => () => {
+    if (adSeen || !ads.wanted()) { then(); return; }
+    setAdSeen(true);
+    setAdThen(() => then);
+  };
 
   let modal = null;
-  if (passTo !== null) {
+  if (adThen) {
+    modal = <VideoAd storeUrl={amazonUrl(services.config.get().amazonTag)} onDone={() => { const then = adThen; setAdThen(null); then(); }} />;
+  } else if (passTo !== null) {
     modal = <PassScreen name={seatName(view, passTo)} why={passWhy(events, passTo, view)} onReady={() => controller.ready()} />;
   } else if (prompt) {
     modal = <PromptView prompt={prompt} view={view} />;
   } else if (view.over && !winClosed) {
-    modal = <WinScreen result={view.over} view={view} onAgain={playAgain} onLog={() => setWinClosed(true)} onMenu={() => { setWinClosed(true); toMenu(); }} />;
+    modal = <WinScreen result={view.over} view={view} onAgain={afterAd(playAgain)} onLog={afterAd(() => setWinClosed(true))}
+      onMenu={afterAd(() => { setWinClosed(true); toMenu(); })} />;
   } else if (notices.length) {
     const n = notices[0]!;
     modal = <BigNotice head="FINAL ROUND" title={n.text.startsWith('The last card') ? 'LAST CARD!' : 'FINAL ROUND!'} sub={n.text}
