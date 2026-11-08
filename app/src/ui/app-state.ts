@@ -24,7 +24,7 @@ export interface UiSettings {
 }
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
-  game: { ...DEFAULT_SETTINGS, players: 2, bots: 1, difficulties: ['medium'] },
+  game: { ...DEFAULT_SETTINGS, players: 2, bots: 1, difficulties: ['medium', 'medium', 'medium', 'medium', 'medium', 'medium'] },   // one level for every bot to start with
   gameMode: 'passnplay', sound: true, musicMode: 'cycle', autoJoin: false, tutorial: false,
   animSpeed: reducedMotion() ? 'off' : 'normal',
   textSizes: { menu: 1, board: 1, cards: 1, popups: 1 },

@@ -37,7 +37,7 @@ export function OnlineScreen() {
           <section class="btw-card" aria-labelledby="quick-h">
             <h2 id="quick-h">Quick match</h2>
             <p>Join a game that's waiting for players, or open one for others to join.</p>
-            <p class="btw-muted">You'll play as <b>{player.name}</b>. Change your name on the Account & Store screen.</p>
+            <p class="btw-muted">You'll play as <b>{player.name}</b>. Change it on the home page.</p>
             <div class="btw-row"><Button onClick={() => void online.quick()}>Find a game</Button></div>
           </section>
           <section class="btw-card" aria-labelledby="host-h">

@@ -1,11 +1,10 @@
 // Account & Store: sign in (optional), your name, Gold, donations, backups, feedback.
 import { useEffect, useState } from 'preact/hooks';
-import { cleanName } from '../../services/online';
 import { deviceInfo, openFeedbackBox } from '../../services/feedback';
 import { userEmail } from '../../services/account';
-import { screen, settings } from '../app-state';
-import { updateSettings, MAX_PLAYERS } from '../menus/prefs';
+import { screen } from '../app-state';
 import { Message, Page } from '../account/Page';
+import { saveMyName } from '../account/my-name';
 import { buyMessage, codeMessage, nameMessage, trialMessage, type Said } from '../account/results';
 import { Button } from '../components/Button';
 import { services, type GoldItem } from '../services';
@@ -106,19 +105,7 @@ function AccountCard({ player, googleReady, busy, run, said, say }: { player: Pl
       <label class="btw-row">
         <span>Your name</span>
         <input class="btw-input" value={name} maxLength={20} onInput={e => setName((e.target as HTMLInputElement).value)} aria-label="Your name" />
-        <Button color="plain" disabled={busy} onClick={() => run(async () => {
-          const clean = cleanName(name);
-          if (!clean) { say(nameMessage('empty')); return; }
-          const r = player.verified ? await services.account.claimName(services.server(), clean) : 'local';
-          if (r === 'ok' || r === 'local' || r === 'noserver') {
-            services.store.set('name', clean);
-            // The first Settings name is the same player, not a competing source of truth.
-            const g = settings.get().game;
-            updateSettings(s => ({ ...s, game: { ...s.game, names: Array.from({ length: MAX_PLAYERS }, (_, i) => i === 0 ? clean : g.names[i] ?? '') } }));
-          }
-          say(nameMessage(r));
-          services.refresh();
-        })}>Save name</Button>
+        <Button color="plain" disabled={busy} onClick={() => run(async () => say(nameMessage(await saveMyName(name))))}>Save name</Button>
       </label>
       <Message text={said?.text ?? ''} ok={!!said?.ok} />
     </section>

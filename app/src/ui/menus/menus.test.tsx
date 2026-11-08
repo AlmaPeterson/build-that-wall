@@ -53,7 +53,7 @@ describe('settings', () => {
       autojoin: '1', ai1: 'Hard', ai2: 'Random', tutor: '1', ts_pop: '1.3', ts_board: '0.9', ts_hand: '1.1', ts_win: '0.85',
     }), DEFAULT_UI_SETTINGS);
     expect(s.game).toMatchObject({ players: 4, bots: 2, ending: 3, endingTimes: 2 });
-    expect(s.game.difficulties.slice(0, 3)).toEqual(['hard', 'random', 'easy']);
+    expect(s.game.difficulties.slice(0, 3)).toEqual(['hard', 'random', 'medium']);   // a bot slot with nothing saved takes the default level
     expect(s).toMatchObject({ sound: false, gameMode: 'multiplayer', musicMode: 'one', autoJoin: true, tutorial: true });
     expect(s.textSizes).toEqual({ popups: 1.3, board: 0.9, cards: 1.1, menu: 0.85 });
   });
@@ -99,13 +99,25 @@ describe('settings', () => {
     expect(gameSettingsFor(3, 3).names[0] ?? '').toBe('');              // watch mode: no Player 1
   });
 
-  it('saves changes made on the Settings screen', () => {
+  it('Settings only has how the app looks and sounds; game choices are asked at Play', () => {
+    act(() => { render(<SettingsScreen />, root); });
+    const labels = [...root.querySelectorAll('.settings__label')].map(l => l.textContent);
+    expect(labels).toContain('Sound Effects');
+    expect(labels).not.toContain('Players');
+    expect(labels).not.toContain('Ending');
+    expect(root.querySelector('input[type="text"]')).toBeNull();
+  });
+
+  it('saves what was picked in the Play box for next time', () => {
     const store = fresh();
     initSettingsPersistence(store);
-    act(() => { render(<SettingsScreen />, root); });
-    act(() => { (root.querySelector('[aria-label="Players more"]') as HTMLButtonElement).click(); });
-    expect(settings.get().game.players).toBe(DEFAULT_UI_SETTINGS.game.players + 1);
-    expect(store.prefGet('players')).toBe(String(DEFAULT_UI_SETTINGS.game.players + 1));
+    act(() => { render(<MenuScreen />, root); });
+    click('Play');
+    click('Play with bots');
+    const bots = settings.get().game.bots;
+    act(() => { (root.querySelector('[aria-label="Bots more"]') as HTMLButtonElement).click(); });
+    expect(settings.get().game).toMatchObject({ bots: bots + 1, players: bots + 2 });
+    expect(store.prefGet('ai')).toBe(String(bots + 1));
   });
 
   it('saves changes made during a game too, and says so', () => {
@@ -121,11 +133,16 @@ describe('settings', () => {
     controller.set(null);
   });
 
-  it('hides Ending Times when the game ends on 3 sets', () => {
-    act(() => { render(<SettingsScreen />, root); });
-    expect(root.querySelector('#set-times')).toBeNull();
+  it('how the game ends is under More options, and Ending Times only shows when the deck can end it', () => {
+    act(() => { render(<MenuScreen />, root); });
+    click('Play');
+    click('Play with bots');
+    expect(root.querySelector('#play-ending')).toBeNull();
+    act(() => { root.querySelector<HTMLButtonElement>('.play__more')!.click(); });
+    expect(root.querySelector('#play-ending')).not.toBeNull();
+    expect(root.querySelector('#play-times')).toBeNull();
     act(() => { settings.set({ ...settings.get(), game: { ...settings.get().game, ending: 2 } }); });
-    expect(root.querySelector('#set-times')).not.toBeNull();
+    expect(root.querySelector('#play-times')).not.toBeNull();
   });
 });
 
@@ -169,17 +186,49 @@ describe('starting games', () => {
     expect(g.difficulties).toEqual(['hard']);
   });
 
-  it('Start Game in Pass\'n\'Play starts a game without signing in', () => {
+  it('Play with bots: pick how many and how hard, then Start (no sign-in needed)', () => {
     act(() => { render(<MenuScreen />, root); });
-    click('Start Game');
+    click('Play');
+    click('Play with bots');
+    act(() => { (root.querySelector('[aria-label="Bots more"]') as HTMLButtonElement).click(); });
+    const bots = settings.get().game.bots;
+    click('Hard');
+    click('Start');
     expect(screen.get()).toBe('game');
-    expect(controller.get()).not.toBeNull();
+    expect(game().seats.filter(s => s.bot).map(s => s.bot)).toEqual(Array(bots).fill('hard'));
+    expect(game().seats[0]!.bot).toBeNull();
   });
 
-  it("Pass'n'Play with 2 people asks their names first, uses them and keeps them", () => {
+  it('bots can be set one by one', () => {
+    settings.set(clampSettings({ ...DEFAULT_UI_SETTINGS, game: { ...DEFAULT_UI_SETTINGS.game, players: 3, bots: 2, difficulties: Array(6).fill('easy') } }));
+    act(() => { render(<MenuScreen />, root); });
+    click('Play');
+    click('Play with bots');
+    expect(root.querySelector('[aria-label="Bot difficulty"] .is-current')?.textContent).toBe('Easy');
+    click('Set each bot separately');
+    const second = root.querySelector<HTMLSelectElement>('#play-ai2')!;
+    act(() => { second.value = 'medium'; second.dispatchEvent(new Event('change', { bubbles: true })); });
+    click('Start');
+    expect(game().seats.map(s => s.bot)).toEqual([null, 'easy', 'medium']);
+  });
+
+  it('bots that differ open one by one', () => {
+    settings.set(clampSettings({ ...DEFAULT_UI_SETTINGS, game: { ...DEFAULT_UI_SETTINGS.game, players: 3, bots: 2, difficulties: ['hard', 'easy'] } }));
+    act(() => { render(<MenuScreen />, root); });
+    click('Play');
+    click('Play with bots');
+    expect(root.querySelector('#play-ai1')).not.toBeNull();
+    click('Same for every bot');
+    expect(root.querySelector('[aria-label="Bot difficulty"] .is-current')?.textContent).toBe('Hard');
+  });
+
+  it("Pass'n'Play: how many people and bots, then everyone's names", () => {
     settings.set(clampSettings({ ...DEFAULT_UI_SETTINGS, game: { ...DEFAULT_UI_SETTINGS.game, players: 3, bots: 1 } }));
     act(() => { render(<MenuScreen />, root); });
-    click('Start Game');
+    click('Play');
+    click("Pass'n'Play");
+    expect(root.querySelector('[aria-label="People"] output')?.textContent).toBe('2');
+    click('Next');
     expect(screen.get()).toBe('menu');
     const inputs = [...root.querySelectorAll<HTMLInputElement>('.names input')];
     expect(inputs).toHaveLength(2);
@@ -192,13 +241,25 @@ describe('starting games', () => {
     expect(settings.get().game.names.slice(0, 2)).toEqual(['Alma', 'Sam']);
   });
 
-  it('Start Game in Multiplayer opens the online choices', () => {
-    settings.set({ ...DEFAULT_UI_SETTINGS, gameMode: 'multiplayer' });
+  it('Play online goes to the online screen; Back returns to the choices', () => {
     act(() => { render(<MenuScreen />, root); });
-    click('Start Game');
-    click('Join with a code');
-    expect(onlineIntent.get()).toBe('join');
+    click('Play');
+    click("Pass'n'Play");
+    click('Back');
+    click('Play online');
     expect(screen.get()).toBe('online');
+  });
+
+  it('your name is on the home page and can be changed there', () => {
+    act(() => { render(<MenuScreen />, root); });
+    act(() => { root.querySelector<HTMLButtonElement>('.menu__name')!.click(); });
+    const input = root.querySelector<HTMLInputElement>('#menu-name')!;
+    act(() => { input.value = 'Grandma Sue'; input.dispatchEvent(new Event('input', { bubbles: true })); });
+    act(() => { root.querySelector<HTMLFormElement>('.menu__name-form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    return vi.waitFor(() => {
+      expect(root.querySelector('.menu__name')?.textContent).toContain('Grandma Sue');
+      expect(new SaveStore(browserStorage()).get('name')).toBe('Grandma Sue');
+    });
   });
 
   it('menu buttons go to their screens', () => {
