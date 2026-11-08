@@ -1,6 +1,6 @@
-// Scroll the mouse wheel over a card picture to zoom it in or out around the pointer (e.g. to read the
-// small print, or the QR code). Zoomed in, dragging the picture pans it; zoomed all the way out, dragging
-// moves the popup as before (components/drag.ts).
+// Scroll the mouse wheel over a card picture, or pinch it with two fingers, to zoom it in or out (e.g. to
+// read the small print, or the QR code). Zoomed in, dragging the picture pans it; zoomed all the way out,
+// dragging moves the popup as before (components/drag.ts).
 import { useEffect, useRef, useState } from 'preact/hooks';
 
 /** z: scale (1 = normal); x, y: where the picture's top-left is, in picture widths/heights from its box. */
@@ -31,6 +31,19 @@ export function panBy(v: View, dx: number, dy: number): View {
   return clamp({ ...v, x: v.x + dx, y: v.y + dy });
 }
 
+export interface Point { x: number; y: number }
+
+/**
+ * One step of a two-finger pinch: the spot between the fingers moved from `m0` to `m1` (in box
+ * widths/heights from the box's top-left) and the fingers' distance went from `d0` to `d1`. The picture
+ * follows the fingers: it slides with them and grows or shrinks around the spot between them.
+ */
+export function pinchStep(v: View, m0: Point, d0: number, m1: Point, d1: number): View {
+  if (!(d0 > 0) || !(d1 > 0)) return v;
+  const moved = { z: v.z, x: v.x + m1.x - m0.x, y: v.y + m1.y - m0.y };
+  return zoomAt(moved, d1 / d0, (m1.x - moved.x) / moved.z, (m1.y - moved.y) / moved.z);
+}
+
 /** How much one wheel event zooms: a mouse notch is about 1.2x, a trackpad's small steps zoom smoothly. */
 export function wheelFactor(deltaY: number, deltaMode: number): number {
   const px = deltaMode === 1 ? deltaY * 33 : deltaMode === 2 ? deltaY * 400 : deltaY;
@@ -55,7 +68,55 @@ export function usePictureZoom<T extends HTMLElement = HTMLImageElement>(key: un
       if (!r.width || !r.height) return;
       setView(zoomAt(current.current, wheelFactor(e.deltaY, e.deltaMode), (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height));
     };
+    // Fingers on the picture: two of them pinch
+    const fingers = new Map<number, Point>();
+    const pinch = (e: PointerEvent) => {
+      const first = [...fingers.keys()];
+      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      // Stop what the first finger started (drag.ts moving the popup, or panning below): both fingers pinch now
+      for (const id of first) dispatchEvent(new PointerEvent('pointercancel', { pointerId: id }));
+      // The picture's box on screen (it doesn't move while pinching), from the picture as shown now
+      const r = el.getBoundingClientRect(), v0 = current.current;
+      const w = r.width / v0.z, h = r.height / v0.z, left = r.left - v0.x * w, top = r.top - v0.y * h;
+      const shape = () => {
+        const [a, b] = [...fingers.values()] as [Point, Point];
+        return { m: { x: ((a.x + b.x) / 2 - left) / w, y: ((a.y + b.y) / 2 - top) / h }, d: Math.hypot(a.x - b.x, a.y - b.y) };
+      };
+      let last = shape();
+      const move = (m: PointerEvent) => {
+        if (!fingers.has(m.pointerId)) return;
+        m.preventDefault();
+        fingers.set(m.pointerId, { x: m.clientX, y: m.clientY });
+        const now = shape();
+        const from = last;
+        setView(v => pinchStep(v, from.m, from.d, now.m, now.d));
+        last = now;
+      };
+      const up = (u: PointerEvent) => {
+        if (!fingers.has(u.pointerId)) return;
+        fingers.clear();
+        removeEventListener('pointermove', move);
+        removeEventListener('pointerup', up);
+        removeEventListener('pointercancel', up);
+        // Lifting the fingers isn't a tap or a double-tap on the card
+        const eat = (c: Event) => { c.stopPropagation(); c.preventDefault(); };
+        addEventListener('click', eat, { capture: true, once: true });
+        setTimeout(() => removeEventListener('click', eat, { capture: true }), 300);
+      };
+      addEventListener('pointermove', move, { passive: false });
+      addEventListener('pointerup', up);
+      addEventListener('pointercancel', up);
+    };
+    const forget = (e: PointerEvent) => { if (fingers.size < 2) fingers.delete(e.pointerId); };
+    addEventListener('pointerup', forget);
+    addEventListener('pointercancel', forget);
+
     const down = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') {
+        if (fingers.size >= 2) return;
+        if (fingers.size === 1) { e.preventDefault(); e.stopPropagation(); pinch(e); return; }
+        fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
       if (e.button !== 0 || current.current.z === 1) return;   // not zoomed: drag.ts moves the popup
       e.preventDefault();
       const r = el.getBoundingClientRect(), z = current.current.z;
@@ -78,7 +139,12 @@ export function usePictureZoom<T extends HTMLElement = HTMLImageElement>(key: un
     };
     el.addEventListener('wheel', wheel, { passive: false });
     el.addEventListener('pointerdown', down);
-    return () => { el.removeEventListener('wheel', wheel); el.removeEventListener('pointerdown', down); };
+    return () => {
+      el.removeEventListener('wheel', wheel);
+      el.removeEventListener('pointerdown', down);
+      removeEventListener('pointerup', forget);
+      removeEventListener('pointercancel', forget);
+    };
   }, []);
 
   const zoomed = view.z > 1;
@@ -86,7 +152,7 @@ export function usePictureZoom<T extends HTMLElement = HTMLImageElement>(key: un
     ref,
     zoomed,
     props: {
-      title: 'Scroll to zoom in or out',
+      title: 'Scroll or pinch to zoom in or out',
       // drag.ts leaves [data-nodrag] alone: zoomed in, dragging pans the picture instead of moving the popup
       'data-nodrag': zoomed ? '' : undefined,
       style: {
@@ -94,7 +160,7 @@ export function usePictureZoom<T extends HTMLElement = HTMLImageElement>(key: un
         transform: zoomed ? `translate(${view.x * 100}%, ${view.y * 100}%) scale(${view.z})` : undefined,
         cursor: zoomed ? 'grab' : 'zoom-in',
         zIndex: zoomed ? 1 : undefined,
-        touchAction: zoomed ? 'none' : undefined,
+        touchAction: 'none',   // a pinch zooms the picture, not the whole page
       },
     },
   };

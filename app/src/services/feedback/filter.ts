@@ -245,7 +245,7 @@ const FAQ: [RegExp, string][] = [
   [/\b(miles?|score|points|sets?|stack)\b/, "Matching Wall Sections stack together: 1 section is 3 miles, 2 sections are 8 miles and 3 sections are 16 miles. 3 matching sections make a complete set, which can't be taken or destroyed."],
   [/\b(turns?|actions?|draw|end turn)\b/, 'On your turn: draw 3 cards, take up to 3 actions (building a wall or playing a card), then press End Turn.'],
   [/\b(red|immediately)\b/, "Play Immediately cards have a red title. You must use them right away, and they don't cost an action."],
-  [/\b(zoom|read|bigger|qr|see the card|look at)\b/, "Tap a card to see it big, then scroll over the picture to zoom in or out. Press Scan QR Code to open that card's web page."],
+  [/\b(zoom|read|bigger|qr|see the card|look at)\b/, "Tap a card to see it big, then pinch the picture with two fingers (or scroll over it) to zoom in or out. Press Scan QR Code to open that card's web page."],
   [/\b(debt)\b/, 'Debt takes a built section from an opponent. They can block it with a Savings card.'],
   [/\b(self-defense|self defense|block|protect)\b/, 'Self-Defense stops a bad effect aimed at you. Savings blocks Debt, and Trump Train can protect a set of 2.'],
   [/\b(trump train|trump card|trump)\b/, 'Trump: discard it to draw 3 cards. Trump Train: draw 3 cards, or protect a set of 2.'],
