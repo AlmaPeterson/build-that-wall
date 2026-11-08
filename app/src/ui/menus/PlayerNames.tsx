@@ -1,5 +1,5 @@
-// "Who's playing?": Start Game in Pass'n'Play with 2 or more people on this device asks each person's name,
-// so the game says "Sam's turn", not "Player 2's turn". The names are kept in Settings for next time.
+// "Who's playing?": Pass'n'Play (the Play box) asks each person's name, so the game says "Sam's turn",
+// not "Player 2's turn". The names are kept in the settings for next time.
 import { useState } from 'preact/hooks';
 import { browserStorage, SaveStore } from '../../services/storage';
 import { cleanName } from '../../services/online';
@@ -24,7 +24,7 @@ export function PlayerNames({ onStart, onClose }: { onStart: () => void; onClose
     e?.preventDefault();
     const typed = names.map(n => n.trim().slice(0, 20));
     updateSettings(s => ({ ...s, game: { ...s.game, names: Array.from({ length: MAX_PLAYERS }, (_, j) => (j < humans ? typed[j]! : s.game.names[j] ?? '')) } }));
-    // Player 1 is this device's identity (as in Settings): online play and scores use the same name
+    // Player 1 is this device's identity (your name on the home page): online play and scores use the same name
     if (typed[0]) new SaveStore(browserStorage()).set('name', cleanName(typed[0]));
     onStart();
   }
@@ -41,8 +41,8 @@ export function PlayerNames({ onStart, onClose }: { onStart: () => void; onClose
           </label>
         ))}
         <div class="names__buttons">
-          <Button type="submit">Start Game</Button>
-          <Button color="plain" type="button" onClick={onClose}>Cancel</Button>
+          <Button type="submit">Start</Button>
+          <Button color="plain" type="button" onClick={onClose}>Back</Button>
         </div>
       </form>
     </Modal>

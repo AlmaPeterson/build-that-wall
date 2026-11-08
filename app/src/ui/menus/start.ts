@@ -7,14 +7,14 @@ import { screen, settings, startLocalGame } from '../app-state';
 import { createStore } from '../store';
 import { MAX_PLAYERS } from './prefs';
 
-/** What the player picked in the Multiplayer menu, for the Online screen to act on. */
+/** A choice to act on as the Online screen opens (quick match, host a room, join with a code). */
 export type OnlineIntent = 'quick' | 'host' | 'join';
 export const onlineIntent = createStore<OnlineIntent | null>(null);
 
 /** The game's settings as the engine wants them: one difficulty per bot actually playing. */
 export function gameSettingsFor(players: number, bots: number, base: GameSettings = settings.get().game): GameSettings {
   const names = base.names.slice(0, players);
-  // Player 1 is you: with no name typed for them in Settings, use your name from Account & Store as it is now
+  // Player 1 is you: with no name typed for them, use your name (home page / Account & Store) as it is now
   if (bots < players && !(names[0] ?? '').trim()) names[0] = playerOneName();
   return {
     ...base,
@@ -30,7 +30,7 @@ export function playerOneName(store: SaveStore = new SaveStore(browserStorage())
   return (store.get('name') || getUser(store)?.name || store.get('gname') || '').trim().slice(0, 20);
 }
 
-/** Start Game in Pass'n'Play: everyone on this device. Bots for every seat is watch mode. */
+/** Pass'n'Play: everyone on this device, plus any bots. Bots for every seat is watch mode. */
 export function startPassNPlay(): void {
   const g = settings.get().game;
   startLocalGame(gameSettingsFor(g.players, Math.min(g.bots, g.players)));

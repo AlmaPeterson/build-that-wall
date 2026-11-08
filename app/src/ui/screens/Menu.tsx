@@ -1,27 +1,64 @@
-// The main menu: red header with the logo, the five main buttons, and the
-// disclaimer footer with the Amazon link (like the old game's title screen).
+// The main menu: red header with the logo, your name (tap to change it), the five main buttons, and the
+// disclaimer footer with the Amazon link (like the old game's title screen). Play asks how you want to
+// play (menus/PlayMenu.tsx).
 import { useEffect, useState } from 'preact/hooks';
 import { loadSettings } from '../../services/config';
-import { screen, settings } from '../app-state';
+import { screen } from '../app-state';
+import { saveMyName } from '../account/my-name';
+import { nameMessage } from '../account/results';
 import { Button } from '../components/Button';
 import { Guide } from '../menus/Guide';
 import logo from '../menus/logo.png';
-import { MultiplayerMenu } from '../menus/MultiplayerMenu';
-import { humansPlaying, PlayerNames } from '../menus/PlayerNames';
+import { PlayMenu } from '../menus/PlayMenu';
 import { initSettingsPersistence } from '../menus/prefs';
-import { startPassNPlay, startTutorialGame } from '../menus/start';
+import { startTutorialGame } from '../menus/start';
+import { services } from '../services';
 import { useStore } from '../store';
 import '../menus/menus.css';
 
 export { AMAZON_URL, amazonUrl } from '../links';
 import { amazonUrl } from '../links';
 
+/** "Playing as Alma ✎": tap to change your name right here. */
+function MyName() {
+  const player = useStore(services.player);
+  const [editing, setEditing] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const named = !!services.store.get('name') || player.signedIn;
+
+  if (!editing) {
+    return (
+      <button type="button" class="menu__name" onClick={() => { setTyped(named ? player.name : ''); setError(''); setEditing(true); }}>
+        {named ? <>Playing as <b>{player.name}</b> <span class="menu__name-edit" aria-hidden="true">✎</span></> : <>Tap to set your name <span aria-hidden="true">✎</span></>}
+      </button>
+    );
+  }
+  const save = async (e: Event) => {
+    e.preventDefault();
+    setBusy(true);
+    const r = await saveMyName(typed);
+    setBusy(false);
+    const said = nameMessage(r);
+    if (r === 'ok' || r === 'local' || r === 'noserver') setEditing(false); else setError(said.text);
+  };
+  return (
+    <form class="menu__name-form" onSubmit={e => void save(e)}>
+      <label class="menu__name-label" for="menu-name">Your name</label>
+      <input id="menu-name" type="text" maxLength={20} value={typed} autoFocus autoComplete="nickname" enterKeyHint="done"
+        onInput={e => setTyped(e.currentTarget.value)} />
+      <Button type="submit" disabled={busy}>Save</Button>
+      <Button type="button" color="plain" onClick={() => setEditing(false)}>Cancel</Button>
+      {error && <p class="menu__name-error" role="alert">{error}</p>}
+    </form>
+  );
+}
+
 export function MenuScreen() {
   initSettingsPersistence();
-  const { gameMode } = useStore(settings);
-  const [multi, setMulti] = useState(false);
+  const [play, setPlay] = useState(false);
   const [guide, setGuide] = useState(false);
-  const [names, setNames] = useState(false);
   const [tag, setTag] = useState('');
   useEffect(() => {
     let live = true;
@@ -29,16 +66,14 @@ export function MenuScreen() {
     return () => { live = false; };
   }, []);
 
-  // Pass'n'Play with 2+ people on this device: ask everyone's name first
-  const start = () => (gameMode === 'multiplayer' ? setMulti(true) : humansPlaying() >= 2 ? setNames(true) : startPassNPlay());
-
   return (
     <div class="menu">
       <header class="menu__head">
         <h1 class="menu__title"><img class="menu__logo" src={logo} alt="Build That Wall: Trump's political card-game" /></h1>
       </header>
       <main class="menu__main">
-        <Button class="menu__big" onClick={start}>Start Game</Button>
+        <MyName />
+        <Button class="menu__big" onClick={() => setPlay(true)}>Play</Button>
         <Button class="menu__big" onClick={() => screen.set('settings')}>Settings</Button>
         <Button class="menu__big" onClick={() => screen.set('account')}>Account &amp; Store</Button>
         <Button class="menu__big" onClick={() => screen.set('instructions')}>Instructions</Button>
@@ -52,8 +87,7 @@ export function MenuScreen() {
         </nav>
         <small class="menu__tm">™ &amp; ® 2024 Beacon Political</small>
       </footer>
-      {multi && <MultiplayerMenu onClose={() => setMulti(false)} />}
-      {names && <PlayerNames onStart={() => { setNames(false); startPassNPlay(); }} onClose={() => setNames(false)} />}
+      {play && <PlayMenu onClose={() => setPlay(false)} />}
       {guide && <Guide onClose={() => setGuide(false)} finishLabel="Start a tutorial game" onFinish={startTutorialGame} />}
     </div>
   );

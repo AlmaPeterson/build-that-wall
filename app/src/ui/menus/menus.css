@@ -105,3 +105,33 @@
 .names__label { flex: none; width: 5.5em; font-weight: bold; color: #7a1a16; }
 .names__row input { flex: 1; min-width: 0; font: inherit; min-height: 44px; padding: 6px 10px; border: 2px solid #7a1a16; border-radius: 10px; background: #fff; }
 .names__buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+
+/* Home page: your name, tap to change it */
+.menu__name { font: inherit; font-size: calc(1.15rem * var(--text-menu)); background: none; border: 2px dashed transparent; border-radius: 10px; color: #5a1210; padding: 4px 12px; cursor: pointer; min-height: 44px; }
+.menu__name:hover, .menu__name:focus-visible { border-color: #e2b5b1; }
+.menu__name b { color: var(--red); }
+.menu__name-edit { color: var(--red); }
+.menu__name-form { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; width: min(100%, 420px); }
+.menu__name-label { font-weight: bold; color: #7a1a16; }
+.menu__name-form input { flex: 1; min-width: 8em; font: inherit; min-height: 44px; padding: 6px 10px; border: 2px solid #7a1a16; border-radius: 10px; background: #fff; }
+.menu__name-form .btw-button { font-size: calc(1rem * var(--text-menu)); padding: 0.25em 0.9em; }
+.menu__name-error { flex-basis: 100%; margin: 0; color: #b3261e; text-align: center; font-weight: bold; }
+
+/* Play: how do you want to play, then what that needs */
+.play { text-align: left; }
+.play.menu-list .btw-button { font-size: calc(1.3rem * var(--text-popups)); padding: 0.35em 0.6em; }
+.play .settings__row { justify-content: space-between; padding: 8px 0; }
+.play__about { margin: 2px 0 0; color: #666; font-size: calc(0.95rem * var(--text-popups)); text-align: center; }
+.play__label { font-weight: bold; color: #7a1a16; margin: 10px 0 6px; }
+.play__levels { padding-bottom: 6px; border-bottom: 2px solid #f3e7e5; }
+.play__levels .settings__steps button { min-width: 70px; }
+.play__link { font: inherit; font-size: calc(0.95rem * var(--text-popups)); background: none; border: none; padding: 8px 0; color: var(--navy, #1f2a6b); text-decoration: underline; cursor: pointer; min-height: 40px; }
+.play__more { display: block; text-decoration: none; text-align: left; }
+.play__more-link { text-decoration: underline; }
+.play__more-now { color: #666; }
+.play__options { border-bottom: 2px solid #f3e7e5; }
+.play__buttons { display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+/* Back and Start stay in view when the box has to scroll (a phone held sideways) */
+.play.settings .play__buttons { position: sticky; bottom: -20px; background: var(--paper); padding: 10px 0 14px; margin-bottom: -14px; }
+.play__buttons .btw-button { flex: 1; min-width: 7em; }
+.play.menu-list .play__buttons .btw-button { flex: 0 1 auto; font-size: calc(1.05rem * var(--text-popups)); }

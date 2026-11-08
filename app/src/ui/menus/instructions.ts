@@ -13,8 +13,8 @@ export const INSTRUCTION_PAGES: InstructionPage[] = [
     title: 'Goal & Setup',
     points: [
       'Goal: have the most miles of wall when the game ends.',
-      'Players: 2 to 6 (3 or 4 is best). Change the number of players in Settings.',
-      'Setup: press Start Game. The deck is shuffled and every player is dealt 5 cards. The rest of the deck becomes the Draw pile.',
+      'Players: 2 to 6 (3 or 4 is best). Press Play to choose how many.',
+      'Setup: press Play, then Start. The deck is shuffled and every player is dealt 5 cards. The rest of the deck becomes the Draw pile.',
       'The player to the left of the dealer goes first, then play moves clockwise.',
       "Play Immediately cards have a red title. You must use them right away: at the start of your first turn, or as soon as you draw one. They don't cost an action.",
     ],
