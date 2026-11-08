@@ -11,7 +11,7 @@ export function showCard(id: CardId | null | undefined): void {
 }
 
 /**
- * Double-click or right-click opens `id` full size, with its Zoom In and Scan QR Code buttons. For cards whose
+ * Double-click or right-click opens `id` full size (without its actions). For cards whose
  * single click does something else (a hand card's actions, picking a card in a question). `before` runs first,
  * e.g. to close the actions popup the first click opened.
  */

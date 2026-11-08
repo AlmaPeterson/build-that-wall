@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-// Double-click / right-click a card to see it full size, with Zoom In and Scan QR Code.
+// Double-click / right-click a card to see it full size; every card popup has Scan QR Code and wheel zoom.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -62,22 +62,44 @@ describe('card zoom by double-click / right-click', () => {
     expect(zoomedCard.get()).toBeNull();
   });
 
-  it('the full-size view has Zoom In (picture as big as the window) and Scan QR Code (the card link)', async () => {
+  it('every card popup has Scan QR Code (the card link): full size, a hand card, a Play Immediately card', async () => {
     root = document.createElement('div');
     document.body.appendChild(root);
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const scan = () => [...root!.querySelectorAll('button')].find(b => b.textContent === 'Scan QR Code');
     showCard(29);
     await act(() => { render(<CardZoom />, root!); });
-    const button = (t: string) => [...root!.querySelectorAll('button')].find(b => b.textContent === t);
-    expect(button('Zoom In')).toBeTruthy();
-    await act(async () => { button('Scan QR Code')!.click(); await tick(); });
+    expect([...root!.querySelectorAll('button')].some(b => /Zoom/.test(b.textContent ?? ''))).toBe(false);
+    await act(async () => { scan()!.click(); await tick(); });
     expect(open).toHaveBeenCalledWith(cardById(29).link, '_blank', 'noopener');
-    await act(async () => { button('Zoom In')!.click(); await tick(); });
-    expect(root!.querySelector('.card-zoom--big img')).not.toBeNull();
-    await act(async () => { button('Zoom Out')!.click(); await tick(); });
-    expect(root!.querySelector('.card-zoom--big')).toBeNull();
-    expect(root!.querySelector('.zoom__card')).not.toBeNull();
+    await act(() => { render(null, root!); });
+    // The actions popup of a hand card, and the Continue popup of a drawn Play Immediately card
+    for (const [card, closeLabel] of [[14, 'Back'], [1, 'Continue']] as const) {
+      await act(() => { render(<CardPopup card={card} closeLabel={closeLabel} actions={{ buttons: [], note: '' }} onChoose={() => {}} onClose={() => {}} />, root!); });
+      await act(async () => { scan()!.click(); await tick(); });
+      expect(open).toHaveBeenLastCalledWith(cardById(card).link, '_blank', 'noopener');
+      await act(() => { render(null, root!); });
+    }
     open.mockRestore();
+  });
+
+  it('the mouse wheel over the picture zooms it in and back out', async () => {
+    root = document.createElement('div');
+    document.body.appendChild(root);
+    await act(() => { render(<CardPopup card={29} actions={{ buttons: [], note: '' }} onChoose={() => {}} onClose={() => {}} />, root!); });
+    const img = root!.querySelector('.zoom__card') as HTMLElement;
+    img.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 280, right: 200, bottom: 280, x: 0, y: 0, toJSON() {} });
+    const wheel = async (deltaY: number) => {
+      const e = new WheelEvent('wheel', { deltaY, clientX: 150, clientY: 250, bubbles: true, cancelable: true });
+      await act(async () => { img.dispatchEvent(e); await tick(); });
+      return e;
+    };
+    expect((await wheel(-100)).defaultPrevented).toBe(true);   // the page doesn't scroll
+    expect(img.style.transform).toContain('scale(');
+    expect(img.hasAttribute('data-nodrag')).toBe(true);        // dragging pans the picture now
+    for (let i = 0; i < 20; i++) await wheel(100);
+    expect(img.style.transform).toBe('');
+    expect(img.hasAttribute('data-nodrag')).toBe(false);
   });
 
   it("a real double-click's second click lands on the actions popup: that opens the full-size view, a later click closes it", async () => {
