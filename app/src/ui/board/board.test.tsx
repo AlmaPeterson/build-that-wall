@@ -90,26 +90,20 @@ describe('Board', () => {
     expect(c.api!.state.seats[0]!.hand).toEqual([14, 29]);
   });
 
-  it('cards can be arranged by dragging (or Alt+arrows), and tapping still picks the right card', async () => {
-    await setup([29, 14, 26]);
-    const card = (name: string) => $$('.hand__card').find(b => b.querySelector('img')?.getAttribute('alt') === name)!;
+  it('the hand is sorted by colour with copies stacked, and tapping still picks the right card', async () => {
+    await setup([7, 26, 14, 29, 14, 20, 30]);
     const names = () => $$('.hand__card img').map(i => i.getAttribute('alt'));
-    // Drag Trump two places to the left
-    const trump = card('Trump');
-    await act(() => {
-      trump.dispatchEvent(new PointerEvent('pointerdown', { clientX: 300, pointerId: 1, pointerType: 'mouse', bubbles: true }));
-      trump.dispatchEvent(new PointerEvent('pointermove', { clientX: 180, pointerId: 1, pointerType: 'mouse', bubbles: true }));
-      trump.dispatchEvent(new PointerEvent('pointerup', { clientX: 180, pointerId: 1, pointerType: 'mouse', bubbles: true }));
-    });
-    await click(card('Trump'));                     // the click after a drag isn't a tap
-    expect($('.zoom')).toBeNull();
-    expect(names()).toEqual(['Trump', 'Wall Section 1', 'Man Hour']);
-    // Alt+→ moves the focused card one place right
-    await act(() => { card('Trump').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true })); });
-    expect(names()).toEqual(['Wall Section 1', 'Trump', 'Man Hour']);
-    // Tapping the Man Hour (now third) opens the Man Hour
-    await click(card('Man Hour'));
-    expect($('.zoom h3')?.textContent).toBe('Man Hour');
+    // Walls, Man Hours, Trump, Debt, Self Defense; both Man Hours together
+    expect(names()).toEqual(['Wall Section 1', 'Wall Section 2', 'Man Hour', 'Man Hour', 'Trump', 'Debt', 'Self Defense']);
+    const [low, high] = $$('.hand__card[data-card="14"]');
+    // The second Man Hour sits on the first, a little lower, in the same column
+    const units = (v: string) => parseFloat(v.split('*')[1]!);
+    expect(low!.style.left).toBe(high!.style.left);
+    expect(units(high!.style.top)).toBeGreaterThan(units(low!.style.top));
+    expect(Number(high!.style.zIndex)).toBeGreaterThan(Number(low!.style.zIndex));
+    // Tapping the Debt (slot 0, shown sixth) opens the Debt
+    await click($('.hand__card[data-slot="0"]'));
+    expect($('.zoom h3')?.textContent).toBe('Debt');
   });
 
   it('dropping a card: the discard pile plays it, your walls build it, anything else says why', async () => {

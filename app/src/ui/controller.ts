@@ -65,7 +65,25 @@ export interface ControllerOptions {
   watchDelay?: number;
   /** One person on this device: show "<name>'s turn" this long (ms) before each of their turns. Default 0 (tests). */
   turnBanner?: number;
+  /**
+   * Called with the game so far whenever it can be carried on later (each turn's start, and a person's move
+   * when nothing is half done), and with null once the game is over. Games on this device save it.
+   */
+  onSave?: (saved: SavedGame | null) => void;
 }
+
+/** A game saved part-way, to carry on after the page is reloaded (GameController.resume). */
+export interface SavedGame {
+  v: 1;
+  /** The engine's state at that moment (a copy). */
+  state: GameState;
+  /** Everything that happened before, for the game log. */
+  events: GameEvent[];
+  /** 'turn': the turn of state.turn is about to start. 'move': mid-turn, waiting for that person's next move. */
+  at: 'turn' | 'move';
+  savedAt: number;
+}
+
 
 const forever = new Promise<never>(() => {});
 
@@ -103,14 +121,38 @@ export class GameController {
     this.prompts = [];
     this.holder = null;
     this.stopped = false;
+    this.game = this.makeGame(settings, seed);
+    this.publish();
+    return this.settled(this.game.start());
+  }
+
+  /**
+   * Carry on a saved game. Pass'n'Play starts with the pass screen for whoever's turn it is, so nobody
+   * sees someone else's cards. Resolves like start().
+   */
+  resume(saved: SavedGame): Promise<void> {
+    const state = structuredClone(saved.state);
+    this.events = [...saved.events];
+    this.prompts = [];
+    this.holder = null;
+    this.stopped = false;
+    this.game = this.makeGame(state.settings, 0, state);
+    this.publish();
+    if (saved.at === 'turn') return this.settled(this.game.beginTurn());
+    const s = this.game.state;
+    if (this.passing() && !s.seats[s.turn]?.bot) return this.passTo(s.turn);
+    return Promise.resolve();
+  }
+
+  private makeGame(settings: GameSettings, seed: number, state?: GameState): Game {
     const humans = settings.players - settings.bots;
     const delay = humans === 0 ? this.opts.watchDelay ?? 0 : this.opts.botDelay ?? 0;
-    this.game = createLocalGame({
-      settings, seed, memory: this.opts.memory, learn: this.opts.learn,
+    return createLocalGame({
+      settings, seed, state, memory: this.opts.memory, learn: this.opts.learn,
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
-      beforeTurn: seat => (this.passing() ? this.passTo(seat) : this.banner(seat)),
+      beforeTurn: seat => { this.save('turn'); return this.passing() ? this.passTo(seat) : this.banner(seat); },
       afterSkip: seat => this.waitForSkipOk(seat),
       beforeBotAction: async () => {
         // Let the board finish showing what just happened, then pause so people can follow
@@ -119,14 +161,27 @@ export class GameController {
         if (delay > 0) await new Promise(r => setTimeout(r, delay));
       },
     });
-    this.publish();
-    return this.game.start();
+  }
+
+  /** After the engine has run as far as it can: save the game for later (or forget it, once it's over). */
+  private settled(run: Promise<void>): Promise<void> {
+    return run.then(() => this.save('move'));
+  }
+
+  /** Hand the game so far to onSave, if it can be carried on from here. */
+  private save(at: SavedGame['at']): void {
+    const g = this.game, save = this.opts.onSave;
+    if (!g || !save || this.stopped) return;
+    if (g.state.over) { save(null); return; }
+    if (at === 'move' && (!g.resting || g.state.turn < 0 || g.state.seats[g.state.turn]?.bot)) return;
+    save({ v: 1, state: structuredClone(g.state), events: [...this.events], at, savedAt: Date.now() });
   }
 
   /** The viewing player takes an action on their turn. */
   act(action: Action): Promise<ActionResult> {
     if (!this.game) return Promise.resolve({ ok: false, reason: 'No game.' });
     return this.game.act(this.game.state.turn, action).finally(() => {
+      this.save('move');
       this.publish();
       // Someone else answered a question during this turn: pass the device back before the turn goes on
       const s = this.game?.state;

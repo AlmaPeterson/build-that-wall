@@ -273,7 +273,7 @@ describe('reading cards', () => {
       const { prev, next } = immediateDraw();
       const plan = planStep(prev, next, 1)!;
       expect(plan.flights[0]!.card).toBe(1);
-      expect(plan.flights[0]!.keys.at(-1)).toMatchObject({ y: 222.5 }); // lands in the hand
+      expect(plan.flights[0]!.keys.at(-1)).toMatchObject({ y: 223 }); // lands in the hand
       expect(plan.confirm).toMatchObject({ card: { card: 1 } });
       const source = createStore(prev);
       const anim = new Animator(source, { speed: () => 0 });                 // even with animations off

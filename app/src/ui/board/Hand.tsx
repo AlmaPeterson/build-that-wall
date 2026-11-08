@@ -1,12 +1,10 @@
-// The viewer's hand: a scrollable row of cards (the old Hand Scrollbar). While picking walls, only the
-// cards that can be picked are clickable. Cards can be dragged to arrange them (hand-order.ts): with a
-// mouse, just drag; on a touch screen, hold a card for a moment, then drag. Alt+←/→ moves a focused card.
+// The viewer's hand, all of it in view: sorted by card colour, copies of a card stacked a little lower each
+// (board/hand-layout.ts), smaller cards when the hand is big. While picking walls, only the cards that can be
+// picked are clickable. A card pulled out of the hand follows the pointer, to drop it on the board.
 import { cardById, type CardId } from '../../data/cards';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import type { Seat } from '../../game';
-import { useStore } from '../store';
-import { displayOrder, handOrderVersion, moveCard } from './hand-order';
-import { HAND_WIDTH_UNITS, setHandScroll } from '../anim/layout';
+import { displayOrder, handLayout } from './hand-layout';
 import { cardImage } from '../assets';
 import { showCard } from '../components/zoom';
 
@@ -16,15 +14,15 @@ export interface HandPicking {
 }
 
 interface Props {
-  /** Whose hand it is (each player's arrangement is kept separately). */
+  /** Whose hand it is. */
   seat: Seat;
   cards: readonly CardId[];
   onCard(slot: number): void;
   picking?: HandPicking | null;
   /**
-   * A card pulled up out of the hand follows the pointer around the board (to drop it on the discard pile or
+   * A card pulled out of the hand follows the pointer around the board (to drop it on the discard pile or
    * your walls): called as it moves ('move'), when it's let go ('drop') and if the drag is cut off ('cancel').
-   * x, y are viewport pixels. Without it, cards only move along the hand.
+   * x, y are viewport pixels. Without it, cards can only be tapped.
    */
   onLift?(slot: number, x: number, y: number, phase: 'move' | 'drop' | 'cancel'): void;
   /** Whose hand it says it is: "Your Hand" unless it's someone else's (a bots-only game). */
@@ -33,45 +31,28 @@ interface Props {
   onZoom?(slot: number): void;
 }
 
-const DRAG_START_PX = 6;      // a mouse press that moves further than this is a drag, not a tap
-const TOUCH_HOLD_MS = 250;    // on a touch screen, hold this long before dragging (a quick swipe scrolls)
-const EDGE_PX = 24;           // dragging near either end scrolls the hand
-const LIFT_PX = 30;           // pulling a card this far up takes it out of the hand
+const DRAG_START_PX = 8;      // a press that moves further than this pulls the card out of the hand
 
-interface Drag { from: number; to: number; dx: number }
+const u = (n: number) => `calc(var(--u) * ${n.toFixed(2)})`;
 
 export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand', onZoom }: Props) {
   const row = useRef<HTMLDivElement>(null);
-  // A card leaving a flex row would normally make every later card jump left. Remember where each card
-  // was laid out, then slide it from there after the browser lays out the new hand.
+  // When the hand changes, each card slides from where it was to its new place instead of jumping
   const previousPositions = useRef(new Map<string, { x: number; y: number }>());
   const reflowAnimations = useRef(new Map<HTMLElement, Animation>());
   const known = useRef<{ seat: Seat; cards: readonly CardId[]; keys: string[] }>({ seat, cards: [], keys: [] });
   const nextKey = useRef(1);
-  useStore(handOrderVersion);
-  const [drag, setDragState] = useState<Drag | null>(null);
-  const dragNow = useRef<Drag | null>(null);           // the latest, for pointerup (state may not have re-rendered yet)
-  const setDrag = (d: Drag | null) => { dragNow.current = d; setDragState(d); };
-  const press = useRef<{ x: number; y: number; from: number; id: number; active: boolean; free: boolean; scroll0: number; timer?: ReturnType<typeof setTimeout> } | null>(null);
+  const press = useRef<{ x: number; y: number; slot: number; id: number; free: boolean } | null>(null);
   const [lifted, setLifted] = useState<number | null>(null);
   const swallowClick = useRef(false);
-  const order = displayOrder(seat, cards);
+  const order = displayOrder(cards);
+  const spots = handLayout(cards);
   // Each card keeps its key while it stays in the hand, even when an identical card leaves before it
   const identities = known.current.seat === seat && known.current.cards === cards ? known.current.keys
     : keepKeys(known.current.seat === seat ? known.current : { cards: [], keys: [] }, cards, () => 'card' + nextKey.current++);
   known.current = { seat, cards, keys: identities };
-  /** Width of one card plus the gap, in pixels. */
-  const pitch = () => ((row.current?.offsetWidth || HAND_WIDTH_UNITS) / HAND_WIDTH_UNITS) * 60;
 
-  // While a card is being dragged with a finger, the hand mustn't scroll instead
-  useEffect(() => {
-    const el = row.current;
-    if (!el) return;
-    const touch = (e: TouchEvent) => { if (press.current?.active) e.preventDefault(); };
-    el.addEventListener('touchmove', touch, { passive: false });
-    return () => el.removeEventListener('touchmove', touch);
-  }, []);
-  const layoutKey = order.map(slot => identities[slot]).join(' ');
+  const layoutKey = order.map(slot => identities[slot] + '@' + spots[slot]!.x.toFixed(1) + ',' + spots[slot]!.y.toFixed(1) + ',' + spots[slot]!.w.toFixed(1)).join(' ');
   useLayoutEffect(() => {
     const el = row.current;
     if (!el) return;
@@ -83,8 +64,7 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
       const now = { x: card.offsetLeft, y: card.offsetTop };
       const before = previousPositions.current.get(key);
       next.set(key, now);
-      // Dragging already owns transform; do not overwrite it with the reflow animation.
-      if (!before || dragNow.current || !('animate' in card)) continue;
+      if (!before || press.current?.free || !('animate' in card)) continue;
       let dx = before.x - now.x, dy = before.y - now.y;
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
       // Still sliding from the last change: carry on from where it is drawn now
@@ -105,116 +85,54 @@ export function Hand({ seat, cards, onCard, picking, onLift, title = 'Your Hand'
   }, [layoutKey]);
   useEffect(() => () => { for (const animation of reflowAnimations.current.values()) animation.cancel(); }, []);
 
-  function down(e: PointerEvent, from: number) {
-    if (picking || e.button > 0) return;
-    const p = { x: e.clientX, y: e.clientY, from, id: e.pointerId, active: false, free: false, scroll0: row.current?.scrollLeft ?? 0 } as NonNullable<typeof press.current>;
-    if (e.pointerType === 'touch') {
-      p.timer = setTimeout(() => {
-        p.active = true;
-        try { navigator.vibrate?.(15); } catch { /* not supported */ }
-        setDrag({ from, to: from, dx: 0 });
-      }, TOUCH_HOLD_MS);
-    }
-    press.current = p;
+  function down(e: PointerEvent, slot: number) {
+    if (picking || !onLift || e.button > 0) return;
+    press.current = { x: e.clientX, y: e.clientY, slot, id: e.pointerId, free: false };
   }
 
   function move(e: PointerEvent) {
-    const p = press.current, el = row.current;
-    if (!p || e.pointerId !== p.id || !el) return;
-    const dx0 = e.clientX - p.x, dy0 = e.clientY - p.y;
-    if (!p.active) {
-      if (e.pointerType === 'touch') { if (Math.hypot(dx0, dy0) > DRAG_START_PX) { clearTimeout(p.timer); press.current = null; } return; }
-      if (Math.hypot(dx0, dy0) < DRAG_START_PX) return;
-      p.active = true;
-    }
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-    // Pulled up out of the hand: it follows the pointer around the board
-    if (!p.free && onLift && -dy0 > LIFT_PX && -dy0 > Math.abs(dx0)) {
+    const p = press.current;
+    if (!p || e.pointerId !== p.id) return;
+    if (!p.free) {
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < DRAG_START_PX) return;
       p.free = true;
-      setDrag(null);
-      setLifted(order[p.from]!);
+      (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+      setLifted(p.slot);
     }
-    if (p.free) { onLift?.(order[p.from]!, e.clientX, e.clientY, 'move'); return; }
-    const box = el.getBoundingClientRect();
-    if (e.clientX < box.left + EDGE_PX) el.scrollLeft -= 8;
-    else if (e.clientX > box.right - EDGE_PX) el.scrollLeft += 8;
-    const dx = dx0 + (el.scrollLeft - p.scroll0);
-    const to = Math.max(0, Math.min(order.length - 1, p.from + Math.round(dx / pitch())));
-    setDrag({ from: p.from, to, dx });
+    onLift?.(p.slot, e.clientX, e.clientY, 'move');
   }
 
   function up(e: PointerEvent) {
     const p = press.current;
     if (!p || e.pointerId !== p.id) return;
-    clearTimeout(p.timer);
     press.current = null;
-    if (p.free) {
-      swallowClick.current = true;
-      setLifted(null);
-      onLift?.(order[p.from]!, e.clientX, e.clientY, e.type === 'pointercancel' ? 'cancel' : 'drop');
-      return;
-    }
-    if (p.active) {
-      swallowClick.current = true;                         // the click that follows a drag isn't a tap
-      const d = dragNow.current;
-      if (d) moveCard(seat, cards, d.from, d.to);
-    }
-    setDrag(null);
+    if (!p.free) return;
+    swallowClick.current = true;                         // the click that follows a drag isn't a tap
+    setLifted(null);
+    onLift?.(p.slot, e.clientX, e.clientY, e.type === 'pointercancel' ? 'cancel' : 'drop');
   }
 
-  function key(e: KeyboardEvent, at: number) {
-    if (!e.altKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
-    e.preventDefault();
-    const to = at + (e.key === 'ArrowLeft' ? -1 : 1);
-    if (to < 0 || to >= order.length) return;
-    moveCard(seat, cards, at, to);
-    requestAnimationFrame(() => row.current?.querySelectorAll<HTMLElement>('.hand__card')[to]?.focus());
-  }
-
-  // While dragging, the other cards make room where the card would go
-  const shown = [...order];
-  if (drag) shown.splice(drag.to, 0, shown.splice(drag.from, 1)[0]!);
-  useEffect(() => {
-    const el = row.current;
-    if (!el) return;
-    // The mouse wheel scrolls the hand sideways (it only scrolls up and down by itself)
-    const wheel = (e: WheelEvent) => {
-      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (!d || el.scrollWidth <= el.clientWidth) return;
-      e.preventDefault();
-      el.scrollLeft += e.deltaMode === 1 ? d * 40 : d;   // lines → pixels
-    };
-    // Flying cards aim at the right slot of a scrolled hand
-    const scroll = () => { setHandScroll(el.scrollLeft / (el.offsetWidth / HAND_WIDTH_UNITS)); };
-    el.addEventListener('wheel', wheel, { passive: false });
-    el.addEventListener('scroll', scroll);
-    scroll();
-    return () => { el.removeEventListener('wheel', wheel); el.removeEventListener('scroll', scroll); setHandScroll(0); };
-  }, []);
   // Double-click / right-click (a long touch on phones): full size, unless a card is being dragged
   const zoom = (e: Event, slot: number, id: CardId) => {
     e.preventDefault();
-    if (press.current?.active || dragNow.current) return;
+    if (press.current?.free) return;
     if (onZoom) onZoom(slot); else showCard(id);
   };
   return (
     <>
       <div class="at hand__title">{title}</div>
-      <div class={'at hand' + (drag ? ' hand--dragging' : '')} role="list" aria-label={title + ' (drag cards to arrange them)'} ref={row}>
-        {shown.map((slot, at) => {
-          const id = cards[slot]!;
+      <div class="at hand" role="list" aria-label={title} ref={row}>
+        {order.map(slot => {
+          const id = cards[slot]!, at = spots[slot]!;
           const pickable = picking ? picking.pickable.includes(slot) : true;
           const picked = picking?.picked.includes(slot) ?? false;
-          const dragging = drag !== null && order[drag.from] === slot;
           const cls = ['hand__card', picking && pickable && !picked ? 'hand__card--pickable' : '', picked ? 'hand__card--picked' : '',
-            picking && !pickable ? 'hand__card--dim' : '', dragging ? 'hand__card--dragging' : '', lifted === slot ? 'hand__card--lifted' : ''].join(' ');
+            picking && !pickable ? 'hand__card--dim' : '', lifted === slot ? 'hand__card--lifted' : '', onLift ? 'hand__card--movable' : ''].join(' ');
           return (
             <button type="button" role="listitem" class={cls} key={identities[slot]} data-hand-key={identities[slot]} disabled={!pickable} data-slot={slot} data-card={id}
-              // the dragged card follows the pointer from wherever it has been put in the row
-              style={dragging ? { transform: `translateX(${drag.dx - (drag.to - drag.from) * pitch()}px)` } : undefined}
-              aria-pressed={picking ? picked : undefined} title={cardById(id).name + (picking ? '' : ' (drag to move it)')}
-              onPointerDown={e => down(e, order.indexOf(slot))} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-              onKeyDown={e => key(e, at)}
+              style={{ left: u(at.x), top: u(at.y), width: u(at.w), height: u(at.h), zIndex: at.z }}
+              aria-pressed={picking ? picked : undefined} title={cardById(id).name}
+              onPointerDown={e => down(e, slot)} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
               onClick={() => { if (swallowClick.current) { swallowClick.current = false; return; } onCard(slot); }}
               onDblClick={e => zoom(e, slot, id)} onContextMenu={e => zoom(e, slot, id)}>
               <img src={cardImage(id, 'thumb')} alt={cardById(id).name} draggable={false} />

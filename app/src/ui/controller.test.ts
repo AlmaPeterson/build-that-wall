@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CARD_BACK } from '../game';
-import { GameController } from './controller';
+import { GameController, type SavedGame } from './controller';
 
 const settings = (players: number, bots: number) => ({
   players, bots, difficulties: Array(bots).fill('medium'), names: [], ending: 1 as const, endingTimes: 1 as const,
@@ -242,5 +242,57 @@ describe('GameController on a shared device', () => {
     await new Promise(r => setTimeout(r, 50));
     expect(c.snapshot.get().events.length).toBe(n);
     expect(c.state!.over).toBeNull();
+  });
+
+  describe('saving and carrying on', () => {
+    it("saves at a person's move and a new controller carries on from there", async () => {
+      const saves: (SavedGame | null)[] = [];
+      const c = new GameController({ onSave: s => saves.push(s) });
+      await c.start(settings(2, 1), 3);                     // you go first: the game waits for your move
+      const last = saves.at(-1)!;
+      expect(last).toMatchObject({ v: 1, at: 'move' });
+      expect(last.state.turn).toBe(0);
+      // The saved copy doesn't change with the running game
+      const hand = [...last.state.seats[0]!.hand];
+      c.state!.seats[0]!.hand.push(14);
+      expect(last.state.seats[0]!.hand).toEqual(hand);
+      c.state!.seats[0]!.hand.pop();
+
+      const d = new GameController({ onSave: s => saves.push(s) });
+      await d.resume(JSON.parse(JSON.stringify(last)));      // as it comes back from localStorage
+      expect(d.state).toEqual(c.state);
+      expect(d.snapshot.get().events).toHaveLength(c.snapshot.get().events.length);
+      // ...and plays on: ending the turn runs the bot and comes back to you
+      const r = await d.act({ type: 'endTurn' });
+      expect(r.ok).toBe(true);
+      expect(d.state!.turn === 0 || d.state!.over).toBeTruthy();
+      expect(saves.at(-1) === null || saves.at(-1)!.state.turnCount > last.state.turnCount).toBe(true);
+    });
+
+    it('a save from the start of a turn starts that turn again; a finished game is forgotten', async () => {
+      const saves: (SavedGame | null)[] = [];
+      const c = new GameController({ onSave: s => saves.push(s) });
+      await c.start(settings(3, 3), 11);                    // bots only, to the end
+      expect(saves.at(-1)).toBeNull();
+      const turn = [...saves].reverse().find(s => s?.at === 'turn')!;
+      const d = new GameController();
+      await d.resume(turn);
+      expect(d.state!.over).not.toBeNull();                 // ran on to an end
+      expect(d.state!.turnCount).toBeGreaterThanOrEqual(turn.state.turnCount);
+    });
+
+    it("Pass'n'Play: carrying on mid-turn shows the pass screen first", async () => {
+      const saves: (SavedGame | null)[] = [];
+      const c = new GameController({ passScreen: true, onSave: s => saves.push(s) });
+      void c.start(settings(2, 0), 4);
+      await new Promise(r => setTimeout(r, 0));
+      c.ready();
+      await new Promise(r => setTimeout(r, 0));
+      const move = [...saves].reverse().find(s => s?.at === 'move')!;
+      expect(move).toBeTruthy();
+      const d = new GameController({ passScreen: true });
+      void d.resume(move);
+      expect(d.snapshot.get().passTo).toBe(move.state.turn);
+    });
   });
 });

@@ -72,7 +72,8 @@ export function SettingsScreen() {
   const humans = g.players - g.bots;
   return (
     <div class="page">
-      <header class="page__head"><h1>Settings</h1></header>
+      {/* Done at the top too: on phones a button at the very bottom edge can be hard to tap (the browser's toolbar takes the tap) */}
+      <header class="page__head page__head--with-done"><h1>Settings</h1><Button class="page__done" onClick={goBack}>Done</Button></header>
       <main class="page__main settings">
         {running && !running.over && <p class="settings__notice">A game is running: changes to players, bots and how the game ends start with your next game. Everything else changes now.</p>}
 

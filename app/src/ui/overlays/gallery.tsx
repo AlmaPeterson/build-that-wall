@@ -12,7 +12,7 @@ import './overlays.css';
 
 const view = createGame({ players: 3, bots: 1, difficulties: ['hard'], names: ['Ann', 'Ben'], ending: 1, endingTimes: 1,
   actionsPerTurn: 3, cardsPerTurn: 3, packCards: [] }, 1);
-view.seats[0]!.hand = [29, 14, 7, 30, 25, 20];
+view.seats[0]!.hand = [29, 14, 7, 30, 25, 20, 14, 14, 29, 26, 3, 20];
 view.seats[1]!.walls = [31, 31, 32];
 view.seats[2]!.walls = [33, 34, 34];
 view.turn = 0;
@@ -34,7 +34,7 @@ const SHOW: Record<string, () => preact.JSX.Element> = {
   savings: () => <PromptView view={view} prompt={prompt({ kind: 'paySavings', seat: 0, attacker: 1, wall: 31 })} />,
   seat: () => <PromptView view={view} prompt={prompt({ kind: 'chooseSeat', seat: 0, card: 17, options: [1, 2], cancellable: true })} />,
   wall: () => <PromptView view={view} prompt={prompt({ kind: 'chooseWall', seat: 0, card: 7, options: [{ seat: 1, kind: 31 }, { seat: 1, kind: 32 }, { seat: 2, kind: 33 }], cancellable: true })} />,
-  give: () => <PromptView view={view} prompt={prompt({ kind: 'chooseHandCard', seat: 0, card: 8, purpose: 'give', options: [0, 1, 2, 3, 4, 5], to: 1, optional: false })} />,
+  give: () => <PromptView view={view} prompt={prompt({ kind: 'chooseHandCard', seat: 0, card: 8, purpose: 'give', options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], to: 1, optional: false })} />,
   build: () => <PromptView view={view} prompt={prompt({ kind: 'chooseHandCard', seat: 0, card: 3, purpose: 'build', options: [0, 3], optional: true })} />,
   builds: () => <PromptView view={view} prompt={prompt({ kind: 'pickHandCards', seat: 0, card: 13, purpose: 'build', options: [0, 2, 3, 5], cards: [29, 30, 31, 32], min: 1, max: 3 })} />,
   sets: () => <PromptView view={view} prompt={prompt({ kind: 'pickHandCards', seat: 0, card: 23, purpose: 'build', options: [0, 3], cards: [29, 31], min: 1, max: 2 })} />,

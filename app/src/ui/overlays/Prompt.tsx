@@ -7,6 +7,7 @@ import { RESIZE_TITLE, useDraggable } from '../components/drag';
 import { cardMenuProps, showCard } from '../components/zoom';
 import type { Prompt } from '../controller';
 import { cardName, optionLabel, promptTitle, seatName } from './text';
+import { stacks } from '../board/hand-layout';
 
 /** Seconds to pick cards from a pile before the picks so far are taken (section 9, `pool pick`). */
 export const PICK_SECONDS = 30;
@@ -67,11 +68,7 @@ export function PromptView({ prompt, view }: Props) {
       return (
         <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose)} sub={sub}
           onCancel={d.optional ? () => answer(null) : undefined} cancelText={d.purpose === 'build' ? 'Stop building' : 'Skip'}>
-          <div class="btw-ov-cards">
-            {d.options.map(slot => hand[slot] === undefined ? null : (
-              <CardButton key={slot} id={hand[slot]!} onClick={() => answer(slot)} />
-            ))}
-          </div>
+          <HandCards hand={hand} slots={d.options} onPick={slot => answer(slot)} />
         </Shell>
       );
     }
@@ -147,6 +144,35 @@ function CardButton({ id, onClick, badge, picked }: { id: CardId; onClick: () =>
   );
 }
 
+/**
+ * Cards from your hand to pick from, like the hand on the board: sorted by colour, copies stacked a little
+ * lower each, and small enough that they all fit side by side.
+ */
+function HandCards({ hand, slots, onPick, picked, badge }: {
+  hand: readonly CardId[]; slots: readonly number[]; onPick: (slot: number) => void;
+  picked?: (slot: number) => boolean; badge?: (slot: number) => string | undefined;
+}) {
+  const groups = stacks(hand, slots);
+  return (
+    <div class="btw-ov-cards btw-ov-cards--hand" style={{ '--stacks': groups.length }}>
+      {groups.map(g => (
+        <div class="btw-ov-stack" key={g.id}>
+          {g.slots.map(slot => (
+            <CardButton key={slot} id={g.id} onClick={() => onPick(slot)} picked={picked?.(slot)} badge={badge?.(slot)} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** pickHandCards lists the cards beside their slots: as a hand, so HandCards can sort them. */
+function handOf(d: Extract<Decision, { kind: 'pickHandCards' }>): CardId[] {
+  const hand: CardId[] = [];
+  d.options.forEach((slot, i) => { hand[slot] = d.cards[i]!; });
+  return hand;
+}
+
 function Walls({ options, view, onPick }: { options: WallRef[]; view: GameState; onPick: (w: WallRef) => void }) {
   const bySeat = new Map<Seat, WallRef[]>();
   for (const w of options) bySeat.set(w.seat, [...(bySeat.get(w.seat) ?? []), w]);
@@ -178,12 +204,8 @@ function PickHandCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pick
     + (sets && d.max > 1 ? ' Each set after the first costs 1 action.' : '');
   return (
     <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose)} sub={sub}>
-      <div class="btw-ov-cards">
-        {d.options.map((slot, i) => (
-          <CardButton key={slot} id={d.cards[i]!} picked={picks.includes(slot)} badge={picks.includes(slot) ? '✓ ' + (picks.indexOf(slot) + 1) : undefined}
-            onClick={() => toggle(slot)} />
-        ))}
-      </div>
+      <HandCards hand={handOf(d)} slots={d.options} onPick={toggle}
+        picked={slot => picks.includes(slot)} badge={slot => (picks.includes(slot) ? '✓ ' + (picks.indexOf(slot) + 1) : undefined)} />
       <Choices>
         <Choice onClick={() => { if (picks.length >= d.min) onDone(picks); }}>
           {picks.length >= d.min ? 'Build ' + what(picks.length) : 'Pick ' + (d.min - picks.length) + ' more'}

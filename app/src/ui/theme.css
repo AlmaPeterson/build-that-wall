@@ -31,6 +31,8 @@ button { font: inherit; }
 .stage {
   position: relative;
   width: min(100vw, calc(100vh * 16 / 9));
+  /* Phones: only the height the browser's toolbars leave visible, so the hand is never under them */
+  width: min(100vw, calc(100dvh * 16 / 9));
   aspect-ratio: 16 / 9;
   margin: 0 auto;
   overflow: hidden;

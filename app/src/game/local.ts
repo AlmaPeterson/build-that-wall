@@ -5,11 +5,13 @@ import type { BotMemory } from './contracts';
 import { cardRules } from './effects';
 import { Game } from './engine/game';
 import { createGame } from './engine/setup';
-import type { Decider, Emit, GameSettings, Seat } from './types';
+import type { Decider, Emit, GameSettings, GameState, Seat } from './types';
 
 export interface LocalGameOptions {
   settings: GameSettings;
   seed: number;
+  /** Carry on a saved game from this state (taken while the game was resting) instead of dealing a new one. */
+  state?: GameState;
   /** Answers decisions for human seats (the UI). Not needed in watch mode (bots only). */
   humanDecider?: (seat: Seat) => Decider;
   /** Bot memory; defaults to one that forgets everything when the page closes. */
@@ -24,7 +26,7 @@ export interface LocalGameOptions {
 }
 
 export function createLocalGame(o: LocalGameOptions): Game {
-  const state = createGame(o.settings, o.seed);
+  const state = o.state ?? createGame(o.settings, o.seed);
   const memory = o.memory ?? createBotMemory(inMemoryStore());
   const bots = new Map<Seat, Decider>();
   const noHuman: Decider = { decide: () => Promise.reject(new Error('No human decider for this game')) };

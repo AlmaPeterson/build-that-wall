@@ -176,6 +176,22 @@ describe('starting games', () => {
     expect(controller.get()).not.toBeNull();
   });
 
+  it("Pass'n'Play with 2 people asks their names first, uses them and keeps them", () => {
+    settings.set(clampSettings({ ...DEFAULT_UI_SETTINGS, game: { ...DEFAULT_UI_SETTINGS.game, players: 3, bots: 1 } }));
+    act(() => { render(<MenuScreen />, root); });
+    click('Start Game');
+    expect(screen.get()).toBe('menu');
+    const inputs = [...root.querySelectorAll<HTMLInputElement>('.names input')];
+    expect(inputs).toHaveLength(2);
+    act(() => {
+      inputs.forEach((input, k) => { input.value = ['Alma', 'Sam'][k]!; input.dispatchEvent(new Event('input', { bubbles: true })); });
+    });
+    act(() => { root.querySelector<HTMLButtonElement>('.names button[type="submit"]')!.click(); });
+    expect(screen.get()).toBe('game');
+    expect(game().seats.map(s => s.name).slice(0, 2)).toEqual(['Alma', 'Sam']);
+    expect(settings.get().game.names.slice(0, 2)).toEqual(['Alma', 'Sam']);
+  });
+
   it('Start Game in Multiplayer opens the online choices', () => {
     settings.set({ ...DEFAULT_UI_SETTINGS, gameMode: 'multiplayer' });
     act(() => { render(<MenuScreen />, root); });

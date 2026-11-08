@@ -7,6 +7,7 @@ import { Button } from '../components/Button';
 import { Guide } from '../menus/Guide';
 import logo from '../menus/logo.png';
 import { MultiplayerMenu } from '../menus/MultiplayerMenu';
+import { humansPlaying, PlayerNames } from '../menus/PlayerNames';
 import { initSettingsPersistence } from '../menus/prefs';
 import { startPassNPlay, startTutorialGame } from '../menus/start';
 import { useStore } from '../store';
@@ -20,13 +21,16 @@ export function MenuScreen() {
   const { gameMode } = useStore(settings);
   const [multi, setMulti] = useState(false);
   const [guide, setGuide] = useState(false);
-  const [tag, setTag] = useState('');  useEffect(() => {
+  const [names, setNames] = useState(false);
+  const [tag, setTag] = useState('');
+  useEffect(() => {
     let live = true;
     loadSettings().then(r => { if (live) setTag(r.settings.amazonTag); }).catch(() => {});
     return () => { live = false; };
   }, []);
 
-  const start = () => (gameMode === 'multiplayer' ? setMulti(true) : startPassNPlay());
+  // Pass'n'Play with 2+ people on this device: ask everyone's name first
+  const start = () => (gameMode === 'multiplayer' ? setMulti(true) : humansPlaying() >= 2 ? setNames(true) : startPassNPlay());
 
   return (
     <div class="menu">
@@ -49,6 +53,7 @@ export function MenuScreen() {
         <small class="menu__tm">™ &amp; ® 2024 Beacon Political</small>
       </footer>
       {multi && <MultiplayerMenu onClose={() => setMulti(false)} />}
+      {names && <PlayerNames onStart={() => { setNames(false); startPassNPlay(); }} onClose={() => setNames(false)} />}
       {guide && <Guide onClose={() => setGuide(false)} finishLabel="Start a tutorial game" onFinish={startTutorialGame} />}
     </div>
   );

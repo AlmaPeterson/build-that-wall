@@ -21,6 +21,7 @@
 .board__footer {
   /* Outside the stage: fixed to the bottom of the window, full width, sized like the stage */
   --u: calc(min(100vw, 100vh * 16 / 9) / 640);
+  --u: calc(min(100vw, 100dvh * 16 / 9) / 640);
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: calc(var(--u) * 25);
   background: #2020ff; color: #fff;
   display: flex; align-items: center; justify-content: center;
@@ -110,16 +111,17 @@
   font-weight: bold; font-size: calc(var(--u) * 11 * var(--tb));
   display: flex; align-items: center; justify-content: center;
 }
-.walls-row { left: calc(var(--u) * 308); height: calc(var(--u) * 22); width: calc(var(--u) * 180); }
+.walls-row { left: calc(var(--u) * 308); height: calc(var(--u) * 22); width: calc(var(--u) * 190); }
 .walls-row__tag {
-  position: absolute; left: 0; top: calc(var(--u) * 2); width: calc(var(--u) * 26); height: calc(var(--u) * 18);
+  position: absolute; left: 0; top: calc(var(--u) * 2); width: calc(var(--u) * 48); height: calc(var(--u) * 18);
   background: #666; color: #fff; border-radius: calc(var(--u) * 4);
-  font-weight: bold; font-size: calc(var(--u) * 10 * var(--tb));
-  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: calc(var(--u) * 8 * var(--tb));
+  display: block; text-align: center; line-height: calc(var(--u) * 18); padding: 0 calc(var(--u) * 3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .walls-row__tag--turn { background: #d8332d; }
 .walls-row__none {
-  position: absolute; left: calc(var(--u) * 30); top: calc(var(--u) * 4); width: calc(var(--u) * 80); height: calc(var(--u) * 14);
+  position: absolute; left: calc(var(--u) * 52); top: calc(var(--u) * 4); width: calc(var(--u) * 80); height: calc(var(--u) * 14);
   color: #aaa; font-weight: bold; font-size: calc(var(--u) * 9 * var(--tb));
   display: flex; align-items: center; justify-content: center;
 }
@@ -131,34 +133,29 @@
   text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   font: 900 calc(var(--u) * 14) var(--font);
 }
+/* Every card in view: hand-layout.ts places each card (sorted by colour, copies stacked) and sizes them to fit */
 .hand {
-  left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 78);
+  left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 84);
   border: calc(var(--u) * 1.5) solid #111;
-  display: flex; gap: calc(var(--u) * 11); align-items: flex-start;
-  padding: calc(var(--u) * 3) calc(var(--u) * 5) 0;
-  overflow-x: auto; overflow-y: hidden;
-  scrollbar-color: #d8332d #e6e6e6;
+  overflow: hidden;
 }
 .hand__card {
-  flex: none; width: calc(var(--u) * 49); height: calc(var(--u) * 67);
-  padding: 0; border: 0; background: none; cursor: pointer; position: relative;
+  position: absolute;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  border-radius: calc(var(--u) * 2.5);
+  filter: drop-shadow(0 calc(var(--u) * -0.6) calc(var(--u) * 0.8) rgba(0, 0, 0, .45));   /* where a stacked card's edge is */
 }
-.hand__card img { width: 100%; height: 100%; display: block; }
+.hand__card img { width: 100%; height: 100%; display: block; border-radius: inherit; }
 .hand__card:disabled { cursor: default; }
 .hand__card:focus-visible { outline: calc(var(--u) * 2) solid var(--gold); }
 .hand__card--pickable { outline: calc(var(--u) * 2) dashed var(--gold); }
 .hand__card--picked { outline: calc(var(--u) * 2.5) solid var(--red); transform: translateY(calc(var(--u) * -3)); }
 .hand__card--dim { opacity: .35; }
-.hand__card { touch-action: pan-x; }
-.hand--dragging .hand__card { cursor: grabbing; }
-.hand__card--dragging {
-  z-index: 5; cursor: grabbing; opacity: .95;
-  filter: drop-shadow(0 calc(var(--u) * 4) calc(var(--u) * 5) rgba(0, 0, 0, .5));
-}
+/* A card that can be pulled out to play it: the finger drags it, the page doesn't scroll */
+.hand__card--movable { touch-action: none; cursor: grab; }
 .hand__card--lifted { opacity: .3; }
-.hand__card--dragging img { transform: scale(1.08) translateY(calc(var(--u) * -3)); }
 .hand__hidden {
-  left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 78);
+  left: calc(var(--u) * 5); top: calc(var(--u) * 218); width: calc(var(--u) * 464); height: calc(var(--u) * 84);
   display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 10);
   color: #999; font-weight: bold; font-size: calc(var(--u) * 12 * var(--tb));
 }
@@ -166,7 +163,7 @@
 
 /* Picking walls / the wall for a Man Hour */
 .pickbar {
-  left: calc(var(--u) * 5); top: calc(var(--u) * 299); width: calc(var(--u) * 464); height: calc(var(--u) * 28);
+  left: calc(var(--u) * 5); top: calc(var(--u) * 305); width: calc(var(--u) * 464); height: calc(var(--u) * 27);
   display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 10);
   background: #fffbe6; border: 1px solid var(--gold); border-radius: calc(var(--u) * 6);
   font-weight: bold; color: #7a1a16; font-size: calc(var(--u) * 11 * var(--tb));
@@ -192,13 +189,17 @@
 .zoom--moved, .board-modal--moved { background: rgba(0, 0, 0, .15); }
 .zoom__group { position: absolute; inset: 0; pointer-events: none; }
 .zoom__group > * { pointer-events: auto; }
-.drag-box.zoom__group { transform-origin: calc(var(--u) * 100) calc(var(--u) * 3); }   /* the top-left of its pieces (buttons row, X) */
+.drag-box.zoom__group { transform-origin: calc(var(--u) * 83) calc(var(--u) * 3); }   /* the top-left of its pieces (Scan QR Code, X) */
 /* With the board showing through, the white text needs its own dark panel */
 .zoom--moved .zoom__text { background: rgba(0, 0, 0, .8); border-radius: calc(var(--u) * 6); padding: calc(var(--u) * 6) calc(var(--u) * 8); }
 /* On the card picture's bottom-right corner */
 .zoom__grip { left: calc(var(--u) * 404); top: calc(var(--u) * 290); right: auto; bottom: auto; width: calc(var(--u) * 22); height: calc(var(--u) * 22); color: rgba(255, 255, 255, .85); background-color: rgba(0, 0, 0, .35); border-radius: calc(var(--u) * 4) 0 calc(var(--u) * 4) 0; }
 .zoom__grip:hover { color: #fff; }
-.zoom__card { position: absolute; left: calc(var(--u) * 211); top: calc(var(--u) * 12); width: calc(var(--u) * 218); height: calc(var(--u) * 303); }
+.zoom__card { position: absolute; left: calc(var(--u) * 211); top: calc(var(--u) * 12); width: calc(var(--u) * 218); height: calc(var(--u) * 303); user-select: none; }
+/* The buttons stay above a picture zoomed in with the wheel */
+.zoom__close, .zoom__buttons, .zoom__qr, .zoom__grip { z-index: 2; }
+/* Left of the picture's bottom corner, level with the card's own QR code */
+.zoom__qr { position: absolute; left: calc(var(--u) * 83); top: calc(var(--u) * 283); }
 .zoom__close {
   position: absolute; right: calc(var(--u) * 3); top: calc(var(--u) * 3); width: calc(var(--u) * 39); height: calc(var(--u) * 39);
   padding: 0 !important; font-size: calc(var(--u) * 22) !important; border-radius: calc(var(--u) * 6) !important;
@@ -213,7 +214,7 @@
   position: absolute; left: calc(var(--u) * 100); right: calc(var(--u) * 100); top: calc(var(--u) * 322);   /* centred; no wider than needed, so dragging keeps them in view */
   display: flex; justify-content: center; gap: calc(var(--u) * 12);
 }
-.zoom__buttons .btw-button, .board-modal .btw-button {
+.zoom__buttons .btw-button, .zoom__qr.btw-button, .board-modal .btw-button {
   min-height: calc(var(--u) * 29); padding: calc(var(--u) * 3) calc(var(--u) * 10); line-height: 1.1; min-width: calc(var(--u) * 120);
   border-width: calc(var(--u) * 2.5); border-radius: calc(var(--u) * 8);
   font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: calc(var(--u) * 12 * var(--tb));
@@ -243,11 +244,6 @@ button.board__log { cursor: pointer; font-family: inherit; }
 .card-zoom { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, .7); display: flex; align-items: center; }
 .card-zoom__stage { background: none; }
 .card-zoom .zoom { background: none; }
-/* Zoom In: the picture as big as the window, buttons along the bottom */
-.card-zoom--big { flex-direction: column; justify-content: center; gap: 12px; padding: 12px 16px; box-sizing: border-box; }
-.card-zoom__big { max-width: 100%; max-height: calc(100vh - 90px); object-fit: contain; border-radius: 12px; cursor: zoom-out; }
-.card-zoom__bar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-.card-zoom__bar .btw-button { min-width: 120px; padding: 6px 16px; font: bold 16px Arial, Helvetica, sans-serif; }
 
 /* A card dragged out of the hand: it follows the pointer; where it can go lights up */
 .hand-ghost { position: absolute; z-index: 45; pointer-events: none; transform: translate(-50%, -60%) rotate(-4deg);
@@ -260,3 +256,21 @@ button.board__log { cursor: pointer; font-family: inherit; }
 .drop-zone__label { position: absolute; left: 0; right: 0; top: calc(var(--u) * 2); text-align: center;
   font: bold calc(var(--u) * 8) Arial, sans-serif; color: #1a6b2c; }
 .drop-zone--no .drop-zone__label { color: #888; }
+
+/* A phone held upright: the board is wide, so ask for the phone to be turned sideways (screens/Game.tsx) */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (max-width: 600px) {
+  .rotate-hint {
+    position: fixed; inset: 0; z-index: 2000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    padding: 24px 16px; text-align: center;
+    background: var(--red); color: #fff; font-family: var(--font);
+  }
+  .rotate-hint__phone { width: 90px; height: 90px; animation: rotate-hint 2.4s ease-in-out infinite; }
+  .rotate-hint h2 { margin: 0; font-size: 1.7rem; }
+  .rotate-hint p { margin: 0; max-width: 300px; font-family: var(--font-body); font-weight: bold; font-size: 1.05rem; line-height: 1.35; }
+  .rotate-hint .btw-button { font-size: 1.1rem; background: #fff; color: var(--red); border-color: var(--red-dark); }
+  .rotate-hint__end { background: none !important; color: #fff !important; border-color: #fff !important; }
+}
+@keyframes rotate-hint { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .rotate-hint__phone { animation: none; transform: rotate(-90deg); } }

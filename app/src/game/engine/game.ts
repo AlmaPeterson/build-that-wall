@@ -68,7 +68,13 @@ export class Game implements GameApi {
     await this.runTurns(true);
   }
 
-  /** Start the current seat's turn without dealing, for hands set up some other way (tests, tutorials). */
+  /**
+   * Nothing is happening inside the engine: no turn, card or question is half done. The state can be saved
+   * now and a game made from a copy of it carries on from here exactly.
+   */
+  get resting(): boolean { return !this.busy && !this.pendingPlay && !this.deferred.length; }
+
+  /** Start the current seat's turn without dealing, for hands set up some other way (tests, tutorials, a saved game). */
   async beginTurn(): Promise<void> {
     if (this.state.turn < 0) this.state.turn = 0;
     await this.runTurns(true);

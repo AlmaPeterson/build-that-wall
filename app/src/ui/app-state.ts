@@ -41,10 +41,14 @@ export const controller = createStore<GameController | null>(null);
 /** How games on this device run: bots pause (after their moves have been shown) so people can follow them; services add the bots' saved memory. */
 export const gameOptions: ControllerOptions = { passScreen: true, botDelay: 350, watchDelay: 700, turnBanner: 1300 };
 
+/** Makes the controller for a game on this device (saved-game.ts swaps in one that saves itself as it goes). */
+let makeLocal = (): GameController => new GameController(gameOptions);
+export function setLocalControllerFactory(make: () => GameController): void { makeLocal = make; }
+
 /** Start a game on this device with the current settings and show the board. */
 export function startLocalGame(game: GameSettings = settings.get().game): GameController {
   controller.get()?.stop();
-  const c = new GameController(gameOptions);
+  const c = makeLocal();
   controller.set(c);
   screen.set('game');
   void c.start(game);

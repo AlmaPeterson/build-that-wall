@@ -7,6 +7,8 @@ import { zoomProps } from '../components/zoom';
 import { displayName, isGuarded, TRUMP_TRAIN, wallKinds } from './board-state';
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
+/** Other players' rows: the walls start right of the name tag (anim/layout.ts places flying cards the same). */
+export const OTHER_WALLS_LEFT = 52, OTHER_WALLS_MAX = 120;
 
 function WallCards({ state, seat, w, h, step, maxWidth }: { state: GameState; seat: Seat; w: number; h: number; step: number; maxWidth: number }) {
   const kinds = wallKinds(state, seat);
@@ -42,17 +44,23 @@ export function MyWalls({ state, seat }: { state: GameState; seat: Seat }) {
   );
 }
 
-/** Everyone else's walls, one row each, with their P1-P6 tag. */
+/** A short label for a seat's row: the start of their name ("BOT " left off), so it fits the tag. */
+export function shortName(state: GameState, seat: Seat): string {
+  const name = (state.seats[seat]?.name ?? '').replace(/^Bot /, '').trim();
+  return name || 'P' + (seat + 1);
+}
+
+/** Everyone else's walls, one row each, with a tag showing (the start of) their name. */
 export function OtherWalls({ state, viewer }: { state: GameState; viewer: Seat }) {
   const others = state.seats.map((_, seat) => seat).filter(seat => seat !== viewer);
   return (
     <>
       {others.map((seat, row) => (
         <div class="at walls-row" key={seat} style={{ top: u(95 + row * 22) }} aria-label={`${displayName(state, seat)}'s walls`}>
-          <span class={`walls-row__tag ${seat === state.turn ? 'walls-row__tag--turn' : ''}`} title={displayName(state, seat)}>P{seat + 1}</span>
+          <span class={`walls-row__tag ${seat === state.turn ? 'walls-row__tag--turn' : ''}`} title={displayName(state, seat)}>{shortName(state, seat)}</span>
           {state.seats[seat]!.walls.length
-            ? <div style={{ position: 'absolute', left: u(30), top: u(0.5), height: u(21) }}>
-                <WallCards state={state} seat={seat} w={15} h={21} step={17} maxWidth={120} />
+            ? <div style={{ position: 'absolute', left: u(OTHER_WALLS_LEFT), top: u(0.5), height: u(21) }}>
+                <WallCards state={state} seat={seat} w={15} h={21} step={17} maxWidth={OTHER_WALLS_MAX} />
               </div>
             : <span class="walls-row__none">no walls yet</span>}
         </div>
