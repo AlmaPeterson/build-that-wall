@@ -31,24 +31,71 @@ function debtStep() {
 }
 
 describe('planStep', () => {
-  it("a bot's played card flies to the middle face up, to the player it's played on, then to the discard pile", () => {
+  it("a bot's played card crosses to the player it's played on face up, without stopping, then to the discard pile", () => {
     const { prev, next } = debtStep();
     const plan = planStep(prev, next, 1)!;
     expect(plan.caption).toBe('Bot played Debt on Player 1.');
     const [card, wall] = plan.flights;
     expect(card!.card).toBe(7);
-    expect(card!.keys[0]!.face).toBe(false);                     // still hidden in the bot's hand
-    expect(card!.keys[1]).toMatchObject({ ...CENTER, face: true });
-    expect(card!.keys).toHaveLength(5);                          // hand, middle, (hold), the player, discard
-    // The wall moves after the card has been seen
+    expect(card!.continuous).toBe(true);
+    expect(card!.keys.every(k => k.face)).toBe(true);            // a played card is public
+    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);   // no stop in the middle
+    // The wall moves after the card has landed
     expect(wall!.card).toBe(33);
-    expect(wall!.keys[1]!.t).toBeGreaterThanOrEqual(card!.keys[3]!.t);
-    expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t));
+    expect(wall!.keys[1]!.t).toBeGreaterThanOrEqual(card!.keys.at(-1)!.t); // discard lands before Debt takes the wall
+    expect(plan.duration).toBe(Math.max(card!.keys.at(-1)!.t, wall!.keys.at(-1)!.t));   // the caption's beat comes after, with the cards landed
     // While they fly, the board shows neither the card in the hand nor the wall anywhere
     expect(plan.mid.seats[1]!.hand).toHaveLength(1);
     expect(plan.mid.seats[0]!.walls).toEqual([]);
     expect(plan.mid.seats[1]!.walls).toEqual([]);
     expect(plan.mid.discard).toEqual([]);
+  });
+
+  it("another player's card goes straight to the discard pile: no stop to read it", () => {
+    const a = base();
+    const b = clone(a);
+    b.seats[1]!.hand = [30];
+    b.discard = [7];
+    const play: GameEvent = { type: 'play', seat: 1, card: 7, text: 'Bot played Debt.' };
+    const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
+    const [card] = plan.flights;
+    expect(card!.card).toBe(7);
+    expect(card!.big).toBeFalsy();
+    expect(card!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
+    expect(card!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });  // on the discard pile
+    // never still: every leg of the trip moves
+    for (let k = 1; k < card!.keys.length; k++) expect(card!.keys[k]!.x !== card!.keys[k - 1]!.x || card!.keys[k]!.y !== card!.keys[k - 1]!.y).toBe(true);
+  });
+
+  it('your own card goes straight to its destination, while a bot-only watch game never pauses a play in the middle', () => {
+    const a = base(); a.seats[0]!.hand = [26];
+    const b = clone(a); b.seats[0]!.hand = []; b.discard = [26];
+    const own: GameEvent = { type: 'play', seat: 0, card: 26, text: 'Player 1 played Trump.' };
+    const mine = planStep(snap(a, []), snap(b, [own]), 1)!;
+    expect(mine.flights[0]!.big).toBeFalsy();
+    expect(mine.flights[0]!.continuous).toBe(true);
+    expect(mine.flights[0]!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
+
+    const { prev, next } = debtStep();
+    const watching = planStep({ ...prev, openHands: true }, { ...next, openHands: true }, 1)!;
+    expect(watching.flights[0]!.big).toBeFalsy();
+    expect(watching.flights[0]!.continuous).toBe(true);
+    expect(watching.flights[0]!.keys.some(k => k.x === CENTER.x && k.w === CENTER.w)).toBe(false);
+  });
+
+  it('Spy Balloon on you: one balloon, straight on to the discard pile (the hidden hand looks unchanged)', () => {
+    const a = base();
+    a.seats[1]!.hand = [5, 30];
+    const b = clone(a);
+    b.seats[1]!.hand = [30, 26];      // lost the balloon, got your Trump: still two hidden cards
+    b.seats[0]!.hand = [29];
+    b.discard = [5];
+    const play: GameEvent = { type: 'play', seat: 1, card: 5, target: 0, text: 'Bot played Chinese Spy Balloon on Player 1.' };
+    const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
+    const balloons = plan.flights.filter(f => f.card === 5);
+    expect(balloons).toHaveLength(1);
+    expect(balloons[0]!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });
+    expect(plan.held).toBeNull();                                    // not also left waiting halfway
   });
 
   it('slower speed takes longer; nothing moved or another viewer means no animation', () => {
@@ -76,6 +123,18 @@ describe('Animator', () => {
     await vi.advanceTimersByTimeAsync(anim.state.get().duration);
     expect(idle).toBe(true);
     expect(anim.state.get()).toMatchObject({ snap: next, flights: [], idle: true });
+  });
+
+  it("a snapshot that only changes Quarantine's OK (skipped) still gets through", async () => {
+    const { prev } = debtStep();
+    const source = createStore(prev);
+    const anim = new Animator(source, { speed: () => 1 });
+    source.set({ ...prev, skipped: 0 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(anim.state.get().snap.skipped).toBe(0);
+    source.set({ ...prev, skipped: null });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(anim.state.get().snap.skipped).toBeNull();
   });
 
   it('tapping skips the step; speed 0 shows it straight away', async () => {
@@ -145,6 +204,20 @@ describe('blocking', () => {
     expect(plan.held).toBeNull();
   });
 
+  it('does not duplicate a Play Immediately card that was already discarded before Self-Defense', () => {
+    const a = base();
+    a.seats[1]!.hand = [20];
+    a.discard = [1];
+    const b = clone(a);
+    b.seats[1]!.hand = [];
+    b.discard = [1, 20];
+    const immediate: GameEvent = { type: 'immediate', seat: 1, card: 1, text: 'PLAY IMMEDIATELY: Bot drew Abduction.' };
+    const blocked: GameEvent = { type: 'blocked', seat: 1, card: 1, text: 'Bot blocked Abduction with Self-Defense.' };
+    const plan = planStep(snap(a, [immediate]), snap(b, [immediate, blocked]), 1)!;
+    expect(plan.flights.map(f => f.card)).toEqual([20]);
+    expect(plan.mid.discard).toEqual([1]);
+  });
+
   it('not blocked: the waiting card goes on to where it ended up', () => {
     const { b, play, next } = attack();
     const held = planStep(snap(attack().a, []), next, 1)!.held!;
@@ -181,26 +254,27 @@ describe('dealing and drawing', () => {
 });
 
 describe('reading cards', () => {
-  /** Seat 0 (a person) draws Abduction (1), a Play Immediately card, and it's played straight away. */
-  function immediate() {
+  /** Seat 0 (a person) draws Abduction (1), a Play Immediately card. */
+  function immediateDraw() {
     const a = base();
     a.turn = 0;
-    a.seats[0]!.hand = [29, 1];
+    a.seats[0]!.hand = [29];
+    a.draw = [14, 14, 1];
     const b = clone(a);
-    b.seats[0]!.hand = [29];
-    b.discard = [1];
-    const e: GameEvent = { type: 'immediate', seat: 0, card: 1, text: 'PLAY IMMEDIATELY: Player 1 drew Abduction.' };
+    b.seats[0]!.hand = [29, 1];
+    b.draw = [14, 14];
+    const e: GameEvent = { type: 'draw', seat: 0, cards: [1], text: 'Player 1 drew 1 card.' };
     return { prev: snap(a, []), next: snap(b, [e]) };
   }
 
-  it('your own Play Immediately card stops in the middle, sharp, until you tap Continue', async () => {
+  it('shows your Play Immediately card when you draw it, before it is played', async () => {
     vi.useFakeTimers();
     try {
-      const { prev, next } = immediate();
+      const { prev, next } = immediateDraw();
       const plan = planStep(prev, next, 1)!;
-      expect(plan.flights[0]!.big).toBe(true);
-      expect(plan.flights[0]!.keys.at(-1)).toMatchObject(CENTER);           // stops in the middle
-      expect(plan.confirm?.then.flights[0]!.keys[0]).toMatchObject(CENTER);  // and goes on from there
+      expect(plan.flights[0]!.card).toBe(1);
+      expect(plan.flights[0]!.keys.at(-1)).toMatchObject({ y: 223 }); // lands in the hand
+      expect(plan.confirm).toMatchObject({ card: { card: 1 } });
       const source = createStore(prev);
       const anim = new Animator(source, { speed: () => 0 });                 // even with animations off
       source.set(next);
@@ -213,10 +287,19 @@ describe('reading cards', () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it("a bot's Play Immediately card doesn't wait", () => {
-    const { prev, next } = immediate();
+  it("a bot's Play Immediately draw doesn't wait", () => {
+    const { prev, next } = immediateDraw();
     const bot = { ...next, view: { ...next.view!, seats: next.view!.seats.map((s, i) => (i === 0 ? { ...s, bot: 'easy' as const } : s)) } };
     expect(planStep(prev, bot, 1)!.confirm).toBeUndefined();
+  });
+
+  it('plays a previously acknowledged Play Immediately card directly to discard without another pause', () => {
+    const a = base(); a.turn = 0; a.seats[0]!.hand = [29, 1];
+    const b = clone(a); b.seats[0]!.hand = [29]; b.discard = [1];
+    const e: GameEvent = { type: 'immediate', seat: 0, card: 1, text: 'PLAY IMMEDIATELY: Player 1 drew Abduction.' };
+    const plan = planStep(snap(a, []), snap(b, [e]), 1)!;
+    expect(plan.confirm).toBeUndefined();
+    expect(plan.flights[0]!.keys.at(-1)).toMatchObject({ x: 256, y: 123.5 });
   });
 
   it('pausing (a card opened full size) stops the clock', async () => {
@@ -248,5 +331,43 @@ describe('a played card with nowhere to go yet', () => {
     const play: GameEvent = { type: 'play', seat: 0, card: 27, text: 'Player 1 played Vote Recount.' };
     const plan = planStep(snap(a, []), snap(b, [play]), 1)!;
     expect(plan.flights[0]!.keys.at(-1)).toMatchObject(CENTER);
+  });
+});
+
+describe('discard before result', () => {
+  it('lifts a wall clear of the hand, pays its build costs, then flies it to the wall', () => {
+    const a = base();
+    a.turn = 0;
+    a.seats[0]!.hand = [29, 30, 31];
+    const b = clone(a);
+    b.seats[0]!.hand = [];
+    b.seats[0]!.walls = [33, 29];
+    b.discard = [30, 31];
+    const build: GameEvent = { type: 'build', seat: 0, card: 29, cards: [30, 31], text: 'Player 1 built a wall.' };
+    const plan = planStep(snap(a, []), snap(b, [build]), 1)!;
+    const costs = plan.flights.filter(f => f.card === 30 || f.card === 31);
+    const wall = plan.flights.find(f => f.card === 29)!;
+    expect(costs).toHaveLength(2);
+    expect(wall.keys).toHaveLength(4);
+    expect(wall.keys[1]!.y).toBeLessThan(wall.keys[0]!.y);                 // lifted above the hand
+    expect(costs.every(f => f.keys[1]!.t >= wall.keys[1]!.t)).toBe(true);  // payment follows lift
+    expect(wall.keys[2]!.t).toBeGreaterThanOrEqual(Math.max(...costs.map(f => f.keys.at(-1)!.t)));
+    expect(wall.keys[2]).toMatchObject({ ...wall.keys[1]!, t: wall.keys[2]!.t }); // waits above the hand
+    expect(wall.keys.at(-1)!.y).not.toBe(wall.keys[2]!.y);                 // then travels to built walls
+  });
+
+  it('settles a card that was waiting for a response before animating its resolved effect', () => {
+    const a = base();
+    a.seats[1]!.hand = [30];       // Debt was already shown at its target, outside either view
+    const b = clone(a);
+    b.discard = [7];
+    b.seats[0]!.walls = [];
+    b.seats[1]!.walls = [33];
+    const resolved: GameEvent = { type: 'wallMoved', seat: 0, target: 1, card: 33, text: 'Debt took a wall.' };
+    const held = { card: 7, rect: CENTER, target: 0 };
+    const plan = planStep(snap(a, []), snap(b, [resolved]), 1, undefined, held)!;
+    const debt = plan.flights.find(f => f.card === 7)!;
+    const wall = plan.flights.find(f => f.card === 33)!;
+    expect(wall.keys[1]!.t).toBeGreaterThanOrEqual(debt.keys.at(-1)!.t);
   });
 });

@@ -3,9 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { CardId, Decision, GameState, Seat, WallRef } from '../../game';
 import { CardImage } from '../components/CardImage';
-import { showCard } from '../components/zoom';
+import { RESIZE_TITLE, useDraggable } from '../components/drag';
+import { cardMenuProps, showCard } from '../components/zoom';
 import type { Prompt } from '../controller';
 import { cardName, optionLabel, promptTitle, seatName } from './text';
+import { stacks } from '../board/hand-layout';
 
 /** Seconds to pick cards from a pile before the picks so far are taken (section 9, `pool pick`). */
 export const PICK_SECONDS = 30;
@@ -32,8 +34,8 @@ export function PromptView({ prompt, view }: Props) {
       );
     case 'paySavings':
       return (
-        <Shell d={d} view={view} card={7} title={promptTitle(d.kind, 7)}
-          sub={seatName(view, d.attacker) + ' played Debt on one of your walls. Savings keeps the wall.'}>
+        <Shell d={d} view={view} card={d.wall ?? 7} title={promptTitle(d.kind, 7)}
+          sub={seatName(view, d.attacker) + ' played Debt to take ' + (d.wall !== undefined ? 'your ' + cardName(d.wall) : 'one of your walls') + '. Pay with Savings to keep it.'}>
           <Choices>
             <Choice onClick={() => answer(true)}>Pay with Savings</Choice>
             <Choice plain onClick={() => answer(false)}>Let them take it</Choice>
@@ -66,16 +68,14 @@ export function PromptView({ prompt, view }: Props) {
       return (
         <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose)} sub={sub}
           onCancel={d.optional ? () => answer(null) : undefined} cancelText={d.purpose === 'build' ? 'Stop building' : 'Skip'}>
-          <div class="btw-ov-cards">
-            {d.options.map(slot => hand[slot] === undefined ? null : (
-              <CardButton key={slot} id={hand[slot]!} onClick={() => answer(slot)} />
-            ))}
-          </div>
+          <HandCards hand={hand} slots={d.options} onPick={slot => answer(slot)} />
         </Shell>
       );
     }
     case 'pickCards':
       return <PickCards d={d} view={view} onDone={ids => answer(ids)} />;
+    case 'pickHandCards':
+      return <PickHandCards d={d} view={view} onDone={slots => answer(slots)} />;
     case 'chooseOption':
       return (
         <Shell d={d} view={view} title={cardName(d.card)} onCancel={d.cancellable ? () => answer(null) : undefined}>
@@ -95,7 +95,7 @@ function Shell(props: {
 }) {
   const { d, view, title, sub, onCancel, cancelText = 'Cancel', children } = props;
   const card = props.card ?? ('card' in d ? d.card : undefined);
-  const box = useRef<HTMLDivElement>(null);
+  const drag = useDraggable('prompt'), box = drag.ref;
   useEffect(() => { box.current?.querySelector<HTMLElement>('button')?.focus(); }, [d]);
   useEffect(() => {
     if (!onCancel) return;
@@ -104,8 +104,8 @@ function Shell(props: {
     return () => removeEventListener('keydown', key);
   }, [onCancel]);
   return (
-    <div class="btw-ov-backdrop">
-      <div class="btw-ov-box" role="dialog" aria-modal="true" aria-label={title} ref={box}>
+    <div class={'btw-ov-backdrop' + (drag.moved ? ' btw-ov-backdrop--moved' : '')}>
+      <div class="btw-ov-box drag-box" role="dialog" aria-modal="true" aria-label={title} ref={box} style={drag.style}>
         <div class="btw-ov-head">{seatName(view, d.seat)}</div>
         <div class="btw-ov-body">
           {card !== undefined && <CardImage id={card} size="thumb" class="btw-ov-cause" zoomable />}
@@ -117,6 +117,7 @@ function Shell(props: {
           </div>
         </div>
         <div class="btw-ov-foot" />
+        <span class="drag-grip" title={RESIZE_TITLE} aria-hidden="true" />
       </div>
     </div>
   );
@@ -128,10 +129,12 @@ function Choice({ plain, onClick, children }: { plain?: boolean; onClick: () => 
   return <button type="button" class={'btw-ov-btn' + (plain ? ' btw-ov-btn--plain' : '')} onClick={onClick}>{children}</button>;
 }
 
-function CardButton({ id, onClick, badge }: { id: CardId; onClick: () => void; badge?: string }) {
+function CardButton({ id, onClick, badge, picked }: { id: CardId; onClick: () => void; badge?: string; picked?: boolean }) {
   return (
     <span class="btw-ov-cardwrap">
-      <button type="button" class="btw-ov-card" onClick={onClick} aria-label={cardName(id) + (badge ? ', ' + badge : '')}>
+      <button type="button" class={'btw-ov-card' + (picked ? ' btw-ov-card--picked' : '')} onClick={onClick}
+        onContextMenu={cardMenuProps(id).onContextMenu}
+        aria-label={cardName(id) + (badge ? ', ' + badge : '')} aria-pressed={picked === undefined ? undefined : picked}>
         <CardImage id={id} size="thumb" aria-hidden="true" />
         {badge && <span class="btw-ov-badge">{badge}</span>}
       </button>
@@ -139,6 +142,35 @@ function CardButton({ id, onClick, badge }: { id: CardId; onClick: () => void; b
       <button type="button" class="btw-ov-zoom" aria-label={'See ' + cardName(id) + ' full size'} onClick={() => showCard(id)}>⌕</button>
     </span>
   );
+}
+
+/**
+ * Cards from your hand to pick from, like the hand on the board: sorted by colour, copies stacked a little
+ * lower each, and small enough that they all fit side by side.
+ */
+function HandCards({ hand, slots, onPick, picked, badge }: {
+  hand: readonly CardId[]; slots: readonly number[]; onPick: (slot: number) => void;
+  picked?: (slot: number) => boolean; badge?: (slot: number) => string | undefined;
+}) {
+  const groups = stacks(hand, slots);
+  return (
+    <div class="btw-ov-cards btw-ov-cards--hand" style={{ '--stacks': groups.length }}>
+      {groups.map(g => (
+        <div class="btw-ov-stack" key={g.id}>
+          {g.slots.map(slot => (
+            <CardButton key={slot} id={g.id} onClick={() => onPick(slot)} picked={picked?.(slot)} badge={badge?.(slot)} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** pickHandCards lists the cards beside their slots: as a hand, so HandCards can sort them. */
+function handOf(d: Extract<Decision, { kind: 'pickHandCards' }>): CardId[] {
+  const hand: CardId[] = [];
+  d.options.forEach((slot, i) => { hand[slot] = d.cards[i]!; });
+  return hand;
 }
 
 function Walls({ options, view, onPick }: { options: WallRef[]; view: GameState; onPick: (w: WallRef) => void }) {
@@ -161,14 +193,39 @@ function Walls({ options, view, onPick }: { options: WallRef[]; view: GameState;
   );
 }
 
-/** Pick up to `max` cards from a pool shown grouped by kind with counts, before the timer runs out. */
-function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCards' }>; view: GameState; onDone: (ids: CardId[]) => void }) {
-  const [picks, setPicks] = useState<CardId[]>([]);
+/** Tick between `min` and `max` cards of your hand (e.g. the walls to build for free), then confirm once. */
+function PickHandCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickHandCards' }>; view: GameState; onDone: (slots: number[]) => void }) {
+  const [picks, setPicks] = useState<number[]>([]);
+  const toggle = (slot: number) => setPicks(p => (p.includes(slot) ? p.filter(s => s !== slot)
+    : p.length < d.max ? [...p, slot] : d.max === 1 ? [slot] : p));
+  const sets = d.card === 23;
+  const what = (n: number) => n + (sets ? (n === 1 ? ' set' : ' sets') : (n === 1 ? ' wall' : ' walls'));
+  const sub = (d.min === d.max ? 'Pick ' + what(d.max) : 'Pick up to ' + what(d.max)) + ', then build them all at once.'
+    + (sets && d.max > 1 ? ' Each set after the first costs 1 action.' : '');
+  return (
+    <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose)} sub={sub}>
+      <HandCards hand={handOf(d)} slots={d.options} onPick={toggle}
+        picked={slot => picks.includes(slot)} badge={slot => (picks.includes(slot) ? '✓ ' + (picks.indexOf(slot) + 1) : undefined)} />
+      <Choices>
+        <Choice onClick={() => { if (picks.length >= d.min) onDone(picks); }}>
+          {picks.length >= d.min ? 'Build ' + what(picks.length) : 'Pick ' + (d.min - picks.length) + ' more'}
+        </Choice>
+      </Choices>
+    </Shell>
+  );
+}
+
+/**
+ * Pick up to `max` cards from a pool shown grouped by kind with counts, before the timer runs out.
+ * When the pool holds both piles (Freedom of the Press) the draw pile and the discard pile are shown apart.
+ */
+function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCards' }>; view: GameState; onDone: (at: number[]) => void }) {
+  const [picks, setPicks] = useState<number[]>([]);
   const [left, setLeft] = useState(PICK_SECONDS);
   const picksRef = useRef(picks);
   picksRef.current = picks;
   const finished = useRef(false);
-  const finish = (ids: CardId[]) => { if (finished.current) return; finished.current = true; onDone(ids); };
+  const finish = (at: number[]) => { if (finished.current) return; finished.current = true; onDone(at); };
 
   useEffect(() => {
     const t = setInterval(() => setLeft(s => s - 1), 1000);
@@ -176,15 +233,22 @@ function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCard
   }, []);
   useEffect(() => { if (left <= 0) finish(picksRef.current); }, [left]);
 
-  const groups = useMemo(() => {
-    const counts = new Map<CardId, number>();
-    for (const id of d.pool) counts.set(id, (counts.get(id) ?? 0) + 1);
-    return [...counts].sort((a, b) => a[0] - b[0]);
-  }, [d.pool]);
-  const remaining = (id: CardId) => (groups.find(g => g[0] === id)?.[1] ?? 0) - picks.filter(p => p === id).length;
-  const add = (id: CardId) => {
-    if (picks.length >= d.max || remaining(id) <= 0) return;
-    const next = [...picks, id];
+  /** Each section: the pool positions of each kind, kinds in order. */
+  const sections = useMemo(() => {
+    const group = (from: number, to: number) => {
+      const at = new Map<CardId, number[]>();
+      for (let i = from; i < to; i++) at.set(d.pool[i]!, [...(at.get(d.pool[i]!) ?? []), i]);
+      return [...at].sort((a, b) => a[0] - b[0]);
+    };
+    const split = d.fromDiscard;
+    return split === undefined ? [{ title: null, groups: group(0, d.pool.length) }]
+      : [{ title: 'Draw pile', groups: group(0, split) }, { title: 'Discard pile', groups: group(split, d.pool.length) }]
+        .filter(x => x.groups.length);
+  }, [d.pool, d.fromDiscard]);
+  const add = (spots: number[]) => {
+    const at = spots.find(i => !picks.includes(i));
+    if (picks.length >= d.max || at === undefined) return;
+    const next = [...picks, at];
     setPicks(next);
     if (next.length >= d.max) finish(next);
   };
@@ -192,19 +256,24 @@ function PickCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pickCard
   return (
     <Shell d={d} view={view} title={promptTitle(d.kind, d.card)}
       sub={'Pick up to ' + d.max + (d.max === 1 ? ' card' : ' cards') + '. ' + Math.max(0, left) + ' seconds left.'}>
-      <div class="btw-ov-cards btw-ov-cards--pool">
-        {groups.map(([id]) => {
-          const n = remaining(id);
-          return n > 0 ? <CardButton key={id} id={id} badge={'×' + n} onClick={() => add(id)} /> : null;
-        })}
-      </div>
+      {sections.map(sec => (
+        <div key={sec.title ?? 'pool'}>
+          {sec.title && <div class="btw-ov-pile">{sec.title}</div>}
+          <div class="btw-ov-cards btw-ov-cards--pool">
+            {sec.groups.map(([id, spots]) => {
+              const n = spots.filter(i => !picks.includes(i)).length;
+              return n > 0 ? <CardButton key={id} id={id} badge={'×' + n} onClick={() => add(spots)} /> : null;
+            })}
+          </div>
+        </div>
+      ))}
       {picks.length > 0 && (
         <div class="btw-ov-picked">
           <span>Your picks:</span>
-          {picks.map((id, i) => (
-            <button type="button" key={i} class="btw-ov-card btw-ov-card--small" aria-label={'Put back ' + cardName(id)}
+          {picks.map((at, i) => (
+            <button type="button" key={i} class="btw-ov-card btw-ov-card--small" aria-label={'Put back ' + cardName(d.pool[at]!)}
               onClick={() => setPicks(picks.filter((_, j) => j !== i))}>
-              <CardImage id={id} size="mini" aria-hidden="true" />
+              <CardImage id={d.pool[at]!} size="mini" aria-hidden="true" />
             </button>
           ))}
         </div>

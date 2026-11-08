@@ -61,9 +61,9 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
   const levels = Array.from({ length: MAX_PLAYERS }, (_, k) => OLD_TO_LEVEL[get('ai' + (k + 1))] ?? g.difficulties[k] ?? DEFAULT_LEVELS[k]!);
   const textSizes = { ...base.textSizes };
   for (const area of Object.keys(TEXT_PREF) as TextArea[]) textSizes[area] = num('ts_' + TEXT_PREF[area], textSizes[area]);
+  // (Player 1's name isn't copied from the account here: it's looked up when each game starts, so a
+  // name changed on the Account screen shows in the next game. See playerOneName in start.ts.)
   const names = [...g.names];
-  const myName = store.get('name');
-  if (myName && !names[0]) names[0] = myName;
   const mode = get('mode'), music = get('music');
   return clampSettings({
     ...base,

@@ -20,6 +20,7 @@ export function createGame(settingsIn: GameSettings, seed: number): GameState {
     draw: [],
     discard: [],
     jail: [],
+    resolving: [],
     jailRelease: 0,
     trainGuards: [],
     turn: -1,
@@ -51,6 +52,7 @@ export function createGame(settingsIn: GameSettings, seed: number): GameState {
       walls: [],
       skipNext: false,
       skipBy: 0,
+      quarantine: 0,
       limitNext: 0,
       left: false,
     });

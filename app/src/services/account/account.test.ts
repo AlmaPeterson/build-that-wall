@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Entitlements } from '../gold/entitlements';
-import { AccountService, OWNER_EMAIL_SHA256, sha256Hex } from './account';
+import { AccountService, sha256Hex } from './account';
 import { ServerApi, isError } from './api';
 import { GoogleSignIn, decodeIdToken, shortName } from './google';
 import { SERVER, fakeApi, makeStore, signIn } from './test-fakes';
@@ -17,7 +17,7 @@ describe('ServerApi', () => {
   it('posts plain text JSON with the id token, trimming trailing slashes', async () => {
     const { api, calls } = fakeApi({ '/save': { ok: true } });
     expect(await api.call(SERVER + '//', '/save', { data: { a: 1 } })).toEqual({ ok: true });
-    expect(calls[0]!.url).toBe(SERVER + '/save');
+    expect(calls[0]!.url).toBe(SERVER + '?path=save');
     expect(calls[0]!.init).toMatchObject({ method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
     expect(calls[0]!.body).toEqual({ id_token: 'tok', data: { a: 1 } });
   });
@@ -113,11 +113,11 @@ describe('AccountService', () => {
     expect(calls[0]!.body).toMatchObject({ miles: 12, won: true, walls: 3, name: 'A very long name tha' });
   });
 
-  it('owner check uses the email hash', async () => {
+  it('owner check never grants browser-side privileges from an email', async () => {
     const { acct } = setup();
     expect(await acct.ownerCheck()).toBe(false);
     expect(await sha256Hex(' X@Y.com ')).toBe(await sha256Hex('x@y.com'));
-    expect(OWNER_EMAIL_SHA256).toMatch(/^[0-9a-f]{64}$/);
+    expect(acct.isOwner()).toBe(false);
   });
 
   it('admin search and delete on this device', async () => {
@@ -147,6 +147,20 @@ describe('GoogleSignIn', () => {
     expect(getUser(store)).toEqual({ name: 'Jo', email: 'jo@x.com', sub: '42', token: cred, exp: 99 });
     expect(store.get('color')).toBe('green');
     expect(decodeIdToken(cred).sub).toBe('42');
+  });
+
+  it('signing out signs out of both kinds of sign-in, and keeps the saves for next time', () => {
+    const { store } = makeStore();
+    signIn(store, { sub: '42' });
+    store.set('gname', 'Alex');
+    store.set('gemail', 'alex@example.com');
+    store.set('color', 'green');
+    expect(isSignedIn(store)).toBe(true);
+    new GoogleSignIn(store, async () => { throw new Error('no DOM'); }).signOut();
+    expect(isSignedIn(store)).toBe(false);
+    expect(store.get('gname')).toBeFalsy();
+    expect(store.get('gemail')).toBeFalsy();
+    expect(JSON.parse(store.get('acct:g:42') || '{}')).toMatchObject({ color: 'green' });
   });
 
   it('names are at most 20 characters, emoji counted once', () => {

@@ -22,6 +22,7 @@ export interface GameSettings {
   actionsPerTurn: number;        // 3
   cardsPerTurn: number;          // 3
   packCards: CardId[];           // extra cards from active expansion packs (none yet)
+  firstSeat?: Seat;              // who goes first; default a random player (the Tutorial and tests set it)
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -45,6 +46,8 @@ export interface GameState {
   draw: CardId[];
   discard: CardId[];
   jail: CardId[];                // Freedom of the Press: jailed cards, including the card itself
+  /** Cards an effect has taken out of a hand but has not placed yet. Never rendered as a pile. */
+  resolving?: CardId[];
   jailRelease: number;           // turnCount at which the jail empties
   trainGuards: WallRef[];        // pairs protected by a Trump Train (the Trump Train card is held here)
   turn: Seat;                    // whose turn it is; -1 before the first turn
@@ -65,6 +68,8 @@ export interface SeatState {
   walls: CardId[];               // built sections, one entry each (a pair is two equal entries)
   skipNext: boolean;             // Quarantined for the next turn
   skipBy: Seat;                  // who Quarantined them
+  /** The Quarantine card waiting for this seat's next turn (0 = none). */
+  quarantine?: CardId;
   limitNext: CardId;             // 9 or 16 held here: 1 action next turn; 0 = none
   left: boolean;                 // an online player who left the game
 }
@@ -82,15 +87,24 @@ export type Decision =
   /** Use Self-Defense to block this attack? (section 8) */
   | { kind: 'block'; seat: Seat; attacker: Seat; card: CardId }
   /** Use Savings to pay this Debt? */
-  | { kind: 'paySavings'; seat: Seat; attacker: Seat }
+  | { kind: 'paySavings'; seat: Seat; attacker: Seat; wall?: CardId }   // wall: the section the Debt takes
   /** Pick an opponent for a card. cancellable: the player may back out before anything is spent. */
   | { kind: 'chooseSeat'; seat: Seat; card: CardId; options: Seat[]; cancellable: boolean }
   /** Pick a built wall section (Debt target, Afghanistan, Riot, Trump Train pair, Spy Balloon guard). */
   | { kind: 'chooseWall'; seat: Seat; card: CardId; options: WallRef[]; cancellable: boolean }
   /** Pick a card from your own hand (by slot), e.g. which card to give to `to` when handing out. */
   | { kind: 'chooseHandCard'; seat: Seat; card: CardId; purpose: 'give' | 'build'; options: number[]; to?: Seat; optional: boolean }
-  /** Pick up to `max` cards from a pool (piles shown grouped by kind). Answer: card ids. */
-  | { kind: 'pickCards'; seat: Seat; card: CardId; pool: CardId[]; max: number }
+  /**
+   * Pick several cards from your own hand at once (by slot), between `min` and `max` of them, e.g. the walls
+   * a free-build card builds. cards[i] is the card in slot options[i] (the screen may show the hand differently
+   * while a card is being played). Answer: the slots, in the order picked.
+   */
+  | { kind: 'pickHandCards'; seat: Seat; card: CardId; purpose: 'build'; options: number[]; cards: CardId[]; min: number; max: number }
+  /**
+   * Pick up to `max` cards from a pool (piles shown grouped by kind). When the pool holds both piles,
+   * pool[0..fromDiscard) is the draw pile and the rest the discard pile. Answer: pool positions.
+   */
+  | { kind: 'pickCards'; seat: Seat; card: CardId; pool: CardId[]; max: number; fromDiscard?: number }
   /** Pick one of named options, e.g. Trump Train 'draw' | 'protect', Spy Balloon 'take' | 'remove'. */
   | { kind: 'chooseOption'; seat: Seat; card: CardId; options: string[]; cancellable: boolean };
 
@@ -100,7 +114,8 @@ export type Answer<D extends Decision> =
   D extends { kind: 'chooseSeat' } ? Seat | null :
   D extends { kind: 'chooseWall' } ? WallRef | null :
   D extends { kind: 'chooseHandCard' } ? number | null :
-  D extends { kind: 'pickCards' } ? CardId[] :
+  D extends { kind: 'pickCards' } ? number[] :
+  D extends { kind: 'pickHandCards' } ? number[] :
   D extends { kind: 'chooseOption' } ? string | null :
   never;
 
@@ -116,6 +131,26 @@ export type GameEventType =
   | 'cardMoved' | 'wallMoved' | 'jail' | 'jailRelease' | 'limited' | 'quarantined' | 'skipped'
   | 'trainGuard' | 'trainGuardRemoved' | 'finalRound' | 'gameOver' | 'announce';
 
+/** Opaque, per-game identity for one physical copy of a card. */
+export type CardInstanceId = string;
+
+/** A card's exact rules-side location. Unlike a card face, this can identify duplicate copies. */
+export type CardLocation =
+  | { zone: 'draw' | 'discard' | 'jail'; index: number }
+  | { zone: 'hand' | 'wall'; seat: Seat; index: number }
+  | { zone: 'limit' | 'quarantine'; seat: Seat }
+  | { zone: 'trainGuard'; seat: Seat; wall: CardId; index: number }
+  | { zone: 'resolving'; index: number };
+
+/** An authoritative physical-card transition attached to the event that caused it. */
+export interface CardMove {
+  instance: CardInstanceId;
+  card: CardId;
+  from: CardLocation;
+  to: CardLocation;
+  kind: 'reposition' | 'transfer';
+}
+
 export interface GameEvent {
   type: GameEventType;
   text: string;                  // one plain sentence, e.g. "Bot 2 played Debt on Player 1's Wall Section 4."
@@ -123,6 +158,8 @@ export interface GameEvent {
   target?: Seat;                 // who it happened to
   card?: CardId;                 // the card involved
   cards?: CardId[];
+  /** Every physical card that changed location before this event was published. */
+  moves?: readonly CardMove[];
 }
 
 export type Emit = (e: GameEvent) => void;

@@ -67,7 +67,7 @@ export function setup(opts: {
   answer?: (d: Decision) => unknown;
   bot?: BotPlayer;
 } = {}) {
-  const state = createGame({ ...DEFAULT_SETTINGS, players: 2, bots: 0, ...opts.settings }, opts.seed ?? 1);
+  const state = createGame({ ...DEFAULT_SETTINGS, players: 2, bots: 0, firstSeat: 0, ...opts.settings }, opts.seed ?? 1);
   if (opts.draw) state.draw = [...opts.draw];
   const rules = opts.rules ?? stubRules();
   const { decider, asked } = scriptedDecider(opts.answer);

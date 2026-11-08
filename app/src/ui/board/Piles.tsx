@@ -5,6 +5,8 @@ import { cardById } from '../../data/cards';
 import { zoomProps } from '../components/zoom';
 
 export function Piles({ state }: { state: GameState }) {
+  // Freedom of the Press is stored in jail as a marker, but the player-facing count is the cards it jailed.
+  const jailed = state.jail.filter(card => card !== 11).length;
   const top = state.discard.at(-1);
   return (
     <>
@@ -15,7 +17,7 @@ export function Piles({ state }: { state: GameState }) {
       )}
       {state.jail.length > 0 && (
         <div class="at board__jail" title="Freedom of the Press: these cards come back to the discard pile later">
-          Jail: {state.jail.length} cards ({Math.max(0, state.jailRelease - state.turnCount)} turns)
+          Jail: {jailed} cards ({Math.max(0, state.jailRelease - state.turnCount)} turns)
         </div>
       )}
       <div class="at piles">

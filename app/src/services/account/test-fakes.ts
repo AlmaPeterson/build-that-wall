@@ -15,7 +15,7 @@ export function fakeApi(replies: Record<string, unknown>, token = 'tok') {
   const fetchFn: FetchLike = async (url, init) => {
     const body = init?.body ? JSON.parse(String(init.body)) : null;
     calls.push({ url, init, body });
-    const r = replies[url.slice(SERVER.length)];
+    const r = replies['/' + decodeURIComponent(url.slice((SERVER + '?path=').length))];
     if (r === undefined) throw new Error('offline');
     return { json: async () => (typeof r === 'function' ? r(body) : r) };
   };

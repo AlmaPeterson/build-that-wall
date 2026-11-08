@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { GameController } from './controller';
+import { CARD_BACK } from '../game';
+import { GameController, type SavedGame } from './controller';
 
 const settings = (players: number, bots: number) => ({
   players, bots, difficulties: Array(bots).fill('medium'), names: [], ending: 1 as const, endingTimes: 1 as const,
-  actionsPerTurn: 3, cardsPerTurn: 3, packCards: [],
+  actionsPerTurn: 3, cardsPerTurn: 3, packCards: [], firstSeat: 0,
 });
 
 describe('GameController', () => {
@@ -32,6 +33,21 @@ describe('GameController', () => {
     expect(snap.events.at(-1)?.type).toBe('gameOver');
   });
 
+  it('a bots-only game shows every hand face up', async () => {
+    const c = new GameController();
+    let release: () => void = () => {};
+    c.setPace(() => new Promise(r => { release = r; }));
+    const done = c.start(settings(3, 3), 7);
+    await new Promise(r => setTimeout(r, 0));
+    const snap = c.snapshot.get();
+    expect(snap.openHands).toBe(true);
+    expect(snap.view!.seats.flatMap(s => s.hand)).not.toContain(CARD_BACK);
+    expect(snap.view!.seats.some(s => s.hand.length)).toBe(true);
+    c.setPace(null);
+    release();
+    await done;
+  });
+
   it("shows only the viewer's hand and waits for the human to act", async () => {
     const c = new GameController();
     void c.start(settings(2, 1), 3);
@@ -40,9 +56,31 @@ describe('GameController', () => {
     expect(snap.view).not.toBeNull();
     expect(snap.viewer).toBe(0);
     expect(snap.view!.seats[1]!.hand.every(id => id === 4)).toBe(true);   // the bot's hand is hidden
+    expect(snap.openHands).toBe(false);
     if (snap.view!.turn === 0 && !snap.prompt) {
       expect((await c.act({ type: 'endTurn' })).ok).toBe(true);
     }
+  });
+
+  it('a quarantined human: the game waits for their OK before going on to the next turn', async () => {
+    const c = new GameController();
+    void c.start(settings(2, 1), 3);
+    await new Promise(r => setTimeout(r, 0));
+    expect(c.snapshot.get().view!.turn).toBe(0);
+    c.api!.state.seats[0]!.skipNext = true;
+    const ended = c.act({ type: 'endTurn' });                     // the bot's turn, then the skipped one
+    await new Promise(r => setTimeout(r, 10));
+    const held = c.snapshot.get();
+    expect(held.skipped).toBe(0);
+    expect(held.view!.turn).toBe(0);                               // not moved on behind the notice
+    expect(held.events.at(-1)?.type).toBe('skipped');
+    c.skipSeen();
+    await new Promise(r => setTimeout(r, 10));
+    const after = c.snapshot.get();
+    expect(after.skipped).toBeNull();
+    expect((await ended).ok).toBe(true);
+    expect(after.events.filter(e => e.type === 'turnStart').length).toBeGreaterThan(held.events.filter(e => e.type === 'turnStart').length);
+    c.stop();
   });
 
   it("one person playing: shows \"Player 1's turn\" for a moment, with the hand hidden, before the turn starts", async () => {
@@ -102,19 +140,19 @@ describe('a card being played', () => {
     expect(c.snapshot.get().events.length).toBe(events);             // nothing happened
   });
 
-  it("a building card's \"pick a wall\" points at the walls as the screen shows the hand", async () => {
+  it("a building card's \"pick the walls\" names its cards, so they're right while the screen still shows the card", async () => {
     const c = await myTurn([26, 3, 29, 14, 30]);                    // Assassin in slot 1: build up to 2 walls free
     void c.act({ type: 'play', slot: 1 });
     await tick();
     const asking = c.snapshot.get();
-    const d = asking.prompt!.decision as { kind: string; options: number[] };
-    expect(d.kind).toBe('chooseHandCard');
-    const hand = asking.view!.seats[0]!.hand;
-    expect(hand).toEqual([26, 3, 29, 14, 30]);                       // Assassin still shown
-    expect(d.options.map(s => hand[s])).toEqual([29, 30]);          // the choices are the walls on screen
-    asking.prompt!.answer(4 as never);                               // Wall Section 2, as shown
+    const d = asking.prompt!.decision as { kind: string; options: number[]; cards: number[] };
+    expect(d.kind).toBe('pickHandCards');
+    expect(asking.view!.seats[0]!.hand).toEqual([26, 3, 29, 14, 30]);   // Assassin still shown
+    expect(d.cards).toEqual([29, 30]);                               // the choices are the two walls
+    asking.prompt!.answer([d.options[1]!] as never);                 // Wall Section 2 only
     await tick();
     expect(c.api!.state.seats[0]!.walls).toEqual([30]);
+    expect(c.api!.state.discard).toContain(3);
   });
 
   it('a card that goes to the discard pile before its question is still shown in your hand meanwhile', async () => {
@@ -204,5 +242,57 @@ describe('GameController on a shared device', () => {
     await new Promise(r => setTimeout(r, 50));
     expect(c.snapshot.get().events.length).toBe(n);
     expect(c.state!.over).toBeNull();
+  });
+
+  describe('saving and carrying on', () => {
+    it("saves at a person's move and a new controller carries on from there", async () => {
+      const saves: (SavedGame | null)[] = [];
+      const c = new GameController({ onSave: s => saves.push(s) });
+      await c.start(settings(2, 1), 3);                     // you go first: the game waits for your move
+      const last = saves.at(-1)!;
+      expect(last).toMatchObject({ v: 1, at: 'move' });
+      expect(last.state.turn).toBe(0);
+      // The saved copy doesn't change with the running game
+      const hand = [...last.state.seats[0]!.hand];
+      c.state!.seats[0]!.hand.push(14);
+      expect(last.state.seats[0]!.hand).toEqual(hand);
+      c.state!.seats[0]!.hand.pop();
+
+      const d = new GameController({ onSave: s => saves.push(s) });
+      await d.resume(JSON.parse(JSON.stringify(last)));      // as it comes back from localStorage
+      expect(d.state).toEqual(c.state);
+      expect(d.snapshot.get().events).toHaveLength(c.snapshot.get().events.length);
+      // ...and plays on: ending the turn runs the bot and comes back to you
+      const r = await d.act({ type: 'endTurn' });
+      expect(r.ok).toBe(true);
+      expect(d.state!.turn === 0 || d.state!.over).toBeTruthy();
+      expect(saves.at(-1) === null || saves.at(-1)!.state.turnCount > last.state.turnCount).toBe(true);
+    });
+
+    it('a save from the start of a turn starts that turn again; a finished game is forgotten', async () => {
+      const saves: (SavedGame | null)[] = [];
+      const c = new GameController({ onSave: s => saves.push(s) });
+      await c.start(settings(3, 3), 11);                    // bots only, to the end
+      expect(saves.at(-1)).toBeNull();
+      const turn = [...saves].reverse().find(s => s?.at === 'turn')!;
+      const d = new GameController();
+      await d.resume(turn);
+      expect(d.state!.over).not.toBeNull();                 // ran on to an end
+      expect(d.state!.turnCount).toBeGreaterThanOrEqual(turn.state.turnCount);
+    });
+
+    it("Pass'n'Play: carrying on mid-turn shows the pass screen first", async () => {
+      const saves: (SavedGame | null)[] = [];
+      const c = new GameController({ passScreen: true, onSave: s => saves.push(s) });
+      void c.start(settings(2, 0), 4);
+      await new Promise(r => setTimeout(r, 0));
+      c.ready();
+      await new Promise(r => setTimeout(r, 0));
+      const move = [...saves].reverse().find(s => s?.at === 'move')!;
+      expect(move).toBeTruthy();
+      const d = new GameController({ passScreen: true });
+      void d.resume(move);
+      expect(d.snapshot.get().passTo).toBe(move.state.turn);
+    });
   });
 });

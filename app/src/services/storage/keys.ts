@@ -19,6 +19,7 @@ export const KEYS = {
   aimem: 'aimem',             // what hard bots learned about each human
   fbsent: 'fbsent',           // feedback already sent (owned by the feedback service)
   fbraw: 'fbraw',             // raw feedback already sent (owned by the feedback service)
+  game: 'game',               // a game on this device left part-way, to carry on (ui/saved-game.ts)
 } as const;
 
 // Cosmetics and stats that follow a signed-in player to the game server (see SAVE_KEYS in game-server.gs)
@@ -27,7 +28,7 @@ export const ACCOUNT_KEYS = ['name', 'back', 'color', 'starc', 'namebg', 'tutor'
 export const ACCOUNT_KEY_RE = /^(name|back|color|starc|namebg|tutor|prefs|lb|stat_[a-z]+)$/;
 
 // Keys that belong to the device, not to whoever is signed in. Full localStorage names.
-export const DEVICE_KEY_RE = /^btw:(user|lb|aimem|trials|fbsent|fbraw|gname|gemail|acct:.*)$/;
+export const DEVICE_KEY_RE = /^btw:(user|lb|aimem|trials|fbsent|fbraw|gname|gemail|game|acct:.*)$/;
 
 // Where a signed-out account's data waits for the next sign-in: "btw:acct:g:<google sub>" or "btw:acct:e:<email>"
 export const stashKey = (accountId: string) => PREFIX + 'acct:' + accountId;

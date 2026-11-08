@@ -38,18 +38,36 @@ describe('free builds: Assassin (3), Legal Immigration (13), Voting Machine (28)
     expect(s.actionsLeft).toBe(3);
   });
 
-  it('Legal Immigration builds up to 3; the first pick is required, later ones can stop', async () => {
+  it('Legal Immigration: all the walls are picked in one question (1 to 3), then the card is discarded and they are built', async () => {
     const s = makeState([{ hand: [13, W1, W2, W3, W4] }, {}]);
-    const { ctx } = await play(s, 13, { chooseHandCard: [1, null] });
-    expect(s.seats[0]!.walls).toEqual([W2]);
-    expect(ctx.asked.map(d => d.kind === 'chooseHandCard' && d.optional)).toEqual([false, true]);
+    const { ctx } = await play(s, 13, { pickHandCards: [[3, 1]] });
+    expect(ctx.asked).toHaveLength(1);
+    expect(ctx.asked[0]).toMatchObject({ kind: 'pickHandCards', options: [0, 1, 2, 3], cards: [W1, W2, W3, W4], min: 1, max: 3 });
+    expect(s.seats[0]!.walls).toEqual([W4, W2]);                     // in the order picked
+    expect(s.seats[0]!.hand).toEqual([W1, W3]);
+    // The card goes first, then the walls, so the board shows them in that order
+    const firstBuild = ctx.events.findIndex(e => e.type === 'build');
+    expect(ctx.discardAtEmit[firstBuild]).toContain(13);
   });
 
-  it('stops when no walls are left in hand', async () => {
+  it('a bad answer is fixed: unknown or repeated slots dropped, extras cut, at least one wall built', async () => {
+    const s = makeState([{ hand: [3, W1, W2, W3] }, {}]);
+    await play(s, 3, { pickHandCards: [[9, 2, 2, 0, 1]] });
+    expect(s.seats[0]!.walls).toEqual([W3, W1]);                     // slots 2 and 0; the rest is too many
+    const t = makeState([{ hand: [3, W1, W2] }, {}]);
+    await play(t, 3, { pickHandCards: [[]] });
+    expect(t.seats[0]!.walls).toEqual([W1]);                         // none picked: the first is built anyway
+  });
+
+  it('only asks for as many as there are walls; no walls, no question', async () => {
     const s = makeState([{ hand: [28, W1] }, {}]);
     const { ctx } = await play(s, 28);
     expect(s.seats[0]!.walls).toEqual([W1]);
-    expect(ctx.asked).toHaveLength(1);
+    expect(ctx.asked[0]).toMatchObject({ min: 1, max: 1 });
+    const t = makeState([{ hand: [28, 14] }, {}]);
+    const c2 = await play(t, 28);
+    expect(c2.ctx.asked).toHaveLength(0);
+    expect(t.discard).toEqual([28]);
   });
 });
 
@@ -62,12 +80,17 @@ describe('Toilet Paper (23)', () => {
     expect(s.actionsLeft).toBe(1);
   });
 
-  it('can stop after the first set; the first choice cannot be cancelled', async () => {
+  it('can stop after the first set; at least one set; as many sets as actions allow', async () => {
     const s = makeState([{ hand: [23, W1, W1, W2, W2] }, {}]);
-    const { ctx } = await play(s, 23, { chooseHandCard: [null, null] });
-    expect(s.seats[0]!.walls).toEqual([W1, W1]);           // null on the first choice falls back to the first set
-    expect(ctx.asked.map(d => d.kind === 'chooseHandCard' && d.optional)).toEqual([false, true]);
+    const { ctx } = await play(s, 23, { pickHandCards: [[]] });
+    expect(s.seats[0]!.walls).toEqual([W1, W1]);           // nothing picked falls back to the first set
+    expect(ctx.asked).toHaveLength(1);
+    expect(ctx.asked[0]).toMatchObject({ kind: 'pickHandCards', options: [0, 2], cards: [W1, W2], min: 1, max: 2 });
     expect(s.actionsLeft).toBe(3);
+    const t = makeState([{ hand: [23, W1, W1, W2, W2] }, {}], { actionsLeft: 0 });
+    const c2 = await play(t, 23);
+    expect(c2.ctx.asked[0]).toMatchObject({ max: 1 });      // no actions left: only the free set
+    expect(t.seats[0]!.walls).toEqual([W1, W1]);
   });
 
   it('no further sets without actions', async () => {
@@ -221,6 +244,7 @@ describe('Debt (7)', () => {
   it('the owner may pay with Savings', async () => {
     const s = makeState([{ hand: [7] }, { walls: [W1], hand: [19, 14] }]);
     const { ctx } = await play(s, 7, { paySavings: [true] });
+    expect(ctx.asked.find(d => d.kind === 'paySavings')).toMatchObject({ seat: 1, attacker: 0, wall: W1 });   // they're told which wall
     expect(s.seats[1]!.walls).toEqual([W1]);
     expect(s.seats[1]!.hand).toEqual([14]);
     expect(s.discard).toEqual([7, 19]);
@@ -288,7 +312,7 @@ describe('Trump (26) and Trump Train (25)', () => {
 describe('pile picks: Freedom of the Press (11), Supreme Court Nominee (22), Vote Recount (27)', () => {
   it('Supreme Court Nominee: up to 3 from the draw pile into the hand', async () => {
     const s = makeState([{ hand: [22] }, {}], { draw: [14, 7, W1, 19], discard: [20] });
-    const { ctx } = await play(s, 22, { pickCards: [[W1, 19]] });
+    const { ctx } = await play(s, 22, { pickCards: [[2, 3]] });
     expect(ctx.asked[0]).toMatchObject({ kind: 'pickCards', pool: [14, 7, W1, 19], max: 3 });
     expect(s.seats[0]!.hand).toEqual([W1, 19]);
     expect(counts(s.draw)).toEqual(counts([14, 7]));
@@ -297,7 +321,7 @@ describe('pile picks: Freedom of the Press (11), Supreme Court Nominee (22), Vot
 
   it('Vote Recount: up to 3 from the discard pile, then the card is discarded', async () => {
     const s = makeState([{ hand: [27] }, {}], { draw: [14], discard: [7, W1, 7] });
-    const { ctx } = await play(s, 27, { pickCards: [[7, 7]] });
+    const { ctx } = await play(s, 27, { pickCards: [[0, 2]] });
     expect(ctx.asked[0]).toMatchObject({ pool: [7, W1, 7], max: 3 });
     expect(s.seats[0]!.hand).toEqual([7, 7]);
     expect(s.discard).toEqual([W1, 27]);
@@ -308,10 +332,10 @@ describe('pile picks: Freedom of the Press (11), Supreme Court Nominee (22), Vot
   it('Freedom of the Press: up to 4 from both piles into jail, with the card; release in 3 rounds; draw shuffled', async () => {
     const s = makeState([{ hand: [11] }, {}, {}], { draw: [14, W1], discard: [W1, 7], turnCount: 5 });
     const before = everything(s);
-    const { ctx } = await play(s, 11, { pickCards: [[W1, W1, 14]] });
-    expect(ctx.asked[0]).toMatchObject({ pool: [14, W1, W1, 7], max: 4 });
+    const { ctx } = await play(s, 11, { pickCards: [[2, 1, 0]] });
+    expect(ctx.asked[0]).toMatchObject({ pool: [14, W1, W1, 7], max: 4, fromDiscard: 2 });
     expect(s.jail).toEqual([W1, W1, 14, 11]);
-    expect(s.discard).toEqual([7]);     // the first W1 came from the discard pile, the second from the draw pile
+    expect(s.discard).toEqual([7]);     // the first W1 was picked from the discard pile, the second from the draw pile
     expect(s.draw).toEqual([]);
     expect(s.jailRelease).toBe(5 + 3 * 3);
     expect(everything(s)).toEqual(before);
@@ -333,12 +357,13 @@ describe('Play Immediately cards', () => {
     expect(n.seats[0]!.hand).toEqual([20]);
   });
 
-  it("Afghanistan Pull Out: one of your walls goes into an opponent's hand", async () => {
+  it("Afghanistan Pull Out: one of your walls goes onto an opponent's board, still built", async () => {
     const s = makeState([{ walls: [W1, W2, W2, W2] }, {}, {}]);
     const ctx = await immediate(s, 2, { chooseSeat: [2] });
     expect(ctx.asked.find(d => d.kind === 'chooseWall')).toMatchObject({ options: [{ seat: 0, kind: W1 }], cancellable: false });
     expect(s.seats[0]!.walls).toEqual([W2, W2, W2]);
-    expect(s.seats[2]!.hand).toEqual([W1]);
+    expect(s.seats[2]!.walls).toEqual([W1]);
+    expect(s.seats[2]!.hand).toEqual([]);
   });
 
   it('Afghanistan Pull Out: sets of 3 and guarded pairs are safe; blockable', async () => {
@@ -425,6 +450,7 @@ describe('Play Immediately cards', () => {
     const s = makeState([{}, {}]);
     const ctx = await immediate(s, 18);
     expect(ctx.asked).toEqual([]);
+    expect(ctx.events.at(-1)!.text).toContain('No effect');
   });
 });
 

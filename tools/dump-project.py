@@ -10,7 +10,8 @@ import re
 import sys
 from collections import defaultdict
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else 'classic/assets/project.json'
+# The old game (classic/) was removed; get its project with: git show 78781ec:classic/assets/project.json > project.json
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'project.json'
 OUT = sys.argv[2] if len(sys.argv) > 2 else 'docs/project-dump'
 IND = '    '
 

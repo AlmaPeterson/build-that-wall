@@ -8,6 +8,8 @@ import { LeaderboardScreen } from './screens/Leaderboard';
 import { MenuScreen } from './screens/Menu';
 import { OnlineScreen } from './screens/Online';
 import { SettingsScreen } from './screens/Settings';
+import { online } from './online';
+import { StillHere } from './online/StillHere';
 import { useStore } from './store';
 
 const SCREENS: Record<Screen, FunctionComponent> = {
@@ -25,5 +27,5 @@ export function App() {
   const { textSizes } = useStore(settings);
   const Current = SCREENS[current];
   const style = Object.fromEntries(Object.entries(textSizes).map(([k, v]) => ['--text-' + k, String(v)]));
-  return <div class="app" style={style}><Current /></div>;
+  return <div class="app" style={style}><Current /><StillHere session={online} /></div>;
 }

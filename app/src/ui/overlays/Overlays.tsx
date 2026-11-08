@@ -10,7 +10,11 @@ import { animatorFor } from '../anim';
 import { useStore } from '../store';
 import { PromptView } from './Prompt';
 import { BigNotice, PassScreen, Recap, TurnBanner, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
-import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, type RecapLine } from './text';
+import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, waitingText, wallToastFor, type RecapLine } from './text';
+import { amazonUrl } from '../links';
+import { services } from '../services';
+import { ads } from './ads';
+import { VideoAd } from './VideoAd';
 import './overlays.css';
 
 const TOAST_MS = 3200;
@@ -20,12 +24,14 @@ export function Overlays({ controller }: { controller: GameController }) {
   // What the board shows now: prompts and notices wait until the cards before them have moved
   const { snap } = useStore(animatorFor(controller).state);
   const { tutorial } = useStore(settings);
-  const { view, viewer, events, prompt, passTo } = snap;
+  const { view, viewer, events, prompt, passTo, openHands } = snap;
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [notices, setNotices] = useState<GameEvent[]>([]);
   const [recap, setRecap] = useState<{ lines: RecapLine[]; myTurn: boolean } | null>(null);
   const [winClosed, setWinClosed] = useState(false);
+  const [adSeen, setAdSeen] = useState(false);
+  const [adThen, setAdThen] = useState<(() => void) | null>(null);
   const [tipHidden, setTipHidden] = useState(false);
   const seen = useRef(0);
   const toastId = useRef(0);
@@ -37,17 +43,25 @@ export function Overlays({ controller }: { controller: GameController }) {
     seen.current = events.length;
     if (!fresh.length || !view) return;
     const newToasts: Toast[] = [];
+    const wallsToasted = new Set<number>();
     for (const e of fresh) {
-      if (e.type === 'gameStart') { setWinClosed(false); setRecap(null); setNotices([]); }
-      if (e.type === 'finalRound') { setNotices(n => [...n, e]); playSfx('alert'); continue; }
+      if (e.type === 'gameStart') { setWinClosed(false); setRecap(null); setNotices([]); setAdSeen(false); setAdThen(null); }
+      // A bot-only watch game has no one to acknowledge a modal; let its animations and turns run on.
+      if (e.type === 'finalRound') { if (!openHands) { setNotices(n => [...n, e]); playSfx('alert'); } continue; }
       if (e.type === 'gameOver') { playSfx('win'); continue; }
-      if (e.type === 'turnStart' && e.seat !== undefined && !view.seats[e.seat]?.bot) {
+      // Only the player whose turn it is, on their own screen (not another player's, online or in Pass'n'Play)
+      // Playing alone against bots you watch everything happen, so there's no "while you were away" box
+      const aloneWithBots = view.seats.every((x, i) => i === viewer || !!x.bot);
+      if (e.type === 'turnStart' && e.seat !== undefined && !view.seats[e.seat]?.bot && e.seat === viewer && !aloneWithBots) {
         const lines = recapFor(events.slice(0, events.indexOf(e) + 1), e.seat, view);
         if (lines.length) setRecap({ lines, myTurn: true });
         continue;
       }
       // Play Immediately cards and blocks are already shown, with their caption, while the cards move
       if ((e.type === 'immediate' || e.type === 'blocked') && settings.get().animSpeed !== 'off') continue;
+      // A wall of yours taken or given: once per wall (the game and the card can both report the move)
+      const w = !view.seats[viewer]?.bot ? wallToastFor(e, viewer) : null;
+      if (w && e.card !== undefined && !wallsToasted.has(e.card)) { wallsToasted.add(e.card); newToasts.push({ id: ++toastId.current, ...w }); continue; }
       const t = toastFor(e);
       if (t) newToasts.push({ id: ++toastId.current, ...t });
     }
@@ -56,7 +70,7 @@ export function Overlays({ controller }: { controller: GameController }) {
       const ids = new Set(newToasts.map(t => t.id));
       setTimeout(() => setToasts(ts => ts.filter(t => !ids.has(t.id))), TOAST_MS);
     }
-  }, [events, view]);
+  }, [events, view, viewer, openHands]);
 
   // A sound when a question comes up
   useEffect(() => { if (prompt) playSfx('prompt'); }, [prompt]);
@@ -76,20 +90,37 @@ export function Overlays({ controller }: { controller: GameController }) {
 
   const playAgain = () => { const s = controller.state?.settings; if (s) startLocalGame(s); };
   const toMenu = () => { currentController.set(null); screen.set('menu'); };
+  /** Leaving the win screen: players without Gold see the video ad first (once per game). */
+  const afterAd = (then: () => void) => () => {
+    if (adSeen || !ads.wanted()) { then(); return; }
+    setAdSeen(true);
+    setAdThen(() => then);
+  };
 
   let modal = null;
-  if (passTo !== null) {
+  if (adThen) {
+    modal = <VideoAd storeUrl={amazonUrl(services.config.get().amazonTag)} onDone={() => { const then = adThen; setAdThen(null); then(); }} />;
+  } else if (passTo !== null) {
     modal = <PassScreen name={seatName(view, passTo)} why={passWhy(events, passTo, view)} onReady={() => controller.ready()} />;
   } else if (prompt) {
     modal = <PromptView prompt={prompt} view={view} />;
   } else if (view.over && !winClosed) {
-    modal = <WinScreen result={view.over} view={view} onAgain={playAgain} onMenu={() => { setWinClosed(true); toMenu(); }} />;
+    modal = <WinScreen result={view.over} view={view} onAgain={afterAd(playAgain)} onLog={afterAd(() => setWinClosed(true))}
+      onMenu={afterAd(() => { setWinClosed(true); toMenu(); })} />;
   } else if (notices.length) {
     const n = notices[0]!;
     modal = <BigNotice head="FINAL ROUND" title={n.text.startsWith('The last card') ? 'LAST CARD!' : 'FINAL ROUND!'} sub={n.text}
       onClose={() => setNotices(ns => ns.slice(1))} />;
-  } else if (recap) {
-    modal = <Recap lines={recap.lines} myTurn={recap.myTurn} onClose={() => setRecap(null)} />;
+  } else if (recap && controller.snapshot.get().passTo === null) {
+    // (Pass'n'Play: the pass screen waits while cards move; the recap waits for the pass screen, so it's never seen by the wrong player)
+    // Quarantined: one OK closes the recap and lets the game go on (the turn is skipped, so not "it's my turn")
+    const skipped = snap.skipped != null;
+    const lines = skipped ? [...recap.lines, { text: "You're in Quarantine: you drew your cards but skip the rest of this turn." }] : recap.lines;
+    modal = <Recap lines={lines} myTurn={recap.myTurn && !skipped}
+      onClose={() => { setRecap(null); if (skipped) controller.skipSeen(); }} />;
+  } else if (snap.skipped != null && !view.over) {
+    modal = <BigNotice head="QUARANTINE" title="TURN SKIPPED" sub={seatName(view, snap.skipped) + " is in Quarantine: they drew their cards but skip the rest of this turn."}
+      onClose={() => controller.skipSeen()} />;
   } else if (snap.turnBanner != null && !view.over) {
     modal = <TurnBanner name={seatName(view, snap.turnBanner)} />;
   }
@@ -98,6 +129,13 @@ export function Overlays({ controller }: { controller: GameController }) {
     <div class="btw-overlays">
       {modal}
       <Toasts toasts={toasts} />
+      {/* Online: someone else is answering a question on their own device. Doesn't block the board. */}
+      {snap.waitingFor && snap.waitingFor.seat !== viewer && !prompt && !view.over && (
+        <div class="btw-waiting" role="status" aria-live="polite">
+          <span class="btw-waiting-dots" aria-hidden="true" />
+          {waitingText(snap.waitingFor, view)}
+        </div>
+      )}
       {tip && !modal && <TutorialTip best={tip.best} tips={tip.tips} onHide={() => setTipHidden(true)} />}
     </div>
   );

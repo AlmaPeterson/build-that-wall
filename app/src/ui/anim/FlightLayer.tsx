@@ -2,7 +2,7 @@
 // played card. Tapping anywhere while cards are moving finishes the step.
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { CardPopup } from '../board/CardPopup';
-import { showCard, zoomedCard } from '../components/zoom';
+import { openCardBelow, showCard, zoomedCard } from '../components/zoom';
 import { cardById } from '../../data/cards';
 import { CARD_BACK_IMAGE, cardImage } from '../assets';
 import { useStore } from '../store';
@@ -21,7 +21,9 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
       offset: offset(k.t),
       transform: `translate(${k.x * unit}px, ${k.y * unit}px)`,
       width: `${k.w * unit}px`, height: `${k.h * unit}px`,
-      easing: 'ease-in-out',
+      // A direct hand-to-destination route has a midpoint only to resize the card. It must not look
+      // as if it stopped there (especially in bot-watch mode).
+      easing: flight.continuous ? 'linear' : 'ease-in-out',
     }));
     if (frames.at(-1)!.offset < 1) frames.push({ ...frames.at(-1)!, offset: 1 });
     const faces = flight.keys.map(k => ({ offset: offset(k.t), opacity: k.face ? 1 : 0, easing: 'steps(1, end)' }));
@@ -39,6 +41,8 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
   return (
     <div ref={box} class={'flight' + (flight.big ? ' flight--big' : '')} style={{ transform: `translate(${k.x * unit}px, ${k.y * unit}px)`, width: `${k.w * unit}px`, height: `${k.h * unit}px` }}
       onClick={flight.big && !back ? e => { e.stopPropagation(); onOpen(); } : undefined}
+      // Right-click any face-up card in the air to see it full size (it pauses the game until closed)
+      onContextMenu={!back ? e => { e.preventDefault(); e.stopPropagation(); onOpen(); } : undefined}
       title={flight.big && !back ? 'Tap to read this card' : undefined}>
       <img src={CARD_BACK_IMAGE()} alt="" draggable={false} />
       {!back && (
@@ -69,7 +73,10 @@ export function FlightLayer({ animator }: { animator: Animator }) {
     );
   }
   return (
-    <div ref={layer} class={'flights' + (paused ? ' flights--paused' : '')} onClick={() => { if (!confirm) animator.skip(); }} title={confirm ? undefined : 'Tap to skip'}>
+    <div ref={layer} class={'flights' + (paused ? ' flights--paused' : '')} onClick={() => { if (!confirm) animator.skip(); }} title={confirm ? undefined : 'Tap to skip'}
+      // Double/right-clicking a card under the moving ones still opens it full size
+      onContextMenu={e => { if (layer.current && !confirm) openCardBelow(e, layer.current); }}
+      onDblClick={e => { if (layer.current && !confirm) openCardBelow(e, layer.current); }}>
       {target && <div class="flights__target" style={{ left: `${target.x * unit}px`, top: `${target.y * unit}px`, width: `${target.w * unit}px`, height: `${target.h * unit}px`, animationDuration: `${duration}ms` }} />}
       {caption && <div class="flights__caption" role="status" aria-live="polite">{caption}</div>}
       {flights.map(f => <FlyingCard key={f.id} flight={f} duration={duration} unit={unit} paused={paused} onOpen={() => open(f.card)} />)}

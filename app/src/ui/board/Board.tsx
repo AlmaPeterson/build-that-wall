@@ -11,17 +11,17 @@ import type { GameController } from '../controller';
 import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
 import {
-  buildMenu, canInteract, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice,
+  buildMenu, canInteract, displayName, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice,
 } from './board-state';
 import { BuildMenu, ConfirmEnd } from './BoardModal';
 import { ActionLog } from './ActionLog';
-import { resetHandOrders } from './hand-order';
 import { CardPopup } from './CardPopup';
 import { cardImage } from '../assets';
 import { Hand, HiddenHand } from './Hand';
 import { Piles } from './Piles';
 import { Scoreboard } from './Scoreboard';
 import { MyWalls, OtherWalls } from './Walls';
+import { showCard } from '../components/zoom';
 import './board.css';
 
 const AMAZON = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
@@ -57,9 +57,6 @@ export function Board({ controller }: { controller: GameController }) {
   const live = idle && canInteract(snap, busy);
   const handSeat = shownHand(snap);
   const hand: readonly CardId[] = handSeat !== null ? view?.seats[handSeat]?.hand ?? [] : [];
-
-  // A new game: hands are shown in the order they were dealt
-  useEffect(() => { resetHandOrders(); }, [controller]);
 
   // Anything half-done is dropped when it's no longer the viewer's move (or the hand changed under it)
   useEffect(() => {
@@ -147,21 +144,21 @@ export function Board({ controller }: { controller: GameController }) {
     screen.set('menu');
   }
 
-  const running = !view.over;
-
   return (
     <>
     <div class="stage board" ref={stage}>
       <div class="board__header" style={{ backgroundImage: `url(${HEADER_IMAGE})` }} role="banner" aria-label="Build That Wall" />
-      {running && <ActionLog events={snap.events} />}
+      <ActionLog events={snap.events} />
 
       <Scoreboard state={view} />
       <Piles state={view} />
-      {handSeat !== null || !view.seats[snap.viewer]?.bot ? <MyWalls state={view} seat={snap.viewer} /> : null}
+      {!view.seats[snap.viewer]?.bot ? <MyWalls state={view} seat={snap.viewer} /> : null}
       <OtherWalls state={view} viewer={view.seats[snap.viewer]?.bot ? -1 : snap.viewer} />
 
       {handSeat !== null
-        ? <Hand seat={handSeat} cards={hand} onCard={onCard} onLift={live && !picking ? onLift : undefined} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
+        ? snap.openHands
+          ? <Hand seat={handSeat} cards={hand} onCard={() => {}} picking={null} title={displayName(view, handSeat) + "'s Hand"} />
+          : <Hand seat={handSeat} cards={hand} onCard={onCard} onZoom={slot => { setOpen(null); showCard(hand[slot]); }} onLift={live && !picking ? onLift : undefined} picking={picking ? { pickable, picked: picking.kind === 'walls' ? picking.picked : [] } : null} />
         : <HiddenHand message={view.turn < 0 ? 'Dealing the cards…' : snap.turnBanner != null || snap.passTo !== null ? 'Your cards are coming up…' : undefined} />}
 
       {picking && (
@@ -186,7 +183,8 @@ export function Board({ controller }: { controller: GameController }) {
 
 
       {open !== null && hand[open] !== undefined && (
-        <CardPopup card={hand[open]!} actions={cardActions(api, snap, open, busy)} onChoose={choose} onClose={() => setOpen(null)} />
+        <CardPopup card={hand[open]!} actions={cardActions(api, snap, open, busy)} onChoose={choose} onClose={() => setOpen(null)}
+          onDoubleClick={() => { const id = hand[open]; setOpen(null); showCard(id); }} />
       )}
       {menu && <BuildMenu options={buildMenu(api, snap, busy)} onChoose={choose} onClose={() => setMenu(false)} />}
       {confirm && <ConfirmEnd onYes={endGame} onNo={() => setConfirm(false)} />}

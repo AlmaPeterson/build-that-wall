@@ -4,7 +4,7 @@
 // Online play (ui/online) plugs in by giving a different `humanDecider`/`startGame`; the board doesn't care.
 import {
   CARD_BACK, createLocalGame, redactEvent, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decider, type Decision,
-  type Game, type GameEvent, type GameSettings, type GameState, type Seat,
+  type CardId, type Game, type GameEvent, type GameSettings, type GameState, type Seat,
 } from '../game';
 import { createStore, type Store } from './store';
 
@@ -27,6 +27,25 @@ export interface GameSnapshot {
   passTo: Seat | null;
   /** "Player 1's turn" is showing for a moment before that player's turn starts (one person playing). */
   turnBanner?: Seat | null;
+  /** This seat's turn was skipped (Quarantine): the game waits until they tap OK (skipSeen). */
+  skipped?: Seat | null;
+  /** Only bots are playing (a local game): every hand is face up, and the board shows the playing bot's. */
+  openHands?: boolean;
+  /** Pass'n'Play with 2+ people on this device: a hand is only shown to its player, never between turns. */
+  sharedDevice?: boolean;
+  /** Online: the game is waiting for another person (on their own device) to answer this question. */
+  waitingFor?: Waiting | null;
+}
+
+/** Who the game is waiting on, and what for: only the kind of question and the card it's about (public). */
+export interface Waiting { seat: Seat; kind: Decision['kind']; card?: CardId; purpose?: string }
+
+/** The public part of a question: never its options, which can show a hidden hand. */
+export function waitingOn(d: Decision): Waiting {
+  const w: Waiting = { seat: d.seat, kind: d.kind };
+  if ('card' in d && typeof d.card === 'number') w.card = d.card;
+  if ('purpose' in d && typeof d.purpose === 'string') w.purpose = d.purpose;
+  return w;
 }
 
 export interface ControllerOptions {
@@ -46,7 +65,25 @@ export interface ControllerOptions {
   watchDelay?: number;
   /** One person on this device: show "<name>'s turn" this long (ms) before each of their turns. Default 0 (tests). */
   turnBanner?: number;
+  /**
+   * Called with the game so far whenever it can be carried on later (each turn's start, and a person's move
+   * when nothing is half done), and with null once the game is over. Games on this device save it.
+   */
+  onSave?: (saved: SavedGame | null) => void;
 }
+
+/** A game saved part-way, to carry on after the page is reloaded (GameController.resume). */
+export interface SavedGame {
+  v: 1;
+  /** The engine's state at that moment (a copy). */
+  state: GameState;
+  /** Everything that happened before, for the game log. */
+  events: GameEvent[];
+  /** 'turn': the turn of state.turn is about to start. 'move': mid-turn, waiting for that person's next move. */
+  at: 'turn' | 'move';
+  savedAt: number;
+}
+
 
 const forever = new Promise<never>(() => {});
 
@@ -66,6 +103,8 @@ export class GameController {
   private stopped = false;
   private pace: (() => Promise<void>) | null = null;
   private bannerSeat: Seat | null = null;
+  private skipResolve: (() => void) | null = null;
+  private skipSeat: Seat | null = null;
 
   constructor(private readonly opts: ControllerOptions = {}) {
     for (const fn of createdHooks) fn(this);
@@ -82,14 +121,39 @@ export class GameController {
     this.prompts = [];
     this.holder = null;
     this.stopped = false;
+    this.game = this.makeGame(settings, seed);
+    this.publish();
+    return this.settled(this.game.start());
+  }
+
+  /**
+   * Carry on a saved game. Pass'n'Play starts with the pass screen for whoever's turn it is, so nobody
+   * sees someone else's cards. Resolves like start().
+   */
+  resume(saved: SavedGame): Promise<void> {
+    const state = structuredClone(saved.state);
+    this.events = [...saved.events];
+    this.prompts = [];
+    this.holder = null;
+    this.stopped = false;
+    this.game = this.makeGame(state.settings, 0, state);
+    this.publish();
+    if (saved.at === 'turn') return this.settled(this.game.beginTurn());
+    const s = this.game.state;
+    if (this.passing() && !s.seats[s.turn]?.bot) return this.passTo(s.turn);
+    return Promise.resolve();
+  }
+
+  private makeGame(settings: GameSettings, seed: number, state?: GameState): Game {
     const humans = settings.players - settings.bots;
     const delay = humans === 0 ? this.opts.watchDelay ?? 0 : this.opts.botDelay ?? 0;
-    this.game = createLocalGame({
-      settings, seed, memory: this.opts.memory, learn: this.opts.learn,
+    return createLocalGame({
+      settings, seed, state, memory: this.opts.memory, learn: this.opts.learn,
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
-      beforeTurn: seat => (this.passing() ? this.passTo(seat) : this.banner(seat)),
+      beforeTurn: seat => { this.save('turn'); return this.passing() ? this.passTo(seat) : this.banner(seat); },
+      afterSkip: seat => this.waitForSkipOk(seat),
       beforeBotAction: async () => {
         // Let the board finish showing what just happened, then pause so people can follow
         if (this.pace) await this.pace();
@@ -97,14 +161,27 @@ export class GameController {
         if (delay > 0) await new Promise(r => setTimeout(r, delay));
       },
     });
-    this.publish();
-    return this.game.start();
+  }
+
+  /** After the engine has run as far as it can: save the game for later (or forget it, once it's over). */
+  private settled(run: Promise<void>): Promise<void> {
+    return run.then(() => this.save('move'));
+  }
+
+  /** Hand the game so far to onSave, if it can be carried on from here. */
+  private save(at: SavedGame['at']): void {
+    const g = this.game, save = this.opts.onSave;
+    if (!g || !save || this.stopped) return;
+    if (g.state.over) { save(null); return; }
+    if (at === 'move' && (!g.resting || g.state.turn < 0 || g.state.seats[g.state.turn]?.bot)) return;
+    save({ v: 1, state: structuredClone(g.state), events: [...this.events], at, savedAt: Date.now() });
   }
 
   /** The viewing player takes an action on their turn. */
   act(action: Action): Promise<ActionResult> {
     if (!this.game) return Promise.resolve({ ok: false, reason: 'No game.' });
     return this.game.act(this.game.state.turn, action).finally(() => {
+      this.save('move');
       this.publish();
       // Someone else answered a question during this turn: pass the device back before the turn goes on
       const s = this.game?.state;
@@ -117,6 +194,8 @@ export class GameController {
     this.stopped = true;
     this.prompts = [];
     this.passResolve = null;
+    this.skipResolve = null;
+    this.skipSeat = null;
   }
 
   /** Bots wait for this before each action: the board's animator, so the game never runs ahead of what's shown. */
@@ -195,6 +274,24 @@ export class GameController {
     this.publish();
   }
 
+  /** The quarantined player tapped OK: the game goes on to the next turn. */
+  skipSeen(): void {
+    const r = this.skipResolve;
+    this.skipResolve = null;
+    this.skipSeat = null;
+    this.publish();
+    r?.();
+  }
+
+  /** A human on this device was quarantined: hold the game until they've seen it, so it doesn't run on behind the notice. */
+  private async waitForSkipOk(seat: Seat): Promise<void> {
+    if (this.opts.remoteDecider?.(seat) || (this.opts.localSeat !== undefined && this.opts.localSeat !== seat)) return;
+    if (this.pace) await this.pace();
+    if (this.stopped) return forever;
+    await new Promise<void>(resolve => { this.skipResolve = resolve; this.skipSeat = seat; this.publish(); });
+    if (this.stopped) return forever;
+  }
+
   private passTo(seat: Seat): Promise<void> {
     if (this.stopped) return forever;
     return new Promise(resolve => { this.passResolve = resolve; this.passSeat = seat; this.publish(seat); });
@@ -220,13 +317,20 @@ export class GameController {
   viewOf(seat: Seat): GameState | null {
     const s = this.game?.state;
     if (!s) return null;
-    const v = viewFor(s, seat);
+    const open = this.allBots();
+    const v = viewFor(s, seat, open);
     const p = this.game!.unannouncedPlay;
     if (p) {
       if (p.discarded) v.discard.splice(v.discard.lastIndexOf(p.card), 1);
-      v.seats[p.seat]?.hand.splice(p.slot, 0, seat === p.seat ? p.card : CARD_BACK);
+      v.seats[p.seat]?.hand.splice(p.slot, 0, open || seat === p.seat ? p.card : CARD_BACK);
     }
     return v;
+  }
+
+  /** A local game with only bots playing: nobody's hand is secret, so the watcher sees them all. */
+  private allBots(): boolean {
+    const s = this.game?.state;
+    return !!s && this.opts.localSeat === undefined && s.seats.every(x => !!x.bot);
   }
 
   private publish(passTo: Seat | null = this.passResolve ? this.snapshot.get().passTo : null): void {
@@ -235,10 +339,17 @@ export class GameController {
       view: this.viewOf(viewer),
       viewer,
       // Other players' drawn cards stay hidden, on a shared device too
-      events: this.events.map(e => redactEvent(e, viewer)),
+      events: this.allBots() ? [...this.events] : this.events.map(e => redactEvent(e, viewer)),
       prompt: passTo === null ? this.prompts[0] ?? null : null,
       passTo,
       turnBanner: this.bannerSeat,
+      skipped: this.skipSeat,
+      openHands: this.allBots(),
+      sharedDevice: this.passing(),
+      waitingFor: this.waiting(),
     });
   }
+
+  /** Online host: who on another device the game is waiting for (see HostController). */
+  protected waiting(): Waiting | null { return null; }
 }

@@ -1,4 +1,4 @@
-// The main menu: red header with the logo, Donate and Gold Membership, the five main buttons, and the
+// The main menu: red header with the logo, the five main buttons, and the
 // disclaimer footer with the Amazon link (like the old game's title screen).
 import { useEffect, useState } from 'preact/hooks';
 import { loadSettings } from '../../services/config';
@@ -7,35 +7,35 @@ import { Button } from '../components/Button';
 import { Guide } from '../menus/Guide';
 import logo from '../menus/logo.png';
 import { MultiplayerMenu } from '../menus/MultiplayerMenu';
+import { humansPlaying, PlayerNames } from '../menus/PlayerNames';
 import { initSettingsPersistence } from '../menus/prefs';
 import { startPassNPlay, startTutorialGame } from '../menus/start';
 import { useStore } from '../store';
 import '../menus/menus.css';
 
-export const AMAZON_URL = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
-
-/** The store link, with the owner's Amazon tag from game-settings.json when there is one. */
-export const amazonUrl = (tag: string): string => (tag ? AMAZON_URL + '?tag=' + encodeURIComponent(tag) : AMAZON_URL);
+export { AMAZON_URL, amazonUrl } from '../links';
+import { amazonUrl } from '../links';
 
 export function MenuScreen() {
   initSettingsPersistence();
   const { gameMode } = useStore(settings);
   const [multi, setMulti] = useState(false);
   const [guide, setGuide] = useState(false);
-  const [tag, setTag] = useState('');  useEffect(() => {
+  const [names, setNames] = useState(false);
+  const [tag, setTag] = useState('');
+  useEffect(() => {
     let live = true;
     loadSettings().then(r => { if (live) setTag(r.settings.amazonTag); }).catch(() => {});
     return () => { live = false; };
   }, []);
 
-  const start = () => (gameMode === 'multiplayer' ? setMulti(true) : startPassNPlay());
+  // Pass'n'Play with 2+ people on this device: ask everyone's name first
+  const start = () => (gameMode === 'multiplayer' ? setMulti(true) : humansPlaying() >= 2 ? setNames(true) : startPassNPlay());
 
   return (
     <div class="menu">
       <header class="menu__head">
-        <Button color="navy" class="menu__corner" onClick={() => screen.set('account')}>Donate</Button>
-        <img class="menu__logo" src={logo} alt="Build That Wall: Trump's political card-game" />
-        <Button color="gold" class="menu__corner" onClick={() => screen.set('account')}>Gold Membership</Button>
+        <h1 class="menu__title"><img class="menu__logo" src={logo} alt="Build That Wall: Trump's political card-game" /></h1>
       </header>
       <main class="menu__main">
         <Button class="menu__big" onClick={start}>Start Game</Button>
@@ -47,9 +47,13 @@ export function MenuScreen() {
       <footer class="menu__foot">
         <p>Disclaimer: All scenarios and characters portrayed in the deck are purely for entertainment and comical purposes. Any likeness to persons, organizations, or events are purely coincidental.</p>
         <a href={amazonUrl(tag)} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
+        <nav class="menu__legal" aria-label="Legal">
+          <a href="./how-to-play.html">About &amp; How to Play</a><span aria-hidden="true"> · </span><a href="./privacy.html">Privacy</a><span aria-hidden="true"> · </span><a href="./terms.html">Terms &amp; Conditions</a>
+        </nav>
         <small class="menu__tm">™ &amp; ® 2024 Beacon Political</small>
       </footer>
       {multi && <MultiplayerMenu onClose={() => setMulti(false)} />}
+      {names && <PlayerNames onStart={() => { setNames(false); startPassNPlay(); }} onClose={() => setNames(false)} />}
       {guide && <Guide onClose={() => setGuide(false)} finishLabel="Start a tutorial game" onFinish={startTutorialGame} />}
     </div>
   );

@@ -117,6 +117,10 @@ How to build it:
   `app/` on every push to `main` and publishes it at the site root with `/classic/`, `privacy.html` and
   `terms.html` (Pages source: GitHub Actions). One settings file now: `app/public/game-settings.json`
   (copied to `/classic/` for the old game).
+- 2026-11-03: video ads are back (`ui/overlays/VideoAd.tsx`): players without Gold see one when they
+  leave the win screen; not on the dev server unless the address has `?ads`.
+- 2026-11-03: the old game was removed from the site (owner's call); `/classic/` now only redirects to the
+  game. Its files are in git history (last at commit 78781ec).
 - Went live without video ads, owner tools, online spectators and confetti (owner's call); online play
   still to be tried against the real broker.
 
@@ -166,7 +170,7 @@ How to build it:
   The footer sits at the bottom of the window. Fixed: the second Man Hour in a hand couldn't build a wall;
   a new Pass'n'Play game skipped the first pass screen.
 
-Not done yet: video ads for non-Gold players, owner tools UI, online spectators, confetti; online play not yet tried against the real MQTT broker.
+Not done yet: owner tools UI, online spectators, confetti; online play not yet tried against the real MQTT broker.
 
 ## Phase 1 results
 

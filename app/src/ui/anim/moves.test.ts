@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, DEFAULT_SETTINGS, viewFor, type GameState } from '../../game';
-import { diffViews, midView } from './moves';
+import { authoritativeMoves, diffViews, midView } from './moves';
 
 const B = 4;   // card back
 
@@ -58,6 +58,19 @@ describe('diffViews', () => {
     expect(moves).toContainEqual({ card: 33, from: { at: 'walls', seat: 0, kind: 33 }, to: { at: 'walls', seat: 1, kind: 33 } });
   });
 
+  it('matches the played copy first when that card is also stolen during the same action', () => {
+    // Controlled Opposition (6) is played by the hidden hand while it steals another 6 from us.
+    // The played card must be the one that goes to discard, never the stolen copy.
+    const a = game([[6], [6, 30]]);
+    const b = clone(a);
+    b.seats[0]!.hand = [];
+    b.seats[1]!.hand = [30, 6];
+    b.discard = [6];
+    const moves = diffViews(viewFor(a, 0), viewFor(b, 0), { played: { seat: 1, card: 6 } });
+    expect(moves).toContainEqual({ card: 6, from: { at: 'hand', seat: 1, slot: 0 }, to: { at: 'discard' } });
+    expect(midView(viewFor(a, 0), moves).seats[1]!.hand).toEqual([4]);
+  });
+
   it('a card held nowhere (Quarantine) goes to the player it was played on', () => {
     const a = game([[17, 29], [30]]);
     const b = clone(a);
@@ -89,6 +102,22 @@ describe('diffViews', () => {
     c.seats[0]!.hand = [];
     c.seats[1]!.limitNext = 9;
     expect(diffViews(viewFor(b, 0), viewFor(c, 0))).toEqual([{ card: 9, from: { at: 'hand', seat: 0, slot: 0 }, to: { at: 'limit', seat: 1 } }]);
+  });
+});
+
+describe('authoritativeMoves', () => {
+  it('keeps a duplicate copy identified from its exact source to destination', () => {
+    expect(authoritativeMoves([{ instance: 'card-7', card: 14, kind: 'transfer',
+      from: { zone: 'hand', seat: 0, index: 2 }, to: { zone: 'discard', index: 4 } }])).toEqual([{
+      instance: 'card-7', card: 14, from: { at: 'hand', seat: 0, slot: 2 }, to: { at: 'discard' },
+    }]);
+  });
+
+  it('keeps one instance in one flight when an online update contains several of its moves', () => {
+    expect(authoritativeMoves([
+      { instance: 'card-7', card: 14, kind: 'transfer', from: { zone: 'draw', index: 2 }, to: { zone: 'hand', seat: 0, index: 0 } },
+      { instance: 'card-7', card: 14, kind: 'transfer', from: { zone: 'hand', seat: 0, index: 0 }, to: { zone: 'discard', index: 4 } },
+    ])).toEqual([{ instance: 'card-7', card: 14, from: { at: 'draw' }, to: { at: 'discard' } }]);
   });
 });
 

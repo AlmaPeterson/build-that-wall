@@ -43,7 +43,7 @@ export const INSTRUCTION_PAGES: InstructionPage[] = [
       'Debt: take a built section from an opponent. They can block it with Savings.',
       'Self-Defense: stops a bad effect aimed at you.',
       'Trump: discard to draw 3 cards. Trump Train: draw 3 cards, or protect a set of 2.',
-      "Every other card explains itself. To zoom in on a card, right-click it (on a touch screen, press and hold it). Then press Scan Card's QR Code to open that card's web page.",
+      "Every other card explains itself. Tap a card to see it big, and scroll over the picture to zoom in or out. Press Scan QR Code to open that card's web page.",
     ],
   },
 ];

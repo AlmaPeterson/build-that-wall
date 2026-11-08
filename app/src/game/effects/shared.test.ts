@@ -69,16 +69,16 @@ describe('distribute (handing out cards)', () => {
 });
 
 describe('poolPick', () => {
-  it('keeps only cards that are really in the pool, up to max, respecting counts', async () => {
+  it('keeps only real pool positions, each once, up to max', async () => {
     const s = makeState([{}, {}]);
-    const ctx = makeContext(s, 0, 22, { pickCards: [[W1, W1, 99, W2, W3, W2]] });
-    expect(await poolPick(ctx, [W1, W2, W3, W2], 3)).toEqual([W1, W2, W3]);
+    const ctx = makeContext(s, 0, 22, { pickCards: [[0, 0, 9, -1, 1, 2, 3]] });
+    expect(await poolPick(ctx, [W1, W2, W3, W2], 3)).toEqual([0, 1, 2]);
   });
 
   it('offers pack cards too', async () => {
     const s = makeState([{}, {}]);
-    const ctx = makeContext(s, 0, 22, { pickCards: [[45, 49]] });
-    expect(await poolPick(ctx, [45, 49, 14], 3)).toEqual([45, 49]);
+    const ctx = makeContext(s, 0, 22, { pickCards: [[0, 1]] });
+    expect(await poolPick(ctx, [45, 49, 14], 3)).toEqual([0, 1]);
     expect(ctx.asked[0]).toMatchObject({ kind: 'pickCards', pool: [45, 49, 14], max: 3 });
   });
 

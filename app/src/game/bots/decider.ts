@@ -48,6 +48,9 @@ export function answer(d: Decision, state: Readonly<GameState>, memory: BotMemor
     case 'pickCards':
       return poolPick(d.pool, d.max);
 
+    case 'pickHandCards':
+      return buildPicks(state, d.seat, d.options, d.cards, d.max);   // free builds never stop early
+
     case 'chooseOption':
       return chooseOption(state, d.seat, d.card, d.options);
   }
@@ -107,6 +110,27 @@ function wallSlot(state: Readonly<GameState>, me: Seat, hand: CardId[], options:
   return pick;
 }
 
+/**
+ * Several free builds at once: as many as allowed, best first (as `wallSlot` would pick them one by one,
+ * counting the ones already picked as built). Toilet Paper's options are one card per set.
+ */
+function buildPicks(state: Readonly<GameState>, me: Seat, options: number[], cards: CardId[], max: number): number[] {
+  const picked: number[] = [], extra = new Map<CardId, number>();
+  while (picked.length < Math.min(max, options.length)) {
+    let best = -1, pick = -1;
+    options.forEach((slot, i) => {
+      if (picked.includes(slot) || !isWall(cards[i]!)) return;
+      const n = wallCount(state, me, cards[i]!) + (extra.get(cards[i]!) ?? 0);
+      const v = n === 0 ? 3 : n === 1 ? 5 : n === 2 ? 8 : 1;
+      if (v > best) { best = v; pick = i; }
+    });
+    if (pick < 0) break;
+    picked.push(options[pick]!);
+    extra.set(cards[pick]!, (extra.get(cards[pick]!) ?? 0) + 1);
+  }
+  return picked;
+}
+
 /** `ai give slot`: keep the most valuable card for yourself, give the least valuable to others. */
 function giveSlot(hand: CardId[], options: number[], self: boolean): number {
   let best = 0, pick = options[0]!;
@@ -118,12 +142,13 @@ function giveSlot(hand: CardId[], options: number[], self: boolean): number {
 }
 
 /** `ai pool pick`: the N most valuable cards, first in the pool on ties. */
-function poolPick(pool: CardId[], max: number): CardId[] {
-  const rest = [...pool], picks: CardId[] = [];
-  for (let n = 0; n < max && rest.length; n++) {
+/** The most valuable cards, first on ties: their pool positions. */
+function poolPick(pool: CardId[], max: number): number[] {
+  const picks: number[] = [];
+  for (let n = 0; n < max && picks.length < pool.length; n++) {
     let best = -1, at = 0;
-    rest.forEach((c, i) => { if (cardValue(c) > best) { best = cardValue(c); at = i; } });
-    picks.push(rest.splice(at, 1)[0]!);
+    pool.forEach((c, i) => { if (!picks.includes(i) && cardValue(c) > best) { best = cardValue(c); at = i; } });
+    picks.push(at);
   }
   return picks;
 }

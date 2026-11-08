@@ -8,6 +8,8 @@ export interface Transport {
   onMessage(handler: (topic: string, payload: string) => void): void;
   /** Called when the connection drops (not after end()). */
   onClose(handler: () => void): void;
+  /** Still connected? (false once the connection has dropped; a page coming back checks this) */
+  connected?(): boolean;
   end(): void;
 }
 

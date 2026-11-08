@@ -11,7 +11,7 @@ import { GameController, type Prompt } from '../controller';
 import { Overlays } from './Overlays';
 import { PICK_SECONDS, PromptView } from './Prompt';
 import { PASS_GUARD_MS, PassScreen, Recap, WinScreen } from './Screens';
-import { optionLabel, passWhy, personal, recapFor } from './text';
+import { optionLabel, passWhy, personal, recapFor, wallToastFor } from './text';
 
 let root: HTMLElement;
 beforeEach(() => { root = document.createElement('div'); document.body.appendChild(root); });
@@ -116,7 +116,7 @@ describe('prompts', () => {
     click('Wall Section 1');
     expect(buttons().some(x => x.getAttribute('aria-label')?.startsWith('Wall Section 1,'))).toBe(false);   // none left
     click('Man Hour');
-    expect(a).toEqual([[29, 29, 14]]);
+    expect(a).toEqual([[0, 1, 2]]);
   });
 
   it('pickCards: Done takes the picks so far, and putting one back works', () => {
@@ -125,7 +125,18 @@ describe('prompts', () => {
     click('Debt');
     click('Put back Man Hour');
     click('Done');
-    expect(a).toEqual([[7]]);
+    expect(a).toEqual([[2]]);
+  });
+
+  it('pickCards: Freedom of the Press shows the draw pile and the discard pile apart', () => {
+    const a = ask({ kind: 'pickCards', seat: 0, card: 11, pool: [14, 29, 29, 7], max: 4, fromDiscard: 2 });
+    expect(root.textContent).toContain('Draw pile');
+    expect(root.textContent).toContain('Discard pile');
+    const wall = buttons().filter(x => x.getAttribute('aria-label')?.startsWith('Wall Section 1'));
+    expect(wall.length).toBe(2);                      // one in each pile
+    act(() => { wall[1]!.click(); });                 // the discard pile's copy
+    click('Done');
+    expect(a).toEqual([[2]]);
   });
 
   it('pickCards: the timer takes the picks when it runs out', () => {
@@ -135,7 +146,7 @@ describe('prompts', () => {
     act(() => { vi.advanceTimersByTime((PICK_SECONDS - 1) * 1000); });
     expect(a).toEqual([]);
     act(() => { vi.advanceTimersByTime(1000); });
-    expect(a).toEqual([[14]]);
+    expect(a).toEqual([[1]]);
   });
 });
 
@@ -255,11 +266,45 @@ describe('Overlays with a real game', () => {
     expect(root.textContent).not.toContain('Pass the device to');
   });
 
+  it('alone against bots: no "while you were away" box, even when something happened to you', async () => {
+    const c = new GameController();
+    act(() => render(<Overlays controller={c} />, root));
+    void c.start(settings(4, 3), 3);
+    const tick = () => act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    let happened = false;
+    for (let turn = 0; turn < 12 && !c.snapshot.get().view?.over; turn++) {
+      for (let i = 0; i < 50; i++) {
+        await tick();
+        const { prompt, view } = c.snapshot.get();
+        if (prompt) {
+          const d = prompt.decision as Decision;
+          prompt.answer((d.kind === 'block' || d.kind === 'paySavings' ? false : d.kind === 'pickCards' ? [] : 'options' in d ? d.options[0] ?? null : null) as never);
+        } else if (view?.turn === 0 && i > 0) break;
+      }
+      const v = c.snapshot.get().view!;
+      if (recapFor(c.snapshot.get().events, 0, v).length) happened = true;
+      expect(root.textContent).not.toContain('WHILE YOU WERE AWAY');
+      void c.act({ type: 'endTurn' });
+      await tick();
+    }
+    expect(happened).toBe(true);    // there was something the box would have shown
+  }, 20000);
+
   it('a finished bots-only game shows the win screen', async () => {
     const c = new GameController();
     await c.start(settings(3, 3), 11);
     act(() => render(<Overlays controller={c} />, root));
     expect(root.textContent).toMatch(/wins!|It's a tie/);
     expect(root.textContent).toContain('Back to menu');
+  });
+});
+
+describe('wallToastFor', () => {
+  it("tells you when someone else's card takes or gives you a wall, not about your own moves", () => {
+    const took = { type: 'wallMoved' as const, seat: 1, target: 0, card: 31, text: 'Ben took Wall Section 3 from Ann.' };
+    expect(wallToastFor(took, 0)).toEqual({ text: 'Ben took Wall Section 3 from Ann.', tone: 'alert' });
+    expect(wallToastFor(took, 1)).toBeNull();                                         // Ben did it
+    expect(wallToastFor({ ...took, seat: 0, target: 0 }, 0)).toBeNull();               // pulling your own wall back
+    expect(wallToastFor({ ...took, type: 'build' }, 0)).toBeNull();
   });
 });

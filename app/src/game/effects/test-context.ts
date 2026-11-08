@@ -41,6 +41,7 @@ function defaultAnswer(d: Decision): unknown {
     case 'block': case 'paySavings': return false;
     case 'chooseSeat': case 'chooseWall': case 'chooseHandCard': case 'chooseOption': return d.options[0] ?? null;
     case 'pickCards': return d.pool.slice(0, d.max);
+    case 'pickHandCards': return d.options.slice(0, d.max);
   }
 }
 
@@ -92,6 +93,10 @@ export function makeContext(state: GameState, player: Seat, card: CardId, script
     },
     addToHand: (s, c) => { seat(s).hand.push(c); },
     discard: c => { state.discard.push(c); },
+    holdInJail: c => { state.jail.push(c); },
+    holdLimit: (s, c) => { seat(s).limitNext = c; },
+    holdQuarantine: (s, c) => { seat(s).quarantine = c; },
+    holdTrainGuard: (s, wall, _c) => { state.trainGuards.push({ seat: s, kind: wall }); },
     spendActions: n => { state.actionsLeft = Math.max(0, state.actionsLeft - n); },
     addActions: n => { state.actionsLeft += n; },
     buildFree(s, slot) {

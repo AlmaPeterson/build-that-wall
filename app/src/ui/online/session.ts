@@ -9,6 +9,8 @@ import { HostController } from './host';
 import { ASK_MODE, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
 
 export type Phase = 'idle' | 'connecting' | 'lobby' | 'playing' | 'ended';
+export type BotLevel = Difficulty | 'random';
+const LEVELS: readonly BotLevel[] = ['easy', 'medium', 'hard', 'random'];
 
 export interface OnlineState {
   phase: Phase;
@@ -18,8 +20,14 @@ export interface OnlineState {
   seat: number;
   players: LobbyPlayer[];
   bots: number;
+  /** Host: each bot's difficulty (bot k = difficulties[k]); 'random' picks one when the game starts. */
+  difficulties: BotLevel[];
   status: string;
   error: string;
+  /** "Still here?" is showing: when it runs out (Date.now() ms); 0 = not asked. */
+  still: number;
+  /** A message to show after being taken out of an online game (e.g. away too long); '' = none. */
+  notice: string;
 }
 
 export interface SessionDeps {
@@ -35,9 +43,12 @@ export interface SessionDeps {
   random?: () => number;
   /** Waits between auto-join tries (replaced in tests). */
   wait?: (ms: number) => Promise<void>;
+  /** Back to the main menu (this player left the online game). */
+  home?: () => void;
 }
 
-const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, status: '', error: '' };
+const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, difficulties: [], status: '', error: '', still: 0, notice: '' };
+export const AWAY_NOTICE = "You didn't answer \"Still here?\" in time, so you've left the online game.";
 const AUTO_JOIN_TRIES = 20, AUTO_JOIN_MS = 2000;
 
 export class OnlineSession {
@@ -47,6 +58,8 @@ export class OnlineSession {
   private client: OnlineClientController | null = null;
   private names = new Map<number, string>();
   private running = false;
+  private stillTimer: ReturnType<typeof setTimeout> | null = null;
+  private stopWatchingEnd: (() => void) | null = null;
 
   constructor(private readonly deps: SessionDeps) {
     this.room = this.makeRoom();
@@ -72,6 +85,15 @@ export class OnlineSession {
       onPlayerLeft: seat => this.onPlayerLeft(seat),
       onHostLost: () => this.set({ phase: 'ended', error: 'The host left the game.' }),
       onStatus: status => this.set({ status }),
+      // Back after a dropped connection: anything sent meanwhile was missed, so catch up
+      onReconnected: () => {
+        if (this.room.role === 'client' && this.client) this.room.sendData(1, { k: 'resync' });
+        else if (this.room.role === 'host') this.host?.resyncAll();
+      },
+      onStillAsk: msLeft => this.askedStill(msLeft),
+      onDropped: () => this.away(),
+      // Host: they're back; send them everything again
+      onStillHere: seat => { const g = this.host?.gameSeat(seat) ?? -1; if (g > 0) this.host?.resyncSeat(g); },
     }, this.deps.random);
   }
 
@@ -82,7 +104,7 @@ export class OnlineSession {
     const code = await this.room.host({ max });
     if (!code) return this.failed();
     this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
-    this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '' });
+    this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '', difficulties: this.startingLevels() });
     this.lobby();
     return true;
   }
@@ -107,7 +129,7 @@ export class OnlineSession {
     if (seat <= 0) return this.failed();
     if (this.room.role === 'host') {
       this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
-      this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '' });
+      this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '', difficulties: this.startingLevels() });
       this.lobby();
     } else this.joined(seat);
     return true;
@@ -119,11 +141,52 @@ export class OnlineSession {
     this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat });
   }
 
+  /** The page went into the background (another window or app) or came back. */
+  pageVisible(visible: boolean): void { this.room.setAway(!visible); }
+
+  /** The page is closing for good: say goodbye now, so nobody waits for us. */
+  pageClosing(): void { this.room.leave(); }
+
   leave(): void {
     this.room.leave();
     this.running = false;
     this.host = null; this.client = null; this.names.clear();
+    this.clearStill();
+    this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
     this.state.set({ ...IDLE });
+  }
+
+  // ---- "Still here?"
+
+  /** The host hasn't heard from us: show "Still here?" with a countdown (asked again every few seconds). */
+  private askedStill(msLeft: number): void {
+    if (this.state.get().still) return;                       // already showing: keep its own countdown
+    this.set({ still: Date.now() + msLeft });
+    this.stillTimer = setTimeout(() => this.away(), msLeft);
+  }
+
+  /** "Still here" was clicked: stay in the game and catch up on anything missed. */
+  stillHere(): void {
+    if (!this.state.get().still) return;
+    this.clearStill();
+    this.set({ still: 0 });
+    this.room.stillHere();
+    if (this.client) this.room.sendData(1, { k: 'resync' });
+  }
+
+  /** Too late (or the host gave up on us): we've left the game; back to the menu with a message. */
+  private away(): void {
+    this.leave();
+    this.set({ notice: AWAY_NOTICE });
+    this.deps.home?.();
+  }
+
+  /** The player has read the notice. */
+  clearNotice(): void { this.set({ notice: '' }); }
+
+  private clearStill(): void {
+    if (this.stillTimer) clearTimeout(this.stillTimer);
+    this.stillTimer = null;
   }
 
   /** Host: how many bots join the online players. */
@@ -133,6 +196,14 @@ export class OnlineSession {
     this.lobby();
   }
 
+  /** Host: set one bot's difficulty (bot 0 is the first bot). */
+  setBotDifficulty(bot: number, level: BotLevel): void {
+    if (this.room.role !== 'host' || bot < 0 || bot > 5 || !LEVELS.includes(level)) return;
+    const difficulties = [...this.state.get().difficulties];
+    difficulties[bot] = level;
+    this.set({ difficulties });
+  }
+
   /** Host: start the game with everyone in the room (plus bots). */
   start(seed?: number): Promise<void> | null {
     if (this.room.role !== 'host') return null;
@@ -140,10 +211,8 @@ export class OnlineSession {
     const bots = Math.min(this.state.get().bots, 6 - roomSeats.length);
     if (roomSeats.length + bots < 2) { this.set({ error: 'Wait for another player, or add a bot.' }); return null; }
     const base = this.deps.baseSettings();
-    const difficulties: Difficulty[] = Array.from({ length: bots }, (_, i) => {
-      const d = base.difficulties[i];
-      return d && d !== 'random' ? d : 'medium';
-    });
+    const chosen = this.state.get().difficulties;
+    const difficulties: BotLevel[] = Array.from({ length: bots }, (_, i) => chosen[i] ?? 'medium');
     const settings: GameSettings = {
       ...base, players: roomSeats.length + bots, bots, difficulties,
       names: roomSeats.map(s => this.names.get(s) ?? 'Player ' + s),
@@ -152,6 +221,7 @@ export class OnlineSession {
     this.running = true;
     this.set({ phase: 'playing', status: '', error: '' });
     this.deps.show(this.host);
+    this.watchForEnd(this.host);
     return this.host.start(settings, seed);
   }
 
@@ -170,6 +240,7 @@ export class OnlineSession {
       this.running = true;
       this.set({ phase: 'playing', status: '' });
       this.deps.show(this.client);
+      this.watchForEnd(this.client);
     }
     this.client.receive(data);
   }
@@ -199,11 +270,33 @@ export class OnlineSession {
     if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots: this.state.get().bots } satisfies ToPlayer);
   }
 
+  /** The bots' difficulties from Settings, as a starting point the host can change in the lobby. */
+  private startingLevels(): BotLevel[] {
+    const base = this.deps.baseSettings().difficulties;
+    return Array.from({ length: 6 }, (_, i) => (LEVELS.includes(base[i] as BotLevel) ? base[i] as BotLevel : 'medium'));
+  }
+
   private reset(status: string): void {
     this.room.leave();
     this.running = false;
     this.host = null; this.client = null; this.names.clear();
+    this.clearStill();
+    this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
     this.state.set({ ...IDLE, phase: 'connecting', status });
+  }
+
+  /** The result screen may stay open, but this room is no longer a running game. */
+  private finished(): void {
+    if (!this.running) return;
+    this.running = false;
+    this.set({ phase: 'ended', status: '' });
+  }
+
+  private watchForEnd(c: GameController): void {
+    this.stopWatchingEnd?.();
+    this.stopWatchingEnd = c.snapshot.subscribe(() => {
+      if (c.state?.over) this.finished();
+    });
   }
 
   private failed(): false {

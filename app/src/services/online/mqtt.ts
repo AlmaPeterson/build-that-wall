@@ -10,7 +10,13 @@ export class MqttLoadError extends Error {}
 type MqttModule = typeof import('mqtt');
 let loading: Promise<MqttModule> | null = null;
 function loadMqtt(): Promise<MqttModule> {
-  if (!loading) loading = import('mqtt').catch((e) => { loading = null; throw new MqttLoadError(String(e)); });
+  // In the browser build mqtt is CommonJS: connect() is on the default export, not on the module itself
+  if (!loading) loading = import('mqtt')
+    .then((m) => {
+      const d = (m as unknown as { default?: MqttModule }).default;
+      return d?.connect ? d : m;
+    })
+    .catch((e) => { loading = null; throw new MqttLoadError(String(e)); });
   return loading;
 }
 
@@ -27,7 +33,9 @@ export async function connectMqtt(brokers: string[] = BROKERS): Promise<Transpor
       try {
         cl = mqtt.connect(url, {
           clientId: 'btw_' + Math.random().toString(36).slice(2, 12),
-          clean: true, connectTimeout: 7000, reconnectPeriod: 0, keepalive: 30,
+          // keepalive: a page in the background runs its timers about once a minute, so its pings come late;
+          // 30 s made the relay cut off a host whose tab was in the background (joiners then found no room)
+          clean: true, connectTimeout: 7000, reconnectPeriod: 0, keepalive: 120,
         });
       } catch {
         res(null);
@@ -70,6 +78,9 @@ function wrap(cl: import('mqtt').MqttClient): Transport {
     },
     onClose(handler) {
       cl.on('close', () => { if (!ended) handler(); });
+    },
+    connected() {
+      return !ended && cl.connected;
     },
     end() {
       ended = true;

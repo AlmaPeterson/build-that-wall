@@ -5,7 +5,7 @@ import { Page } from '../account/Page';
 import { services } from '../services';
 
 const KINDS: [BoardKind, string][] = [
-  ['miles', 'Best miles'], ['rate', 'Win rate'], ['wins', 'Wins'], ['games', 'Games'], ['walls', 'Walls built'], ['spent', 'Supporters'],
+  ['miles', 'Best miles'], ['rate', 'Win rate'], ['wins', 'Wins'], ['games', 'Games'], ['walls', 'Walls built'],
 ];
 
 type Source = 'everyone' | 'device';
@@ -43,6 +43,7 @@ export function LeaderboardScreen() {
             <button key={k} type="button" class="btw-tab" aria-pressed={kind === k} onClick={() => setKind(k)}>{label}</button>
           ))}
         </div>
+        {kind === 'rate' && <p class="btw-muted">Play 5 or more games to get on this board.</p>}
         {lines === null ? <p class="btw-muted">Loading...</p>
           : lines.length === 0 ? <p class="btw-muted">No scores yet. Play a game to get on the board!</p>
           : <ol class="btw-list">{lines.map(l => {

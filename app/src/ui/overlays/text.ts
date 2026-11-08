@@ -25,7 +25,22 @@ export function promptTitle(kind: string, card: CardId, purpose?: string): strin
     case 'chooseWall': return card === 7 ? 'Which wall do you want to take?' : card === 25 ? 'Which pair do you want to protect?' : 'Pick a built wall';
     case 'chooseHandCard': return purpose === 'build' ? 'Pick a wall to build for free' : 'Pick a card to give away';
     case 'pickCards': return 'Pick your cards';
+    case 'pickHandCards': return card === 23 ? 'Pick the sets to build for free' : 'Pick the walls to build for free';
     default: return cardName(card);
+  }
+}
+
+/** "Waiting for Ben to decide: block it with Self-Defense?" (another player is answering, on their own device). */
+export function waitingText(w: { seat: Seat; kind: string; card?: CardId; purpose?: string }, state: Pick<GameState, 'seats'>): string {
+  const who = seatName(state, w.seat);
+  switch (w.kind) {
+    case 'block': return 'Waiting for ' + who + ' to decide whether to block it with Self-Defense…';
+    case 'paySavings': return 'Waiting for ' + who + ' to decide whether to pay the Debt with Savings…';
+    case 'chooseSeat': return 'Waiting for ' + who + ' to pick a player' + (w.card ? ' for ' + cardName(w.card) : '') + '…';
+    case 'chooseWall': return 'Waiting for ' + who + ' to pick a wall…';
+    case 'chooseHandCard': return 'Waiting for ' + who + (w.purpose === 'build' ? ' to pick a wall to build…' : ' to pick a card to give away…');
+    case 'pickCards': case 'pickHandCards': return 'Waiting for ' + who + ' to pick their cards…';
+    default: return 'Waiting for ' + who + ' to decide' + (w.card ? ' (' + cardName(w.card) + ')' : '') + '…';
   }
 }
 
@@ -119,6 +134,15 @@ export function toastFor(e: GameEvent): { text: string; tone: 'info' | 'alert' |
     case 'trainGuard': case 'trainGuardRemoved': case 'jail': case 'jailRelease': return { text: e.text, tone: 'info' };
     default: return null;
   }
+}
+
+/**
+ * Someone else's card moved a wall to or from `viewer` (Debt taking it, Afghanistan Pull Out giving one):
+ * worth telling them which one, straight away.
+ */
+export function wallToastFor(e: GameEvent, viewer: Seat): { text: string; tone: 'alert' } | null {
+  if (e.type !== 'wallMoved' || e.target !== viewer || e.seat === undefined || e.seat === viewer) return null;
+  return { text: e.text, tone: 'alert' };
 }
 
 /** The tutorial's BEST MOVE, worded from the Hard bot's choice (`Tip Think`). */

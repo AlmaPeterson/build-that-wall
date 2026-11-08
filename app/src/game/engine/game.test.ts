@@ -8,6 +8,19 @@ const SET3 = (k: number) => [k, k, k];
 const THREE_SETS = [...SET3(29), ...SET3(30), ...SET3(31)];
 
 describe('dealing and drawing', () => {
+  it('a random player goes first unless firstSeat says who', async () => {
+    const firsts = new Set<number>();
+    for (let seed = 1; seed <= 30; seed++) {
+      const { game, state } = setup({ seed, settings: { players: 4, firstSeat: undefined } });
+      await game.start();
+      firsts.add(state.turn);                                   // no bots: the game waits for the first player
+    }
+    expect(firsts.size).toBeGreaterThan(1);
+    const { game, state } = setup({ seed: 7, settings: { players: 4, firstSeat: 2 } });
+    await game.start();
+    expect(state.turn).toBe(2);
+  });
+
   it('deals 5 rounds, one card per seat per round, from the top of the pile', async () => {
     const draw = Array.from({ length: 20 }, (_, i) => 100 + i);   // top = 119
     const { game, state } = setup({ draw: draw as CardId[] });
@@ -35,6 +48,20 @@ describe('dealing and drawing', () => {
     const { game, state } = setup({ draw: [] });
     await begin(game, state, [[], []]);
     expect(state.seats[0]!.hand).toEqual([]);
+  });
+});
+
+describe('card transition ledger', () => {
+  it('publishes the exact physical cards drawn from the pile', async () => {
+    const { game, state, events } = setup({ draw: [14, 20, 19] });
+    await begin(game, state, [[], []]);
+    const draw = events.find(e => e.type === 'draw' && e.seat === 0)!;
+    expect(draw.moves).toEqual(expect.arrayContaining([
+      expect.objectContaining({ card: 19, from: { zone: 'draw', index: 2 }, to: { zone: 'hand', seat: 0, index: 0 } }),
+      expect.objectContaining({ card: 20, from: { zone: 'draw', index: 1 }, to: { zone: 'hand', seat: 0, index: 1 } }),
+      expect.objectContaining({ card: 14, from: { zone: 'draw', index: 0 }, to: { zone: 'hand', seat: 0, index: 2 } }),
+    ]));
+    expect(new Set(draw.moves?.map(move => move.instance)).size).toBe(3);
   });
 });
 
@@ -83,14 +110,14 @@ describe('endings', () => {
     const { game, state, events } = setup({ settings: { ending: 1, players: 3 }, draw: filler(30) });
     state.seats[0]!.walls = [...THREE_SETS];
     await begin(game, state, [[], [], []]);
-    expect(state.final).toEqual({ kind: 'sets', stop: 0, reason: 'Someone built 3 sets of 3 walls.' });
+    expect(state.final).toEqual({ kind: 'sets', stop: 0, reason: 'Player 1 built 3 sets of 3 walls.' });
     await game.act(0, { type: 'endTurn' });
     expect(state.over).toBeNull();
     await game.act(1, { type: 'endTurn' });
     expect(state.over).toBeNull();
     await game.act(2, { type: 'endTurn' });
-    expect(state.over).toEqual({ winners: [0], miles: [48, 0, 0], reason: 'Someone built 3 sets of 3 walls.' });
-    expect(events.at(-1)!.text).toBe('Player 1 wins! Someone built 3 sets of 3 walls. Most miles: 48.');
+    expect(state.over).toEqual({ winners: [0], miles: [48, 0, 0], reason: 'Player 1 built 3 sets of 3 walls.' });
+    expect(events.at(-1)!.text).toBe('Player 1 wins! Player 1 built 3 sets of 3 walls. Most miles: 48.');
   });
 
   it('ending 2 ignores sets and ends after the deck final round', async () => {
@@ -112,7 +139,7 @@ describe('endings', () => {
     expect(state.final?.kind).toBe('sets');
     await game.act(0, { type: 'endTurn' });
     await game.act(1, { type: 'endTurn' });
-    expect(state.over?.reason).toBe('Someone built 3 sets of 3 walls.');
+    expect(state.over?.reason).toBe('Player 1 built 3 sets of 3 walls.');
   });
 
   it('ending 4: a deck final round without 3 sets lets play go on until someone has 3 sets', async () => {
@@ -386,6 +413,15 @@ describe('what each player sees', () => {
     expect(v.rng).toBe(0);
     expect(v.discard).toEqual(state.discard);
     expect(state.seats[0]!.hand).not.toContain(CARD_BACK);   // the real state is untouched
+  });
+
+  it('can show every hand (a bots-only game), still hiding the draw order and the seed', async () => {
+    const { game, state } = setup({ seed: 3 });
+    await game.start();
+    const v = viewFor(state, 1, true);
+    expect(v.seats.map(s => s.hand)).toEqual(state.seats.map(s => s.hand));
+    expect(v.draw).toEqual(state.draw.map(() => CARD_BACK));
+    expect(v.rng).toBe(0);
   });
 
   it('hides which cards others drew', () => {

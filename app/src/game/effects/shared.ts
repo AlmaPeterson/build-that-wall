@@ -74,20 +74,22 @@ export const qualifyingSlots = (ctx: EffectContext, seat: Seat, kind: GiveKind):
 export async function distribute(ctx: EffectContext, giver: Seat, kind: GiveKind, includeSelf = true): Promise<number> {
   const order = [...ctx.opponents(giver), ...(includeSelf ? [giver] : [])];
   if (!order.length) return 0;
-  const kept: CardId[] = [];
+  // A card the giver keeps goes to the end of their own hand straight away (it never leaves it), and
+  // isn't offered again
+  let kept = 0;
   let given = 0;
   for (let i = 0; i < 200; i++) {
-    const slots = qualifyingSlots(ctx, giver, kind);
+    const end = ctx.state.seats[giver]!.hand.length - kept;
+    const slots = qualifyingSlots(ctx, giver, kind).filter(s => s < end);
     if (!slots.length) break;
     const to = order[i % order.length]!;
     const slot = (await askHandCard(ctx, giver, 'give', slots, false, to))!;
     const card = ctx.takeFromHand(giver, slot);
-    if (to === giver) { kept.push(card); continue; }
     ctx.addToHand(to, card);
+    if (to === giver) { kept++; continue; }
     given++;
     ctx.emit({ type: 'cardMoved', seat: giver, target: to, card, text: seatName(ctx, giver) + ' gave a card to ' + seatName(ctx, to) + '.' });
   }
-  for (const c of kept) ctx.addToHand(giver, c);
   return given;
 }
 
@@ -96,15 +98,15 @@ export async function distribute(ctx: EffectContext, giver: Seat, kind: GiveKind
  * the answer is card ids, checked against what is really there. Pack cards (45-49) can be picked
  * too (fixed; the old game only offered ids 1-44).
  */
-export async function poolPick(ctx: EffectContext, pool: CardId[], max: number): Promise<CardId[]> {
+/** Ask for up to `max` cards from `pool`; the pool positions picked (each at most once). */
+export async function poolPick(ctx: EffectContext, pool: CardId[], max: number, fromDiscard?: number): Promise<number[]> {
   if (!pool.length || max < 1) return [];
-  const answer = await ctx.decide({ kind: 'pickCards', seat: ctx.player, card: ctx.card, pool: [...pool], max });
-  const left = [...pool], picks: CardId[] = [];
-  for (const id of Array.isArray(answer) ? answer : []) {
-    const at = left.indexOf(id);
-    if (at < 0 || picks.length >= max) continue;
-    left.splice(at, 1);
-    picks.push(id);
+  const answer = await ctx.decide({ kind: 'pickCards', seat: ctx.player, card: ctx.card, pool: [...pool], max,
+    ...(fromDiscard !== undefined ? { fromDiscard } : {}) });
+  const picks: number[] = [];
+  for (const at of Array.isArray(answer) ? answer : []) {
+    if (!Number.isInteger(at) || at < 0 || at >= pool.length || picks.includes(at) || picks.length >= max) continue;
+    picks.push(at);
   }
   return picks;
 }
@@ -117,18 +119,40 @@ export function takeFromPile(pile: CardId[], card: CardId): boolean {
   return true;
 }
 
-/** Build up to `max` Wall Sections from the hand for free, one at a time; may stop after the first (Cards › define build free). */
-export async function buildFreeLoop(ctx: EffectContext, max: number): Promise<number> {
-  let built = 0;
-  while (built < max) {
-    const slots = qualifyingSlots(ctx, ctx.player, 'walls');
-    if (!slots.length) break;
-    const slot = await askHandCard(ctx, ctx.player, 'build', slots, built > 0);
-    if (slot === null) break;
-    ctx.buildFree(ctx.player, slot);
-    built++;
+/**
+ * Pick between `min` and `max` of `options` (hand slots) at once. The answer is checked: unknown or repeated
+ * slots are dropped, extra ones cut off, and too few are topped up from the first options.
+ */
+export async function askHandCards(ctx: EffectContext, seat: Seat, options: number[], min: number, max: number): Promise<number[]> {
+  max = Math.min(max, options.length);
+  min = Math.min(min, max);
+  if (max <= 0) return [];
+  const h = hand(ctx, seat);
+  const a = await ctx.decide({ kind: 'pickHandCards', seat, card: ctx.card, purpose: 'build', options, cards: options.map(i => h[i]!), min, max });
+  const picks: number[] = [];
+  for (const s of Array.isArray(a) ? a : []) if (options.includes(s) && !picks.includes(s) && picks.length < max) picks.push(s);
+  for (const s of options) if (picks.length < min && !picks.includes(s)) picks.push(s);
+  return picks;
+}
+
+/** Build the cards in these hand slots for free, in this order (each slot as it was before any of them was built). */
+export function buildSlots(ctx: EffectContext, slots: number[]): void {
+  const done: number[] = [];
+  for (const s of slots) {
+    ctx.buildFree(ctx.player, s - done.filter(d => d < s).length);
+    done.push(s);
   }
-  return built;
+}
+
+/**
+ * Build up to `max` Wall Sections from the hand for free; at least one if there is any (Cards › define build
+ * free). The player picks them all in one go, then the card is discarded, then they're built.
+ */
+export async function buildFreeLoop(ctx: EffectContext, max: number, discard?: CardId): Promise<number> {
+  const slots = await askHandCards(ctx, ctx.player, qualifyingSlots(ctx, ctx.player, 'walls'), 1, max);
+  if (discard !== undefined) ctx.discard(discard);
+  buildSlots(ctx, slots);
+  return slots.length;
 }
 
 /** Pick an opponent for an attack, then let them block with Self-Defense. Returns the target, or null if blocked or no one to pick. */

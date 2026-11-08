@@ -18,7 +18,7 @@ const until = async (ok: () => boolean, ms = 3000) => {
 function session(relay: FakeRelay, name: string, shown: GameController[]) {
   return new OnlineSession({
     connect: relay.connect, name: () => name,
-    baseSettings: () => ({ ...DEFAULT_SETTINGS }),
+    baseSettings: () => ({ ...DEFAULT_SETTINGS, firstSeat: 0 }),
     show: c => shown.push(c),
     wait: () => Promise.resolve(),
   });
@@ -50,6 +50,34 @@ describe('online game', () => {
     expect(guest.state.get().phase).toBe('playing');
     expect(hostC.state!.seats.map(s => s.name)).toEqual(['Hana', 'Gus']);
     expect(clientC.snapshot.get().viewer).toBe(1);
+  });
+
+  it("a player's dropped connection comes back and the game reaches them again", async () => {
+    const { relay, guest, hostC, clientC } = await twoPlayers();
+    relay.open[1]!.drop();                                  // the guest's connection (the host connected first)
+    await new Promise(r => setTimeout(r, 50));
+    expect(guest.state.get().phase).toBe('playing');
+    await hostC.act({ type: 'endTurn' });
+    await until(() => clientC.snapshot.get().view?.turn === 1);
+    expect(clientC.snapshot.get().view!.seats[1]!.hand).toEqual(hostC.state!.seats[1]!.hand);
+  });
+
+  it("the host picks each bot's difficulty in the lobby", async () => {
+    const relay = new FakeRelay();
+    const shown: GameController[] = [];
+    const host = session(relay, 'Hana', shown);
+    sessions.push(host);
+    expect(await host.hostRoom()).toBe(true);
+    host.setBots(3);
+    host.setBotDifficulty(0, 'hard');
+    host.setBotDifficulty(1, 'easy');
+    host.setBotDifficulty(2, 'random');
+    expect(host.state.get().difficulties.slice(0, 3)).toEqual(['hard', 'easy', 'random']);
+    void host.start(7);
+    await until(() => shown.length === 1 && !!shown[0]!.state);
+    const bots = shown[0]!.state!.seats.slice(1).map(s => s.bot);
+    expect(bots.slice(0, 2)).toEqual(['hard', 'easy']);
+    expect(['easy', 'medium', 'hard']).toContain(bots[2]);           // random picks one
   });
 
   it("the player never receives the host's hand or the draw pile order", async () => {
@@ -106,5 +134,11 @@ describe('remote answers', () => {
     expect(parseAnswer(seat, '2')).toBe(2);
     expect(fallbackAnswer({ ...seat, cancellable: true })).toBeNull();
     expect(parseAnswer({ kind: 'pickCards', seat: 1, card: 22, pool: [1, 2], max: 1 }, '[1,2]')).toEqual([]);
+    const build = { kind: 'pickHandCards' as const, seat: 1, card: 13, purpose: 'build' as const, options: [2, 4, 5], cards: [29, 30, 31], min: 1, max: 2 };
+    expect(parseAnswer(build, '[5,2]')).toEqual([5, 2]);
+    expect(parseAnswer(build, '[2,4,5]')).toEqual([2]);          // too many
+    expect(parseAnswer(build, '[3]')).toEqual([2]);              // not an option
+    expect(parseAnswer(build, '[2,2]')).toEqual([2]);            // repeated
+    expect(parseAnswer(build, '[]')).toEqual([2]);               // too few
   });
 });

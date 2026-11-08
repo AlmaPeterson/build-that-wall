@@ -1,11 +1,13 @@
 // Cards that build walls for free: Assassin (3), Legal Immigration (13), Voting Machine (28), Toilet Paper (23).
 import type { EffectContext } from '../../contracts';
-import { announce, askHandCard, buildFreeLoop, cardName, hand, seatName } from '../shared';
+import { announce, askHandCards, buildFreeLoop, buildSlots, cardName, hand, seatName } from '../shared';
 
-/** 3: up to 2 free, 13: up to 3 free, 28: up to 2 free. The card's own cost (if any) was already paid. */
+/**
+ * 3: up to 2 free, 13: up to 3 free, 28: up to 2 free. The card's own cost (if any) was already paid.
+ * The walls are picked first, then the card is discarded and they're built, so the board shows it in that order.
+ */
 export async function freeBuild(ctx: EffectContext): Promise<boolean> {
-  ctx.discard(ctx.card);
-  const built = await buildFreeLoop(ctx, ctx.card === 13 ? 3 : 2);
+  const built = await buildFreeLoop(ctx, ctx.card === 13 ? 3 : 2, ctx.card);
   announce(ctx, seatName(ctx, ctx.player) + ' built ' + built + ' wall section(s) for free with ' + cardName(ctx.card) + '.');
   return true;
 }
@@ -22,25 +24,18 @@ function pairKinds(ctx: EffectContext): { kind: number; slot: number }[] {
 /**
  * 23 Toilet Paper: build a set: every copy of one wall kind in hand (2 or 3) for free. The first set is
  * covered by the card's own action; each further set costs 1 more action; the player may stop after
- * any set (the first choice can't be cancelled). The player picks a set by picking one of its cards.
+ * any set (at least one if there is one). The player picks the sets in one go, each by one of its cards;
+ * then the card is discarded and the sets are built.
  */
 export async function toiletPaper(ctx: EffectContext): Promise<boolean> {
+  const kinds = pairKinds(ctx);
+  const picks = await askHandCards(ctx, ctx.player, kinds.map(k => k.slot), 1, 1 + Math.max(0, ctx.state.actionsLeft));
   ctx.discard(ctx.card);
-  let sets = 0;
-  for (;;) {
-    const kinds = pairKinds(ctx);
-    if (!kinds.length || (sets > 0 && ctx.state.actionsLeft < 1)) break;
-    const slot = await askHandCard(ctx, ctx.player, 'build', kinds.map(k => k.slot), sets > 0);
-    if (slot === null) break;
-    const kind = hand(ctx, ctx.player)[slot]!;
-    for (let i = 0; i < 3; i++) {
-      const at = hand(ctx, ctx.player).indexOf(kind);
-      if (at < 0) break;
-      ctx.buildFree(ctx.player, at);
-    }
-    if (sets > 0) ctx.spendActions(1);
-    sets++;
-  }
+  // Every copy of each chosen kind, at most 3 (a set)
+  const h = hand(ctx, ctx.player), chosen = picks.map(s => h[s]!);
+  buildSlots(ctx, chosen.flatMap(kind => h.flatMap((c, i) => (c === kind ? [i] : [])).slice(0, 3)));
+  const sets = picks.length;
+  if (sets > 1) ctx.spendActions(sets - 1);
   announce(ctx, seatName(ctx, ctx.player) + ' built ' + sets + ' set(s) with Toilet Paper.');
   return true;
 }

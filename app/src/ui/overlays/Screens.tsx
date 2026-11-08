@@ -121,7 +121,7 @@ export function BigNotice({ head, title, sub, onClose }: { head: string; title: 
 }
 
 /** Game over: winners, miles per seat, play again or back to the menu (`winScreen`). */
-export function WinScreen({ result, view, onAgain, onMenu }: { result: GameResult; view: Pick<GameState, 'seats'>; onAgain: () => void; onMenu: () => void }) {
+export function WinScreen({ result, view, onAgain, onMenu, onLog }: { result: GameResult; view: Pick<GameState, 'seats'>; onAgain: () => void; onMenu: () => void; onLog?: () => void }) {
   const ref = useKeys(onMenu, false);
   const names = result.winners.map(s => seatName(view, s));
   const title = names.length > 1 ? "It's a tie: " + names.join(' & ') : names[0] + ' wins!';
@@ -145,6 +145,7 @@ export function WinScreen({ result, view, onAgain, onMenu }: { result: GameResul
         </div>
         <div class="btw-ov-choices">
           <button type="button" class="btw-ov-btn btw-ov-btn--gold" onClick={onAgain}>Play again</button>
+          <button type="button" class="btw-ov-btn" onClick={onLog}>Game log</button>
           <button type="button" class="btw-ov-btn" onClick={onMenu}>Back to menu</button>
         </div>
       </div>
@@ -175,4 +176,3 @@ export function TutorialTip({ best, tips, onHide }: { best: string; tips: string
     </aside>
   );
 }
-

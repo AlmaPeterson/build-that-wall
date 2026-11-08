@@ -1,6 +1,7 @@
 // What the TypeScript game sends inside the room's data messages (services/online, t: 'x').
 // The host runs the game; each player only ever receives their own view of it.
 import type { Action, ActionResult, Answer, Decision, GameEvent, GameState, Seat } from '../../game';
+import type { Waiting } from '../controller';
 
 export type ToHost =
   | { k: 'name'; name: string }                                   // a player's name, sent after joining
@@ -9,7 +10,7 @@ export type ToHost =
 
 export type ToPlayer =
   | { k: 'lobby'; players: LobbyPlayer[]; bots: number }          // broadcast while waiting to start
-  | { k: 'snap'; seat: Seat; view: GameState; events: GameEvent[]; from: number; total: number }
+  | { k: 'snap'; seat: Seat; view: GameState; events: GameEvent[]; from: number; total: number; waiting?: Waiting | null }
   | { k: 'result'; id: number; result: ActionResult };
 
 export interface LobbyPlayer { seat: number; name: string }      // room seat (1 = host)
@@ -36,6 +37,7 @@ export function fallbackAnswer<D extends Decision>(d: D): Answer<D> {
     case 'chooseSeat': case 'chooseWall': case 'chooseOption': return a(d.cancellable ? null : d.options[0] ?? null);
     case 'chooseHandCard': return a(d.optional ? null : d.options[0] ?? null);
     case 'pickCards': return a([]);
+    case 'pickHandCards': return a(d.options.slice(0, d.min));
   }
 }
 
@@ -51,7 +53,10 @@ export function parseAnswer<D extends Decision>(d: D, text: string): Answer<D> {
       case 'chooseOption': return v === null ? d.cancellable : d.options.includes(v as string);
       case 'chooseWall': return v === null ? d.cancellable
         : d.options.some(w => w.seat === (v as { seat?: number }).seat && w.kind === (v as { kind?: number }).kind);
-      case 'pickCards': return Array.isArray(v) && v.length <= d.max && v.every(x => typeof x === 'number');
+      case 'pickCards': return Array.isArray(v) && v.length <= d.max && new Set(v).size === v.length
+        && v.every(x => Number.isInteger(x) && (x as number) >= 0 && (x as number) < d.pool.length);
+      case 'pickHandCards': return Array.isArray(v) && v.length >= d.min && v.length <= d.max
+        && new Set(v).size === v.length && v.every(x => d.options.includes(x as number));
     }
   })();
   return ok ? v as Answer<D> : fallbackAnswer(d);

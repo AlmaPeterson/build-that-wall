@@ -57,14 +57,14 @@
    "blockable": true,
    "heldUntilResolved": false,
    "help": "Give one of your built walls to another player.",
-   "explain": "Play Immediately: give one of your built walls to another player (into their hand). Sets of 3 are safe.",
-   "effect": "Play Immediately: give one of your built walls (not in a set of 3, not guarded by a Trump Train) to an opponent, into their hand. Self-Defense can block it.",
+   "explain": "Play Immediately: give one of your built walls to another player. It stays built on their board. Sets of 3 are safe.",
+   "effect": "Play Immediately: give one of your built walls (not in a set of 3, not guarded by a Trump Train) to an opponent. It stays built on their board. Self-Defense can block it.",
    "effects": [
     {
      "kind": "giveBuiltWall",
      "from": "self",
      "to": "chosenOpponent",
-     "into": "hand",
+     "into": "walls",
      "eligible": "notInSetOrGuarded"
     }
    ],
@@ -312,8 +312,8 @@
    "blockable": false,
    "heldUntilResolved": false,
    "help": "Everyone gives a Wall/Trump card to the lowest builder.",
-   "explain": "Play Immediately: everyone gives a Wall, Trump or Trump Train card to the player with the fewest miles.",
-   "effect": "Play Immediately: every player who is not lowest gives one Wall Section, Trump or Trump Train to the player(s) with the fewest miles. No effect if everyone is tied. Cannot be blocked.",
+   "explain": "Play Immediately: everyone gives a Wall, Trump or Trump Train card from their hand to the player with the fewest miles.",
+   "effect": "Play Immediately: every player who is not lowest gives one Wall Section, Trump or Trump Train from their hand to the player(s) with the fewest miles. No effect if everyone is tied. Cannot be blocked.",
    "effects": [
     {
      "kind": "giveToLowest",

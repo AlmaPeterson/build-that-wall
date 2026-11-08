@@ -8,6 +8,9 @@ import { Button } from '../components/Button';
 import {
   ENDING_NAMES, initSettingsPersistence, MAX_PLAYERS, MIN_PLAYERS, TEXT_STEPS, updateSettings, type BotLevel,
 } from '../menus/prefs';
+import { playerOneName } from '../menus/start';
+import { SaveStore, browserStorage } from '../../services/storage';
+import { cleanName } from '../../services/online';
 import { useStore } from '../store';
 import '../menus/menus.css';
 
@@ -69,7 +72,8 @@ export function SettingsScreen() {
   const humans = g.players - g.bots;
   return (
     <div class="page">
-      <header class="page__head"><h1>Settings</h1></header>
+      {/* Done at the top too: on phones a button at the very bottom edge can be hard to tap (the browser's toolbar takes the tap) */}
+      <header class="page__head page__head--with-done"><h1>Settings</h1><Button class="page__done" onClick={goBack}>Done</Button></header>
       <main class="page__main settings">
         {running && !running.over && <p class="settings__notice">A game is running: changes to players, bots and how the game ends start with your next game. Everything else changes now.</p>}
 
@@ -82,6 +86,10 @@ export function SettingsScreen() {
         <Row label="Players">
           <Stepper label="Players" value={g.players} min={MIN_PLAYERS} max={MAX_PLAYERS} onChange={players => setGame({ players })} />
         </Row>
+        {/* Online only: keep trying to join a room that isn't open yet */}
+        {s.gameMode === 'multiplayer' && (
+          <Row label="Auto Join"><Toggle label="Auto Join" on={s.autoJoin} onChange={autoJoin => set({ autoJoin })} /></Row>
+        )}
         <Row label="AI Players">
           <Stepper label="AI Players" value={g.bots} min={0} max={g.players} onChange={bots => setGame({ bots })} />
           {g.bots === g.players && <span class="settings__hint">Watch mode: bots only</span>}
@@ -109,8 +117,13 @@ export function SettingsScreen() {
         )}
         {Array.from({ length: humans }, (_, k) => (
           <Row key={'n' + k} label={`Player ${k + 1} name`} id={`set-name${k}`}>
-            <input id={`set-name${k}`} type="text" maxLength={20} placeholder={`Player ${k + 1}`} value={g.names[k] ?? ''}
-              onInput={e => setGame({ names: Array.from({ length: MAX_PLAYERS }, (_, j) => (j === k ? e.currentTarget.value : g.names[j] ?? '')) })} />
+            <input id={`set-name${k}`} type="text" maxLength={20} placeholder={(k === 0 && playerOneName()) || `Player ${k + 1}`} value={g.names[k] ?? ''}
+              onInput={e => {
+                const name = e.currentTarget.value;
+                setGame({ names: Array.from({ length: MAX_PLAYERS }, (_, j) => (j === k ? name : g.names[j] ?? '')) });
+                // Player 1 is this device's identity. Keep online play, scores and Account & Store in sync.
+                if (k === 0) new SaveStore(browserStorage()).set('name', cleanName(name));
+              }} />
           </Row>
         ))}
         <Row label="Sound Effects"><Toggle label="Sound Effects" on={s.sound} onChange={sound => set({ sound })} /></Row>
@@ -120,7 +133,6 @@ export function SettingsScreen() {
             <option value="one">Play One</option>
           </select>
         </Row>
-        <Row label="Auto Join"><Toggle label="Auto Join" on={s.autoJoin} onChange={autoJoin => set({ autoJoin })} /></Row>
         <Row label="Tutorial tips"><Toggle label="Tutorial tips" on={s.tutorial} onChange={tutorial => set({ tutorial })} /></Row>
         <Row label="Card animations" id="set-anim">
           <select id="set-anim" value={s.animSpeed} onChange={e => set({ animSpeed: e.currentTarget.value as AnimSpeed })}>

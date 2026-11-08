@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryStorage, SaveStore } from '../../services/storage';
+import { browserStorage, MemoryStorage, SaveStore } from '../../services/storage';
 import { App } from '../app';
 import { controller, DEFAULT_UI_SETTINGS, screen, settings } from '../app-state';
 import { MenuScreen } from '../screens/Menu';
@@ -87,10 +87,16 @@ describe('settings', () => {
     expect(s.textSizes.popups).toBe(1);
   });
 
-  it('uses the saved player name for player 1', () => {
-    const store = fresh();
+  it('player 1 gets your name as it is when the game starts, so a changed name shows in the next game', () => {
+    const store = new SaveStore(browserStorage());
     store.set('name', 'Grandma Sue');
-    expect(loadUiSettings(store, DEFAULT_UI_SETTINGS).game.names[0]).toBe('Grandma Sue');
+    expect(gameSettingsFor(3, 2).names[0]).toBe('Grandma Sue');
+    store.set('name', 'Aunt Bea');                                    // changed on the Account screen
+    expect(gameSettingsFor(3, 2).names[0]).toBe('Aunt Bea');
+    expect(loadUiSettings(store, DEFAULT_UI_SETTINGS).game.names[0] ?? '').toBe('');   // not frozen into the settings
+    const typed = { ...DEFAULT_UI_SETTINGS.game, names: ['Sue at the table'] };   // a name typed in Settings wins
+    expect(gameSettingsFor(3, 2, typed).names[0]).toBe('Sue at the table');
+    expect(gameSettingsFor(3, 3).names[0] ?? '').toBe('');              // watch mode: no Player 1
   });
 
   it('saves changes made on the Settings screen', () => {
@@ -170,6 +176,22 @@ describe('starting games', () => {
     expect(controller.get()).not.toBeNull();
   });
 
+  it("Pass'n'Play with 2 people asks their names first, uses them and keeps them", () => {
+    settings.set(clampSettings({ ...DEFAULT_UI_SETTINGS, game: { ...DEFAULT_UI_SETTINGS.game, players: 3, bots: 1 } }));
+    act(() => { render(<MenuScreen />, root); });
+    click('Start Game');
+    expect(screen.get()).toBe('menu');
+    const inputs = [...root.querySelectorAll<HTMLInputElement>('.names input')];
+    expect(inputs).toHaveLength(2);
+    act(() => {
+      inputs.forEach((input, k) => { input.value = ['Alma', 'Sam'][k]!; input.dispatchEvent(new Event('input', { bubbles: true })); });
+    });
+    act(() => { root.querySelector<HTMLButtonElement>('.names button[type="submit"]')!.click(); });
+    expect(screen.get()).toBe('game');
+    expect(game().seats.map(s => s.name).slice(0, 2)).toEqual(['Alma', 'Sam']);
+    expect(settings.get().game.names.slice(0, 2)).toEqual(['Alma', 'Sam']);
+  });
+
   it('Start Game in Multiplayer opens the online choices', () => {
     settings.set({ ...DEFAULT_UI_SETTINGS, gameMode: 'multiplayer' });
     act(() => { render(<MenuScreen />, root); });
@@ -181,7 +203,7 @@ describe('starting games', () => {
 
   it('menu buttons go to their screens', () => {
     act(() => { render(<MenuScreen />, root); });
-    click('Gold Membership');
+    click('Account & Store');
     expect(screen.get()).toBe('account');
     click('Settings');
     expect(screen.get()).toBe('settings');
