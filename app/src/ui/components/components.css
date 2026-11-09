@@ -11,6 +11,10 @@
 .btw-button:disabled { opacity: 0.5; cursor: default; }
 /* Text only screen readers hear */
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* "You're done here, press this": out of actions (End Turn), or the most walls picked (Build) */
+.btw-button.btw-ready, .btw-ov-btn.btw-ready { background: var(--green); border-color: var(--green-dark); color: #fff; animation: btw-ready 1.1s ease-in-out infinite; }
+@keyframes btw-ready { 50% { box-shadow: 0 0 0 5px rgba(28, 138, 58, .45); transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) { .btw-button.btw-ready, .btw-ov-btn.btw-ready { animation: none; } }
 .btw-button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .btw-button--red { background: var(--red); border-color: var(--red-dark); }
 .btw-button--navy { background: var(--navy); border-color: var(--navy-dark); }

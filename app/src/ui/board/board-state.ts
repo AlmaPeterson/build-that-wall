@@ -8,10 +8,10 @@ export const MAN_HOUR = 14, SAVINGS = 19, SELF_DEFENSE = 20, TRUMP_TRAIN = 25;
 /** Cards the Build Wall menu offers besides normal builds (Assassin, Legal Immigration, Voting Machine, Toilet Paper). */
 export const BUILD_CARDS: readonly CardId[] = [3, 13, 28, 23];
 
-/** True when the viewing player may act now: their turn, no question waiting, no pass screen, game running. */
+/** True when the viewing player may act now: their turn, no question waiting, no pass screen or turn banner, game running. */
 export function canInteract(snap: GameSnapshot, busy = false): boolean {
   const v = snap.view;
-  if (!v || busy || v.over || snap.prompt || snap.passTo !== null) return false;
+  if (!v || busy || v.over || snap.prompt || snap.passTo !== null || (snap.turnBanner ?? null) !== null) return false;
   if (v.turn < 0 || v.turn !== snap.viewer) return false;
   return !v.seats[v.turn]?.bot;
 }

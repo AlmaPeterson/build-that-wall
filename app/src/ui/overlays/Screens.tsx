@@ -98,11 +98,18 @@ function Fig({ id, label, tone }: { id: number; label: string; tone: 'lost' | 'g
 }
 
 /** A big tilted headline, e.g. FINAL ROUND (`bigNotice`). */
-/** "Player 1's turn", sliding across for a moment before a turn starts (one person playing: no pass screen). */
-export function TurnBanner({ name }: { name: string }) {
+/** "Player 1's turn": the player's cards are drawn when they tap OK. */
+export function TurnBanner({ name, onOk }: { name: string; onOk: () => void }) {
+  const shown = useRef(Date.now());
+  const ok = () => { if (Date.now() - shown.current >= PASS_GUARD_MS) onOk(); };
+  const button = useRef<HTMLButtonElement>(null);
+  useEffect(() => { button.current?.focus(); }, []);
   return (
-    <div class="btw-turn" role="status" aria-live="assertive">
-      <div class="btw-turn-band"><span class="btw-turn-name">{name}</span>'s turn</div>
+    <div class="btw-turn" role="dialog" aria-modal="true" aria-label={name + "'s turn"}>
+      <div class="btw-turn-band">
+        <div><span class="btw-turn-name">{name}</span>'s turn</div>
+        <button type="button" class="btw-ov-btn btw-ov-btn--gold btw-turn-ok" ref={button} onClick={ok}>OK</button>
+      </div>
     </div>
   );
 }

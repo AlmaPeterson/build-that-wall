@@ -4,7 +4,7 @@
 import { redactEvent, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decider, type Decision, type GameSettings, type GameState, type Seat } from '../../game';
 import type { OnlineRoom } from '../../services/online';
 import { GameController, waitingOn, type Waiting } from '../controller';
-import { ASK_MODE, parseAnswer, type ToHost, type ToPlayer } from './messages';
+import { ASK_MODE, TURN_OK, parseAnswer, type ToHost, type ToPlayer } from './messages';
 
 const SEND_DELAY_MS = 40;      // gather a burst of changes (a bot's turn) into one snapshot
 
@@ -16,10 +16,12 @@ export class HostController extends GameController {
   private sendTimer: ReturnType<typeof setTimeout> | null = null;
   /** A question asked of a remote player that they haven't answered yet. */
   private remoteWaiting: Waiting | null = null;
+  /** Stops waiting for a remote player's OK on the turn banner, if that's what the game is waiting for. */
+  private stopTurnOk: ((seat: Seat) => void) | null = null;
 
-  constructor(private readonly room: Pick<OnlineRoom, 'sendData' | 'ask'>, roomSeats: number[], memory?: BotMemory) {
+  constructor(private readonly room: Pick<OnlineRoom, 'sendData' | 'ask'>, roomSeats: number[], memory?: BotMemory, turnBanner = false) {
     super({
-      passScreen: false, localSeat: 0, memory,
+      passScreen: false, localSeat: 0, memory, turnBanner,
       remoteDecider: seat => (seat > 0 && seat < roomSeats.length ? this.remote(seat) : null),
     });
     this.roomSeats = roomSeats;
@@ -36,6 +38,13 @@ export class HostController extends GameController {
   override act(action: Action): Promise<ActionResult> {
     if (this.state && this.state.turn !== 0) return Promise.resolve({ ok: false, reason: "It isn't your turn." });
     return super.act(action);
+  }
+
+  /** A player left while the game waited for their OK: it goes on without them straight away. */
+  override leave(seat: Seat): Promise<void> {
+    const left = super.leave(seat);
+    this.stopTurnOk?.(seat);
+    return left;
   }
 
   /** The game seat played from a room seat, or -1. */
@@ -77,7 +86,8 @@ export class HostController extends GameController {
     const all = this.allEvents;
     // Who everyone is waiting on: a remote player, or the host answering a question on this device
     const hostPrompt = this.snapshot.get().prompt;
-    const waiting = this.remoteWaiting ?? (hostPrompt ? waitingOn(hostPrompt.decision) : null);
+    const banner = this.snapshot.get().turnBanner ?? null;
+    const waiting = this.remoteWaiting ?? (hostPrompt ? waitingOn(hostPrompt.decision) : banner !== null ? { seat: banner, kind: TURN_OK } : null);
     for (let seat = 1; seat < this.roomSeats.length; seat++) {
       if (s.seats[seat]?.left) continue;
       const view = this.viewOf(seat) ?? viewFor(s as GameState, seat), js = JSON.stringify(view) + JSON.stringify(waiting);
@@ -93,6 +103,21 @@ export class HostController extends GameController {
   }
 
   protected override waiting(): Waiting | null { return this.remoteWaiting; }
+
+  /** Show the turn banner on their device. A timeout or a player who left gets the same result as OK. */
+  protected override async remoteTurnOk(seat: Seat): Promise<void> {
+    this.remoteWaiting = { seat, kind: TURN_OK };
+    this.refresh();
+    this.sendNow();
+    const asked = this.room.ask(this.roomSeats[seat]!, { l1: JSON.stringify({ kind: TURN_OK }), l2: '', l3: '', card: 0, mode: ASK_MODE });
+    try {
+      await Promise.race([asked, new Promise<void>(stop => { this.stopTurnOk = s => { if (s === seat) stop(); }; })]);
+    } finally {
+      this.stopTurnOk = null;
+      this.remoteWaiting = null;
+      this.refresh();
+    }
+  }
 
   /** Ask a remote player's device; a timeout, a player who left or a bad answer gets the safe fallback. */
   private remote(seat: Seat): Decider {

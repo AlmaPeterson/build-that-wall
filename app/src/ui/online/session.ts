@@ -6,7 +6,7 @@ import type { GameController } from '../controller';
 import { createStore, type Store } from '../store';
 import { OnlineClientController } from './client';
 import { HostController } from './host';
-import { ASK_MODE, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
+import { ASK_MODE, TURN_OK, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
 
 export type Phase = 'idle' | 'connecting' | 'lobby' | 'playing' | 'ended';
 export type BotLevel = Difficulty | 'random';
@@ -217,7 +217,7 @@ export class OnlineSession {
       ...base, players: roomSeats.length + bots, bots, difficulties,
       names: roomSeats.map(s => this.names.get(s) ?? 'Player ' + s),
     };
-    this.host = new HostController(this.room, roomSeats, this.deps.memory);
+    this.host = new HostController(this.room, roomSeats, this.deps.memory, true);
     this.running = true;
     this.set({ phase: 'playing', status: '', error: '' });
     this.deps.show(this.host);
@@ -249,6 +249,7 @@ export class OnlineSession {
     if (q.mode !== ASK_MODE || !this.client) return 'no';
     let decision;
     try { decision = JSON.parse(q.l1); } catch { return 'no'; }
+    if (decision?.kind === TURN_OK) { await this.client.askTurnOk(); return 'true'; }
     const answer = await this.client.askHere(decision);
     return JSON.stringify(answer);
   }

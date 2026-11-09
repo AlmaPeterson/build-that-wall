@@ -40,6 +40,7 @@ export function waitingText(w: { seat: Seat; kind: string; card?: CardId; purpos
     case 'chooseWall': return 'Waiting for ' + who + ' to pick a wall…';
     case 'chooseHandCard': return 'Waiting for ' + who + (w.purpose === 'build' ? ' to pick a wall to build…' : ' to pick a card to give away…');
     case 'pickCards': case 'pickHandCards': return 'Waiting for ' + who + ' to pick their cards…';
+    case 'turnOk': return 'Waiting for ' + who + ' to start their turn…';
     default: return 'Waiting for ' + who + ' to decide' + (w.card ? ' (' + cardName(w.card) + ')' : '') + '…';
   }
 }
