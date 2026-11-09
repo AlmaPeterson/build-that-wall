@@ -29,10 +29,10 @@ export function AccountScreen() {
       <section class="btw-card" aria-labelledby="gold-h">
         <h2 id="gold-h">Gold Membership</h2>
         <p>{player.gold ? <span class="btw-gold">{player.goldInfo || 'Gold is active'}</span> : 'Gold unlocks every extra and supports the game.'}</p>
-        {!player.signedIn && <p class="btw-muted">Sign in first: Gold belongs to your account, so it follows you to every device.</p>}
+        {(!player.signedIn || player.expired) && <p class="btw-muted">Sign in {player.expired ? 'again' : 'first'}: Gold belongs to your account, so it follows you to every device.</p>}
         <div class="btw-row">
           {(['lifetime', 'year', 'month'] as GoldItem[]).map(item => (
-            <Button key={item} color="gold" disabled={busy || !player.signedIn} onClick={() => run(async () => {
+            <Button key={item} color="gold" disabled={busy || !player.signedIn || player.expired} onClick={() => run(async () => {
               say('gold', buyMessage(await services.buyGold(item), 'gold'));
             })}>
               {item === 'lifetime' ? 'Lifetime' : item === 'year' ? '1 year' : '30 days'}: {money(item === 'lifetime' ? config.goldPriceLifetime : item === 'year' ? config.goldPriceYear : config.goldPriceMonth, config.currency)}
@@ -40,11 +40,11 @@ export function AccountScreen() {
           ))}
         </div>
         <div class="btw-row">
-          {!player.gold && <Button color="plain" disabled={busy || !player.signedIn} onClick={() => run(async () => {
+          {!player.gold && <Button color="plain" disabled={busy || !player.signedIn || player.expired} onClick={() => run(async () => {
             say('gold', trialMessage(await services.gold.startTrialAny(services.server())));
             services.refresh();
           })}>Try Gold free for 7 days</Button>}
-          {player.renews && <Button color="plain" disabled={busy} onClick={() => run(async () => {
+          {player.renews && <Button color="plain" disabled={busy || player.expired} onClick={() => run(async () => {
             const r = await services.purchases.endPayment(services.server());
             say('gold', r === 'ok' ? { text: 'Your plan will not renew. Gold stays until it ends.', ok: true }
               : r === 'paypal' ? { text: 'Stop the payment on the PayPal page that just opened.', ok: true }
@@ -87,20 +87,26 @@ type PlayerInfo = ReturnType<typeof services.player.get>;
 function AccountCard({ player, googleReady, busy, run, said, say }: { player: PlayerInfo; googleReady: boolean; busy: boolean; run: Run; said: Said | null; say: (s: Said | null) => void }) {
   const [name, setName] = useState(player.name);
   useEffect(() => setName(player.name), [player.name]);
+  const signIn = (label: string) => (
+    <Button color="red" disabled={busy} onClick={() => run(async () => {
+      const r = await services.signIn();
+      say(r === 'nosetup' ? { text: googleReady ? "Couldn't reach Google. Check your internet and try again." : "Sign-in isn't set up for this copy of the game yet.", ok: false }
+        : r ? { text: 'Welcome, ' + r + '!', ok: true } : null);
+    })}>{label}</Button>
+  );
   return (
     <section class="btw-card" aria-labelledby="acct-h">
       <h2 id="acct-h">Your account</h2>
-      {player.signedIn
+      {player.expired
+        ? <p>Your sign-in for <b>{player.name}</b> has expired. Sign in again to keep your saves, scores and Gold up to date.</p>
+        : player.signedIn
         ? <p>Signed in as <b>{player.name}</b>{player.maskedEmail && <span class="btw-muted"> ({player.maskedEmail})</span>}</p>
         : <p>You're playing as a guest. Everything works without an account; sign in to keep Gold, purchases and your saves on every device.</p>}
       <div class="btw-row">
+        {player.expired && signIn('Sign in again')}
         {player.signedIn
           ? <Button color="plain" disabled={busy} onClick={() => { services.signOut(); say({ text: 'Signed out. Your saves stay on this device for next time.', ok: true }); }}>Sign out</Button>
-          : <Button color="red" disabled={busy} onClick={() => run(async () => {
-              const r = await services.signIn();
-              say(r === 'nosetup' ? { text: googleReady ? "Couldn't reach Google. Check your internet and try again." : "Sign-in isn't set up for this copy of the game yet.", ok: false }
-                : r ? { text: 'Welcome, ' + r + '!', ok: true } : null);
-            })}>Sign in with Google</Button>}
+          : signIn('Sign in with Google')}
       </div>
       <label class="btw-row">
         <span>Your name</span>
@@ -170,7 +176,7 @@ function SavesCard({ busy, run, player, said, say }: { busy: boolean; run: Run; 
           services.account.clearLocal(); services.refresh();
           say({ text: "This device's saves are cleared.", ok: true });
         }}>Clear this device</Button>
-        {player.signedIn && !confirmDelete && <Button color="red" onClick={() => setConfirmDelete(true)}>Delete account</Button>}
+        {player.signedIn && !player.expired && !confirmDelete && <Button color="red" onClick={() => setConfirmDelete(true)}>Delete account</Button>}
       </div>
       {confirmDelete && (
         <div class="btw-row">

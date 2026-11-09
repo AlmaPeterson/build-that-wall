@@ -1,9 +1,8 @@
-// Small boxes over the board: the Build Wall menu and the End Game confirmation.
+// The box over the board that confirms ending the game.
 import type { ComponentChildren } from 'preact';
 import { useEffect } from 'preact/hooks';
 import { Button } from '../components/Button';
 import { RESIZE_TITLE, useDraggable } from '../components/drag';
-import type { BuildOption, CardChoice } from './board-state';
 
 function BoardModal({ title, onClose, children }: { title: string; onClose(): void; children: ComponentChildren }) {
   const drag = useDraggable('board-modal');
@@ -20,17 +19,6 @@ function BoardModal({ title, onClose, children }: { title: string; onClose(): vo
         <span class="drag-grip" title={RESIZE_TITLE} aria-hidden="true" />
       </div>
     </div>
-  );
-}
-
-export function BuildMenu({ options, onChoose, onClose }: { options: BuildOption[]; onChoose(c: CardChoice): void; onClose(): void }) {
-  return (
-    <BoardModal title="Build a Wall" onClose={onClose}>
-      {options.length
-        ? <div class="board-modal__list">{options.map(o => <Button key={o.label} onClick={() => onChoose(o.choice)}>{o.label}</Button>)}</div>
-        : <p>You can't build right now. You need a Wall Section and a Man Hour, or 3 Wall Sections, and an action left.</p>}
-      <Button color="plain" onClick={onClose}>Back</Button>
-    </BoardModal>
   );
 }
 

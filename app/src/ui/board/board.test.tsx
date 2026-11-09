@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 // The board driven by a real GameController with a fixed seed: the hand, the card popup's buttons,
-// the Build Wall menu, building by picking 2 walls, and when input is disabled.
+// building by picking 2 walls, and when input is disabled.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -140,17 +140,6 @@ describe('Board', () => {
     expect($('.zoom__note')?.textContent).toBe('Not enough actions left.');
   });
 
-  it('Build Wall lists every kind and payment, plus build cards', async () => {
-    await setup([29, 30, 31, 14, 3]);
-    await click(sideButton('Build Wall'));
-    expect(texts('.board-modal__list button')).toEqual([
-      'Wall Section 1 using your Man Hour', 'Wall Section 1 by discarding 2 other walls',
-      'Wall Section 2 using your Man Hour', 'Wall Section 2 by discarding 2 other walls',
-      'Wall Section 3 using your Man Hour', 'Wall Section 3 by discarding 2 other walls',
-      'Play Assassin',
-    ]);
-  });
-
   it('building by picking 2 walls discards exactly those two', async () => {
     const c = await setup([29, 30, 31, 32]);
     await click($('.hand__card[data-slot="0"]'));
@@ -170,7 +159,6 @@ describe('Board', () => {
     c.api!.state.turn = 1;   // the bot's turn
     await act(() => { c.refresh(); });
     expect(sideButton('End Turn').disabled).toBe(true);
-    expect(sideButton('Build Wall').disabled).toBe(true);
     expect(sideButton('End Game').disabled).toBe(false);
     expect($('.hand__hidden')).toBeNull();
     expect(root!.querySelectorAll('.hand button[data-slot]').length).toBe(2);
@@ -191,6 +179,14 @@ describe('board-state', () => {
   const snap = (over: Partial<GameSnapshot>): GameSnapshot => ({
     view: { turn: 0, over: null, seats: [{ bot: null }, { bot: 'easy' }] } as unknown as GameSnapshot['view'],
     viewer: 0, events: [], prompt: null, passTo: null, ...over,
+  });
+
+  it('End Turn is on its own at the top; End Game is last at the bottom and looks different', async () => {
+    await setup([29]);
+    expect(texts('.side--top button')).toEqual(['End Turn']);
+    expect(texts('.side--bottom button')).toEqual(['Settings', 'Tutorial', 'Instructions', 'End Game']);
+    expect(sideButton('End Game').classList.contains('side__end-game')).toBe(true);
+    expect(sideButton('Settings').classList.contains('side__end-game')).toBe(false);
   });
 
   it('End Turn turns green once there are no actions left', async () => {

@@ -37,6 +37,61 @@ function make(opts: { server?: Record<string, unknown>; signedIn?: boolean; chec
 }
 
 describe('app services', () => {
+  describe('a sign-in that ran out', () => {
+    const SOON = Math.floor(Date.now() / 1000) + 3000;
+    const useUser = (s: ReturnType<typeof make>['s'], exp: number) => {
+      s.store.set('user', JSON.stringify({ name: 'Ann', email: 'ann@example.com', sub: '1', token: 'tok', exp }));
+      s.refresh();
+    };
+    const newToken = (sub: string) => 'h.' + btoa(JSON.stringify({ given_name: 'Ann', sub, exp: SOON })).replace(/=+$/, '') + '.s';
+
+    it('is told apart from a working one, and keeps the player and their Gold', () => {
+      const { s } = make();
+      useUser(s, SOON);
+      expect(s.player.get()).toMatchObject({ signedIn: true, expired: false });
+      useUser(s, 1000);
+      expect(s.player.get()).toMatchObject({ signedIn: true, verified: true, expired: true, name: 'Ann' });
+    });
+
+    it('the server refusing the token counts, even before its date', async () => {
+      const { s } = make({ server: { '/name': { error: 'login' } } });
+      await s.init();
+      useUser(s, SOON);
+      expect(await s.account.claimName(s.server(), 'Sam')).toBe('login');
+      expect(s.player.get().expired).toBe(true);
+    });
+
+    it('never reaches PayPal', async () => {
+      const checkout = vi.fn() as unknown as Checkout;
+      const { s } = make({ checkout });
+      useUser(s, 1000);
+      expect(await s.buyGold('lifetime')).toBe('server-login');
+      expect(await s.donate(5)).toBe('server-login');
+      expect(checkout).not.toHaveBeenCalled();
+    });
+
+    it("signing back in sends this device's saves before loading the server's", async () => {
+      const { s, calls } = make({ server: { '/save': { ok: true }, '/load': { packs: [] }, '/account': { codes: [] } } });
+      await s.init();
+      useUser(s, 1000);
+      const before = calls.length;
+      vi.spyOn(s.google, 'signIn').mockImplementation(async () => s.google.acceptCredential(newToken('1')));
+      await s.signIn();
+      expect(calls.slice(before).map(c => c.url).filter(u => /save|load/.test(u)).map(u => u.split('path=')[1])).toEqual(['save', 'load']);
+      expect(s.player.get().expired).toBe(false);
+    });
+
+    it("a different Google account doesn't get this device's saves", async () => {
+      const { s, calls } = make({ server: { '/save': { ok: true }, '/load': { packs: [] }, '/account': { codes: [] } } });
+      await s.init();
+      useUser(s, 1000);
+      const before = calls.length;
+      vi.spyOn(s.google, 'signIn').mockImplementation(async () => s.google.acceptCredential(newToken('2')));
+      await s.signIn();
+      expect(calls.slice(before).some(c => c.url.includes('save'))).toBe(false);
+    });
+  });
+
   it('loads game-settings.json and works signed out (guest play)', async () => {
     const { s } = make();
     await s.init();

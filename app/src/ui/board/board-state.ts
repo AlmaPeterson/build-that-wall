@@ -1,11 +1,11 @@
 // What the board shows and allows, worked out from a game snapshot. Pure functions, so they're easy to test.
 // Rules: docs/game-rules.md sections 4-6. Layout follows the old game's Walls Display (Walls Display.txt).
-import { cardById, isWall, type CardId } from '../../data/cards';
+import { isWall, type CardId } from '../../data/cards';
 import { actionCost, milesFor, type GameApi, type GameState, type Seat } from '../../game';
 import type { GameSnapshot } from '../controller';
 
 export const MAN_HOUR = 14, SAVINGS = 19, SELF_DEFENSE = 20, TRUMP_TRAIN = 25;
-/** Cards the Build Wall menu offers besides normal builds (Assassin, Legal Immigration, Voting Machine, Toilet Paper). */
+/** Cards that build walls and can be dropped on your walls (Assassin, Legal Immigration, Voting Machine, Toilet Paper). */
 export const BUILD_CARDS: readonly CardId[] = [3, 13, 28, 23];
 
 /** True when the viewing player may act now: their turn, no question waiting, no pass screen or turn banner, game running. */
@@ -111,36 +111,6 @@ export function cardActions(api: GameApi | null, snap: GameSnapshot, slot: numbe
   if (!ok.ok) return { buttons: [], note: ok.reason };
   const cost = actionCost(card);
   return { buttons: [{ label: `Play (${cost} ${cost === 1 ? 'action' : 'actions'})`, choice: { kind: 'play', slot } }], note: '' };
-}
-
-/** One line of the Build Wall menu (Cards › define build options). */
-export interface BuildOption { label: string; choice: CardChoice }
-
-/** Every way to build now: per distinct wall kind in hand (max 8), with a Man Hour and/or by discarding 2 walls, then build cards. */
-export function buildMenu(api: GameApi | null, snap: GameSnapshot, busy = false): BuildOption[] {
-  const v = snap.view, seat = snap.viewer;
-  if (!api || !v || !canInteract(snap, busy)) return [];
-  const hand = v.seats[seat]!.hand;
-  const builds = api.buildOptions(seat);
-  const out: BuildOption[] = [];
-  const kinds = new Set<CardId>(), done = new Set<string>();
-  for (const b of builds) {
-    const kind = hand[b.slot]!, how = 'manHour' in b.pay ? 'mh' : 'walls';
-    if (done.has(kind + how) || (!kinds.has(kind) && kinds.size >= 8)) continue;   // one line per kind and payment, 8 kinds at most
-    kinds.add(kind);
-    done.add(kind + how);
-    const name = cardById(kind).name;
-    if ('manHour' in b.pay) out.push({ label: `${name} using your Man Hour`, choice: { kind: 'build', slot: b.slot, manHour: b.pay.manHour } });
-    else out.push({ label: `${name} by discarding 2 other walls`, choice: { kind: 'pickWalls', slot: b.slot } });
-  }
-  const played = new Set<CardId>();
-  hand.forEach((card, slot) => {
-    if (BUILD_CARDS.includes(card) && !played.has(card) && api.canPlay(seat, slot).ok) {
-      played.add(card);
-      out.push({ label: `Play ${cardById(card).name}`, choice: { kind: 'play', slot } });
-    }
-  });
-  return out;
 }
 
 /** Where a card from the hand can be dropped: the discard pile plays it, your walls build it. */

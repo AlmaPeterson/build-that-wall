@@ -4,7 +4,7 @@ import { AccountService, sha256Hex } from './account';
 import { ServerApi, isError } from './api';
 import { GoogleSignIn, decodeIdToken, shortName } from './google';
 import { SERVER, fakeApi, makeStore, signIn } from './test-fakes';
-import { accountId, getUser, isSignedIn, maskedEmail, myName } from './user';
+import { accountId, getUser, isSignedIn, maskedEmail, myName, signInExpired } from './user';
 
 describe('ServerApi', () => {
   it('only talks to https servers', async () => {
@@ -77,6 +77,14 @@ describe('AccountService', () => {
     expect(await setup({}, false).acct.load(SERVER)).toBe('local');
     expect(await setup({}).acct.load(SERVER)).toBe('noserver');
     expect(await setup({ '/load': { error: 'login' } }).acct.load(SERVER)).toBe('login');
+  });
+
+  it("an expired sign-in doesn't ask the server to change the name", async () => {
+    const { store, calls, acct } = setup({ '/name': { ok: true } });
+    signIn(store, { exp: 1000 });
+    expect(signInExpired(store)).toBe(true);
+    expect(await acct.claimName(SERVER, 'Sam')).toBe('login');
+    expect(calls).toHaveLength(0);
   });
 
   it('save sends only the account keys', async () => {
