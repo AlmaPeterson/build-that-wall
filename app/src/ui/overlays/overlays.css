@@ -134,14 +134,18 @@
 
 /* Tutorial tip */
 .btw-tip {
-  position: fixed; right: 12px; bottom: 12px; z-index: 800;
-  width: min(80vw, 320px); background: #fffbe6; border: 3px solid var(--gold); border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); font-size: 0.85em; text-align: left;
+  /* In the empty part of the header, right of the logo: clear of the buttons and the hand. Sized like the stage (--u) */
+  --u: calc(min(100vw, 100vh * 16 / 9) / 640);
+  --u: calc(min(100vw, 100dvh * 16 / 9) / 640);
+  position: fixed; top: calc(var(--u) * 2); right: calc((100vw - var(--u) * 640) / 2 + var(--u) * 4); z-index: 800;
+  width: calc(var(--u) * 236); max-height: calc(var(--u) * 65); overflow-y: auto;
+  background: #fffbe6; border: 2px solid var(--gold); border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); font-size: calc(var(--u) * 7.5 * var(--text-popups)); text-align: left;
 }
-.btw-tip-head { background: var(--gold); color: #2a1f00; font: 900 0.9em var(--font); letter-spacing: 2px; padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; }
+.btw-tip-head { background: var(--gold); color: #2a1f00; font: 900 0.9em var(--font); letter-spacing: 2px; padding: 1px 8px; display: flex; justify-content: space-between; align-items: center; }
 .btw-tip-x { background: none; border: none; font-size: 1.3em; line-height: 1; cursor: pointer; color: #2a1f00; }
-.btw-tip-best { padding: 6px 10px 0; }
-.btw-tip ul { margin: 4px 0 8px; padding-left: 26px; }
+.btw-tip-best { padding: 3px 8px 0; }
+.btw-tip ul { margin: 2px 0 4px; padding-left: 20px; }
 
 /* Phones: the card that caused the question goes above it, smaller */
 @media (max-width: 520px) {

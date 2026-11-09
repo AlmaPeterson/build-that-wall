@@ -1,7 +1,7 @@
 import type { Entitlements } from '../gold/entitlements';
 import { ACCOUNT_KEYS, type SaveStore } from '../storage';
 import { isError, isServerUrl, type Entitlements as ServerEntitlements, type ServerApi } from './api';
-import { accountId, getUser, setUser, userEmail, verifiedUser } from './user';
+import { accountId, getUser, setUser, signInExpired, userEmail, verifiedUser } from './user';
 
 // The server's OWNER_EMAIL setting controls server administration.  Do not grant browser-side
 // privileges from an email hash: this used to make one ordinary player behave differently online.
@@ -30,12 +30,12 @@ export class AccountService {
     this.ent.applyServer(r); return 'ok';
   }
 
-  // Fire and forget, like before
-  save(server: string): void {
+  // Callers mostly don't wait for this; signing back in does, so the server has the newest saves before /load
+  async save(server: string): Promise<void> {
     if (!verifiedUser(this.store)) return;
     const data: Record<string, string> = {};
     for (const k of ACCOUNT_KEYS) data[k] = this.store.get(k);
-    void this.api.call(server, '/save', { data });
+    await this.api.call(server, '/save', { data });
   }
 
   // Deletes the server account (if any) and this device's saves for it
@@ -62,6 +62,7 @@ export class AccountService {
   // Player names are unique on the server
   async claimName(server: string, name: string): Promise<string> {
     if (!this.useServer(server)) return 'local';
+    if (signInExpired(this.store)) return 'login';
     const r = await this.api.call(server, '/name', { name: String(name) });
     if (!r) return 'noserver'; return isError(r) ? r.error : 'ok';
   }

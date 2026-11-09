@@ -23,20 +23,25 @@ export const isError = (r: unknown): r is ApiError => !!r && typeof r === 'objec
 export const isServerUrl = (url: string) => /^https:/.test(String(url));
 
 export class ServerApi {
-  constructor(private readonly fetchFn: FetchLike, private readonly token: () => string) {}
+  constructor(private readonly fetchFn: FetchLike, private readonly token: () => string,
+    /** The server refused this sign-in token. */
+    private readonly onRefused?: (token: string) => void) {}
 
   // POST {id_token, ...body}; body null = GET. Returns null when there's no server or it can't be reached.
   async call<T = unknown>(base: string, path: string, body: Record<string, unknown> | null): Promise<T | ApiError | null> {
     base = String(base || '').replace(/\/+$/, '');
     if (!/^https:\/\//.test(base)) return null;
+    const token = this.token();
     try {
       // ?path=load, not /load: Google asks visitors to sign in for anything after /exec.
       // Plain text keeps it a "simple" request, so a Google Apps Script server can answer it
       const r = await this.fetchFn(base + '?path=' + encodeURIComponent(path.replace(/^\/+/, '')), body === null ? {} : {
         method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ id_token: this.token() }, body)),
+        body: JSON.stringify(Object.assign({ id_token: token }, body)),
       });
-      return await r.json() as T | ApiError;
+      const reply = await r.json() as T | ApiError;
+      if (token && isError(reply) && reply.error === 'login') this.onRefused?.(token);
+      return reply;
     } catch { return null; }
   }
 }

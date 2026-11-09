@@ -9,7 +9,12 @@ import { services } from '../services';
 export async function saveMyName(typed: string): Promise<string> {
   const clean = cleanName(typed);
   if (!clean) return 'empty';
-  const r = services.player.get().verified ? await services.account.claimName(services.server(), clean) : 'local';
+  const claim = async () => services.player.get().verified ? services.account.claimName(services.server(), clean) : 'local';
+  let r = await claim();
+  if (r === 'login') {                                     // the sign-in ran out: sign in again, then carry on
+    await services.signIn();
+    if (!services.player.get().expired) r = await claim();
+  }
   if (r === 'ok' || r === 'local' || r === 'noserver') {
     services.store.set('name', clean);
     // Player 1's name in the game settings is the same player, not a competing source of truth

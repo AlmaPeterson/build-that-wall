@@ -179,10 +179,7 @@ Ways to start a build (all end in `do build`):
 - Click a Wall Section in hand → **Use Man Hour** (needs a Man Hour in hand) or **Pick Walls**
   (pick 2 other wall cards; needs ≥ 2 other wall cards) (`Alerts and Buttons › Play Popup`).
 - Click a Man Hour → **Use On Wall**: pick 1 Wall Section to build with it.
-- **Build Wall** button → menu of every option for the hand (`Cards › Build Menu`,
-  `define build options`): for each distinct wall kind in hand (max 8 entries) "using your Man Hour"
-  if a Man Hour is held, and "by discarding 2 other walls" if the hand holds ≥ 3 wall cards; plus
-  Assassin / Legal Immigration / Voting Machine / Toilet Paper if held, affordable and playable.
+- Drag a Wall Section or Man Hour from the hand onto your walls: the same choices as clicking it.
 
 `do build` checks the card is still in that slot, the card is a Wall Section, and
 `Actions Left > 0` (unless the build is free). Payment cards go to the discard pile; the built

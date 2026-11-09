@@ -11,9 +11,9 @@ import type { GameController } from '../controller';
 import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
 import {
-  buildMenu, canInteract, displayName, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice,
+  canInteract, displayName, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice,
 } from './board-state';
-import { BuildMenu, ConfirmEnd } from './BoardModal';
+import { ConfirmEnd } from './BoardModal';
 import { ActionLog } from './ActionLog';
 import { CardPopup } from './CardPopup';
 import { cardImage } from '../assets';
@@ -43,7 +43,6 @@ export function Board({ controller }: { controller: GameController }) {
   const { snap, idle } = useStore(animator.state);
   const { tutorial } = useStore(settings);
   const [open, setOpen] = useState<number | null>(null);
-  const [menu, setMenu] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
   const [busy, setBusy] = useState(false);
@@ -60,7 +59,7 @@ export function Board({ controller }: { controller: GameController }) {
 
   // Anything half-done is dropped when it's no longer the viewer's move (or the hand changed under it)
   useEffect(() => {
-    if (!live) { setPicking(null); setMenu(false); setOpen(null); setLift(null); }
+    if (!live) { setPicking(null); setOpen(null); setLift(null); }
   }, [live]);
   useEffect(() => {
     if (open !== null && open >= hand.length) setOpen(null);
@@ -75,7 +74,7 @@ export function Board({ controller }: { controller: GameController }) {
 
   async function act(action: Action, sfx: string) {
     setBusy(true);
-    setOpen(null); setMenu(false); setPicking(null);
+    setOpen(null); setPicking(null);
     playSfx(sfx);
     try {
       const r = await controller.act(action);
@@ -86,7 +85,7 @@ export function Board({ controller }: { controller: GameController }) {
   }
 
   function choose(c: CardChoice) {
-    setOpen(null); setMenu(false);
+    setOpen(null);
     if (c.kind === 'build') void act({ type: 'build', slot: c.slot, pay: { manHour: c.manHour } }, 'build');
     else if (c.kind === 'play') void act({ type: 'play', slot: c.slot }, 'card');
     else if (c.kind === 'pickWalls') {
@@ -171,14 +170,15 @@ export function Board({ controller }: { controller: GameController }) {
       )}
       {!picking && message && <div class="at pickbar" role="alert">{message}</div>}
 
-      <div class="at side">
-        <Button onClick={() => setConfirm(true)}>End Game</Button>
+      <div class="at side side--top">
         <Button class={live && view.actionsLeft < 1 ? 'btw-ready' : ''} disabled={!live} onClick={() => void act({ type: 'endTurn' }, 'click')}>End Turn</Button>
-        <Button disabled={!live} onClick={() => { playSfx('click'); setMenu(true); }}>Build Wall</Button>
+      </div>
+      <div class="at side side--bottom">
         <Button onClick={() => screen.set('settings')}>Settings</Button>
         <Button color={tutorial ? 'gold' : 'red'} aria-pressed={tutorial}
           onClick={() => settings.update(s => ({ ...s, tutorial: !s.tutorial }))}>Tutorial</Button>
         <Button onClick={() => screen.set('instructions')}>Instructions</Button>
+        <Button color="plain" class="side__end-game" onClick={() => setConfirm(true)}>End Game</Button>
       </div>
 
 
@@ -186,7 +186,6 @@ export function Board({ controller }: { controller: GameController }) {
         <CardPopup card={hand[open]!} actions={cardActions(api, snap, open, busy)} onChoose={choose} onClose={() => setOpen(null)}
           onDoubleClick={() => { const id = hand[open]; setOpen(null); showCard(id); }} />
       )}
-      {menu && <BuildMenu options={buildMenu(api, snap, busy)} onChoose={choose} onClose={() => setMenu(false)} />}
       {confirm && <ConfirmEnd onYes={endGame} onNo={() => setConfirm(false)} />}
       {lift && DROP_ZONES.map(z => {
         const r = dropAction(api, snap, lift.slot, z.zone, busy);

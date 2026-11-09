@@ -171,7 +171,10 @@
 
 /* Buttons on the right */
 /* Above the card-flight layer (z 40), so the buttons work while cards are moving instead of only skipping the animation */
-.side { z-index: 42; left: calc(var(--u) * 499); top: calc(var(--u) * 72); width: calc(var(--u) * 137); display: flex; flex-direction: column; gap: calc(var(--u) * 5); }
+.side { z-index: 42; left: calc(var(--u) * 499); width: calc(var(--u) * 137); display: flex; flex-direction: column; gap: calc(var(--u) * 5); }
+.side--top { top: calc(var(--u) * 72); }
+/* Grows upward with large text; stops above the footer */
+.side--bottom { bottom: calc(var(--u) * 29); }
 /* ...except while the flight layer holds a card shown big (a drawn Play Immediately card): that waits for Continue and must be on top */
 .board:has(.flights .zoom) .side { z-index: 39; }
 .side .btw-button {
@@ -179,6 +182,7 @@
   min-height: calc(var(--u) * 26); padding: calc(var(--u) * 2) calc(var(--u) * 4); line-height: 1.1; border-width: calc(var(--u) * 2.5); border-radius: calc(var(--u) * 8);
   font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: calc(var(--u) * 13 * var(--tb));
 }
+.side .side__end-game { margin-top: calc(var(--u) * 5); background: #fff; border-color: var(--red-dark); color: var(--red-dark); }
 
 /* The zoomed card */
 .zoom {
@@ -220,7 +224,7 @@
   font-family: Arial, Helvetica, sans-serif; font-weight: bold; font-size: calc(var(--u) * 12 * var(--tb));
 }
 
-/* Build menu and confirmations, inside the stage */
+/* Confirmations, inside the stage */
 .board-modal { position: absolute; inset: 0; z-index: 60; background: rgba(0, 0, 0, .6); display: flex; align-items: center; justify-content: center; }
 .board-modal__box {
   background: #fff; border-radius: calc(var(--u) * 10); padding: calc(var(--u) * 12) calc(var(--u) * 16);
@@ -228,8 +232,6 @@
   font-size: calc(var(--u) * 11 * var(--tb));
 }
 .board-modal__box h2 { margin: 0 0 calc(var(--u) * 8); font: 900 calc(var(--u) * 15) var(--font); color: var(--red); }
-.board-modal__list { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 6); margin-bottom: calc(var(--u) * 10); }
-.board-modal__list .btw-button { width: 100%; min-height: calc(var(--u) * 29); padding: calc(var(--u) * 3) calc(var(--u) * 6) !important; font-size: calc(var(--u) * 10 * var(--tb)) !important; }
 .board-modal__row { display: flex; gap: calc(var(--u) * 10); justify-content: center; }
 
 /* The full game log */

@@ -3,7 +3,7 @@
 // saves that follow you to other devices, and putting your scores on the world leaderboard.
 import { createBotMemory } from '../game/bots';
 import type { BotMemory, GameState } from '../game';
-import { AccountService, GoogleSignIn, ServerApi, getUser, isSignedIn, maskedEmail, myName, verifiedUser, type FetchLike } from '../services/account';
+import { AccountService, GoogleSignIn, ServerApi, getUser, isSignedIn, markSignInExpired, maskedEmail, myName, signInExpired, verifiedUser, type FetchLike } from '../services/account';
 import { DEFAULT_SETTINGS, loadSettings, type GameSettings as Config } from '../services/config';
 import { Entitlements, GoldService, TrialWatcher } from '../services/gold';
 import { Leaderboard, mqttWorldBoard } from '../services/leaderboard';
@@ -21,6 +21,8 @@ export interface PlayerInfo {
   signedIn: boolean;
   /** Signed in with a token the game server can check (needed for server saves and purchases). */
   verified: boolean;
+  /** Known on this device, but the sign-in ran out: the game server refuses it until they sign in again. */
+  expired: boolean;
   name: string;
   maskedEmail: string;
   gold: boolean;
@@ -45,7 +47,7 @@ export interface ServiceDeps {
 export function createServices(deps: ServiceDeps) {
   const store = new SaveStore(deps.storage);
   const config: Store<Config> = createStore<Config>({ ...DEFAULT_SETTINGS });
-  const api = new ServerApi(deps.fetch, () => verifiedUser(store)?.token ?? '');
+  const api = new ServerApi(deps.fetch, () => verifiedUser(store)?.token ?? '', token => { if (markSignInExpired(store, token)) refresh(); });
   const ent = new Entitlements(store);
   const gold = new GoldService(store, ent, api);
   const account = new AccountService(store, ent, api);
@@ -60,6 +62,7 @@ export function createServices(deps: ServiceDeps) {
   const info = (): PlayerInfo => ({
     signedIn: isSignedIn(store),
     verified: !!verifiedUser(store),
+    expired: signInExpired(store),
     name: myName(store),
     maskedEmail: maskedEmail(store),
     gold: ent.goldActive(),
@@ -68,7 +71,14 @@ export function createServices(deps: ServiceDeps) {
     owner: ent.isOwner,
   });
   const player: Store<PlayerInfo> = createStore(info());
-  const refresh = () => player.set(info());
+  let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+  const refresh = () => {
+    player.set(info());
+    // Screens that are open when the sign-in runs out find out then, not at the next refresh
+    clearTimeout(expiryTimer);
+    const left = (verifiedUser(store)?.exp ?? 0) * 1000 - Date.now();
+    if (left > 0 && left < 2 ** 31) expiryTimer = setTimeout(refresh, left + 1000);
+  };
   const server = () => config.get().serverUrl;
 
   let started: Promise<void> | null = null;
@@ -86,7 +96,7 @@ export function createServices(deps: ServiceDeps) {
       const r = await loadSettings(deps.fetch);
       config.set(r.settings);
       await gold.check(deps.location?.search ?? '');
-      if (verifiedUser(store)) {
+      if (verifiedUser(store) && !signInExpired(store)) {
         await account.load(server());
         await gold.sync(server());
       }
@@ -98,8 +108,11 @@ export function createServices(deps: ServiceDeps) {
   }
 
   async function signIn(): Promise<string> {
+    const renewing = signInExpired(store) ? getUser(store)?.sub : undefined;
     const name = await google.signIn(config.get().googleClientId);
     if (name && name !== 'nosetup') {
+      // Same player back: what they did while signed out of the server is newer than its copy, which /load brings down
+      if (renewing && renewing === getUser(store)?.sub) await account.save(server());
       await account.load(server());
       await gold.sync(server());
       await account.ownerCheck();
@@ -124,6 +137,7 @@ export function createServices(deps: ServiceDeps) {
 
   /** Buy Gold. Month/year renew when the owner set up a PayPal plan for them. */
   async function buyGold(item: GoldItem): Promise<BuyResult> {
+    if (signInExpired(store)) return 'server-login';         // before PayPal: the server couldn't record the payment
     const c = config.get();
     const r = item === 'lifetime' ? await purchases.payItem('gold', 'lifetime', price(item))
       : await purchases.paySub(item, item === 'year' ? c.paypalPlanYear : c.paypalPlanMonth, price(item));
@@ -132,6 +146,7 @@ export function createServices(deps: ServiceDeps) {
   }
 
   async function donate(amount: number): Promise<BuyResult> {
+    if (signInExpired(store)) return 'server-login';
     const r = await purchases.payItem('donate', 'donation', price('donate', amount));
     refresh();
     return r;

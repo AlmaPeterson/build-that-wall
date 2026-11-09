@@ -23,6 +23,21 @@ export function verifiedUser(store: SaveStore): GoogleUser | null {
   return u && u.token ? u : null;
 }
 
+// Google's sign-in token only lasts about an hour. After that the player is still known on this device
+// (their name and Gold stay), but the game server refuses it until they sign in again.
+export function signInExpired(store: SaveStore): boolean {
+  const u = verifiedUser(store);
+  return !!u?.exp && u.exp * 1000 <= Date.now();
+}
+
+// The server refused this token, so it counts as expired whatever its date says. False if it's no longer the current one.
+export function markSignInExpired(store: SaveStore, token: string): boolean {
+  const u = verifiedUser(store);
+  if (!u || u.token !== token) return false;
+  setUser(store, { ...u, exp: 1 });
+  return true;
+}
+
 // Signed in either way: Google token, or the older Google pop-up that only gives a name
 export function isSignedIn(store: SaveStore): boolean {
   return !!verifiedUser(store) || !!store.get('gname');

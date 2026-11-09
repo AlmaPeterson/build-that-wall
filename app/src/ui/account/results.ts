@@ -31,6 +31,7 @@ export function trialMessage(r: string): Said {
     case 'ok': return { text: 'Your 7-day Gold free trial has started. Enjoy!', ok: true };
     case 'used': return { text: 'The free trial was already used on this account.', ok: false };
     case 'signin': return { text: 'Sign in first to start the free trial.', ok: false };
+    case 'login': return { text: SERVER_ERRORS.login!, ok: false };
     case 'noserver': return { text: "The game server didn't answer. Please try again later.", ok: false };
     default: return { text: 'The free trial could not start (' + r + ').', ok: false };
   }
@@ -50,6 +51,7 @@ export function nameMessage(r: string): Said {
     case 'ok': case 'local': return { text: 'Name saved.', ok: true };
     case 'taken': return { text: 'Someone already has that name. Try another.', ok: false };
     case 'empty': return { text: 'Type a name first.', ok: false };
+    case 'login': return { text: 'Your sign-in has expired. Sign in again to save your name.', ok: false };
     case 'noserver': return { text: "Saved here, but the game server didn't answer.", ok: false };
     default: return { text: 'The name could not be saved (' + r + ').', ok: false };
   }
