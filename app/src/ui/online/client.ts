@@ -17,6 +17,7 @@ export class OnlineClientController extends GameController {
   private actId = 0;
   private results = new Map<number, (r: ActionResult) => void>();
   private waitingFor: Waiting | null = null;
+  private turnOkDone: (() => void) | null = null;
 
   /** send: a message to the host. */
   constructor(private readonly send: (msg: ToHost) => void) {
@@ -38,7 +39,8 @@ export class OnlineClientController extends GameController {
     return new Promise(res => {
       this.results.set(id, res);
       this.send({ k: 'act', id, action });
-      setTimeout(() => { if (this.results.delete(id)) res({ ok: false, reason: 'The host did not answer.' }); }, ACT_TIMEOUT_MS);
+      // The turn moved on: it worked, and the host is only waiting for the next player to tap OK on their turn banner
+      setTimeout(() => { if (this.results.delete(id)) res(this.view?.turn === this.seatNo ? { ok: false, reason: 'The host did not answer.' } : { ok: true }); }, ACT_TIMEOUT_MS);
     });
   }
 
@@ -65,6 +67,8 @@ export class OnlineClientController extends GameController {
     if (msg.from === this.received.length) this.received = this.received.concat(msg.events);
     else if (msg.from === 0) this.received = msg.events.slice();
     else this.send({ k: 'resync' });            // missed some events: ask for the whole list again
+    // The host stopped waiting for OK (too long) and drew the cards: the banner has nothing left to wait for
+    if (this.turnOkDone && msg.events.some(e => e.type === 'draw' && e.seat === msg.seat)) this.turnOk();
     this.publishView();
   }
 
@@ -84,9 +88,21 @@ export class OnlineClientController extends GameController {
     });
   }
 
+  /** It's this player's turn: show the banner. Resolves when they tap OK. */
+  askTurnOk(): Promise<void> {
+    return new Promise(resolve => { this.turnOkDone = resolve; this.publishView(); });
+  }
+
+  override turnOk(): void {
+    const done = this.turnOkDone;
+    this.turnOkDone = null;
+    this.publishView();
+    done?.();
+  }
+
   get seat(): number { return this.seatNo; }
 
   private publishView(): void {
-    this.snapshot.set({ view: this.view, viewer: this.seatNo, events: this.received.slice(), prompt: this.pending[0] ?? null, passTo: null, waitingFor: this.waitingFor });
+    this.snapshot.set({ view: this.view, viewer: this.seatNo, events: this.received.slice(), prompt: this.pending[0] ?? null, passTo: null, turnBanner: this.turnOkDone ? this.seatNo : null, waitingFor: this.waitingFor });
   }
 }

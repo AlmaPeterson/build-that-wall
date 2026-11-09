@@ -25,7 +25,7 @@ export interface GameSnapshot {
   prompt: Prompt | null;
   /** The pass-the-device screen is up, waiting for this seat to tap "I'm ready". */
   passTo: Seat | null;
-  /** "Player 1's turn" is showing for a moment before that player's turn starts (one person playing). */
+  /** "Player 1's turn" is showing: that player's cards are drawn once they tap OK (turnOk). */
   turnBanner?: Seat | null;
   /** This seat's turn was skipped (Quarantine): the game waits until they tap OK (skipSeen). */
   skipped?: Seat | null;
@@ -38,7 +38,7 @@ export interface GameSnapshot {
 }
 
 /** Who the game is waiting on, and what for: only the kind of question and the card it's about (public). */
-export interface Waiting { seat: Seat; kind: Decision['kind']; card?: CardId; purpose?: string }
+export interface Waiting { seat: Seat; kind: Decision['kind'] | 'turnOk'; card?: CardId; purpose?: string }
 
 /** The public part of a question: never its options, which can show a hidden hand. */
 export function waitingOn(d: Decision): Waiting {
@@ -63,8 +63,8 @@ export interface ControllerOptions {
   /** Pause before each bot action (ms) so people can follow it; watch mode uses `watchDelay`. Default 0 (tests). */
   botDelay?: number;
   watchDelay?: number;
-  /** One person on this device: show "<name>'s turn" this long (ms) before each of their turns. Default 0 (tests). */
-  turnBanner?: number;
+  /** Show "<name>'s turn" at the start of each person's turn and draw their cards when they tap OK. Default off (tests). */
+  turnBanner?: boolean;
   /**
    * Called with the game so far whenever it can be carried on later (each turn's start, and a person's move
    * when nothing is half done), and with null once the game is over. Games on this device save it.
@@ -103,6 +103,7 @@ export class GameController {
   private stopped = false;
   private pace: (() => Promise<void>) | null = null;
   private bannerSeat: Seat | null = null;
+  private bannerResolve: (() => void) | null = null;
   private skipResolve: (() => void) | null = null;
   private skipSeat: Seat | null = null;
 
@@ -152,7 +153,8 @@ export class GameController {
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
-      beforeTurn: seat => { this.save('turn'); return this.passing() ? this.passTo(seat) : this.banner(seat); },
+      beforeTurn: async seat => { this.save('turn'); if (this.passing()) await this.passTo(seat); },
+      beforeDraw: seat => this.waitForTurnOk(seat),
       afterSkip: seat => this.waitForSkipOk(seat),
       beforeBotAction: async () => {
         // Let the board finish showing what just happened, then pause so people can follow
@@ -196,6 +198,8 @@ export class GameController {
     this.passResolve = null;
     this.skipResolve = null;
     this.skipSeat = null;
+    this.bannerResolve = null;
+    this.bannerSeat = null;
   }
 
   /** Bots wait for this before each action: the board's animator, so the game never runs ahead of what's shown. */
@@ -260,18 +264,26 @@ export class GameController {
     });
   }
 
-  /** "<name>'s turn" for a moment, once the board has shown everything before it. */
-  private async banner(seat: Seat): Promise<void> {
-    const ms = this.opts.turnBanner ?? 0, s = this.game?.state;
-    if (ms <= 0 || !s || s.seats[seat]?.bot || this.opts.localSeat !== undefined || this.opts.remoteDecider?.(seat)) return;
+  /** "<name>'s turn", once the board has shown everything before it. The overlays only show it when no popup is up. */
+  private async waitForTurnOk(seat: Seat): Promise<void> {
+    if (!this.opts.turnBanner || this.game?.state.seats[seat]?.bot) return;
+    if (this.opts.remoteDecider?.(seat)) { await this.remoteTurnOk(seat); return; }
     if (this.pace) await this.pace();
     if (this.stopped) return forever;
-    this.bannerSeat = seat;
-    this.publish();
-    await new Promise(r => setTimeout(r, ms));
-    this.bannerSeat = null;
+    await new Promise<void>(resolve => { this.bannerResolve = resolve; this.bannerSeat = seat; this.publish(); });
     if (this.stopped) return forever;
+  }
+
+  /** Online host: wait for a player on another device to tap OK (HostController). */
+  protected remoteTurnOk(_seat: Seat): Promise<void> { return Promise.resolve(); }
+
+  /** The player tapped OK on the turn banner: their cards are drawn now. */
+  turnOk(): void {
+    const r = this.bannerResolve;
+    this.bannerResolve = null;
+    this.bannerSeat = null;
     this.publish();
+    r?.();
   }
 
   /** The quarantined player tapped OK: the game goes on to the next turn. */

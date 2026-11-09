@@ -24,6 +24,18 @@ function session(relay: FakeRelay, name: string, shown: GameController[]) {
   });
 }
 
+/** A person taps OK on their turn banner. */
+const okTurn = async (c: GameController) => {
+  await until(() => c.snapshot.get().turnBanner != null);
+  c.turnOk();
+};
+/** The current player ends their turn and the next person (on `next`) taps OK. */
+const passTurn = async (from: GameController, next: GameController) => {
+  const ended = from.act({ type: 'endTurn' });
+  await okTurn(next);
+  return ended;
+};
+
 const sessions: OnlineSession[] = [];
 afterEach(() => { for (const s of sessions.splice(0)) s.leave(); });
 
@@ -39,6 +51,8 @@ async function twoPlayers() {
   await until(() => guest.state.get().players.length === 2);
   void host.start(7);
   await until(() => clientShown.length === 1 && !!clientShown[0]!.snapshot.get().view);
+  await okTurn(hostShown[0]!);
+  await until(() => hostShown[0]!.api!.resting);
   return { relay, host, guest, hostC: hostShown[0]!, clientC: clientShown[0]! };
 }
 
@@ -57,8 +71,8 @@ describe('online game', () => {
     relay.open[1]!.drop();                                  // the guest's connection (the host connected first)
     await new Promise(r => setTimeout(r, 50));
     expect(guest.state.get().phase).toBe('playing');
-    await hostC.act({ type: 'endTurn' });
-    await until(() => clientC.snapshot.get().view?.turn === 1);
+    await passTurn(hostC, clientC);
+    await until(() => clientC.snapshot.get().view!.seats[1]!.hand.length === hostC.state!.seats[1]!.hand.length);
     expect(clientC.snapshot.get().view!.seats[1]!.hand).toEqual(hostC.state!.seats[1]!.hand);
   });
 
@@ -82,8 +96,8 @@ describe('online game', () => {
 
   it("the player never receives the host's hand or the draw pile order", async () => {
     const { relay, hostC, clientC } = await twoPlayers();
-    await hostC.act({ type: 'endTurn' });           // some play happens: the guest's turn starts
-    await until(() => clientC.snapshot.get().view?.turn === 1);
+    await passTurn(hostC, clientC);                 // some play happens: the guest's turn starts
+    await until(() => clientC.snapshot.get().view!.seats[1]!.hand.length === hostC.state!.seats[1]!.hand.length);
     const snaps = relay.log.map(l => { try { return JSON.parse(l.payload); } catch { return null; } })
       .filter(m => m && m.t === 'x' && m.data?.k === 'snap').map(m => m.data as Extract<ToPlayer, { k: 'snap' }>);
     expect(snaps.length).toBeGreaterThan(0);
@@ -99,10 +113,10 @@ describe('online game', () => {
   it("the player's actions apply on the host", async () => {
     const { hostC, clientC } = await twoPlayers();
     expect((await clientC.act({ type: 'endTurn' })).ok).toBe(false);   // not their turn yet
-    await hostC.act({ type: 'endTurn' });
+    await passTurn(hostC, clientC);
     await until(() => clientC.snapshot.get().view?.turn === 1);
     expect((await hostC.act({ type: 'endTurn' })).ok).toBe(false);     // the host can't end the guest's turn
-    const r = await clientC.act({ type: 'endTurn' });
+    const r = await passTurn(clientC, hostC);
     expect(r.ok).toBe(true);
     expect(hostC.state!.turn).toBe(0);
   });
@@ -114,6 +128,28 @@ describe('online game', () => {
     await until(() => clientC.snapshot.get().prompt?.decision.kind === 'block');
     clientC.snapshot.get().prompt!.answer(true as never);
     expect(await asked).toBe(true);
+  });
+
+  it("the player's cards wait for their OK on their own device, and everyone else sees why", async () => {
+    const { hostC, clientC } = await twoPlayers();
+    const ended = hostC.act({ type: 'endTurn' });
+    await until(() => clientC.snapshot.get().turnBanner === 1);
+    expect(hostC.snapshot.get().waitingFor).toMatchObject({ seat: 1, kind: 'turnOk' });
+    expect(hostC.allEvents.filter(e => e.type === 'draw' && e.seat === 1)).toHaveLength(0);
+    clientC.turnOk();
+    expect((await ended).ok).toBe(true);
+    expect(hostC.allEvents.filter(e => e.type === 'draw' && e.seat === 1)).toHaveLength(1);
+    expect(hostC.snapshot.get().waitingFor).toBeNull();
+  });
+
+  it('a player who leaves while the game waits for their OK does not hold everyone up', async () => {
+    const { hostC, clientC, guest } = await twoPlayers();
+    const ended = hostC.act({ type: 'endTurn' });
+    await until(() => clientC.snapshot.get().turnBanner === 1);
+    guest.leave();
+    await ended;
+    expect(hostC.state!.seats[1]!.left).toBe(true);
+    expect(hostC.allEvents.filter(e => e.type === 'draw' && e.seat === 1)).toHaveLength(0);
   });
 
   it('a player who leaves mid-game gets no more turns', async () => {

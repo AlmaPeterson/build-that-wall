@@ -83,16 +83,28 @@ describe('GameController', () => {
     c.stop();
   });
 
-  it("one person playing: shows \"Player 1's turn\" for a moment, with the hand hidden, before the turn starts", async () => {
-    const c = new GameController({ turnBanner: 30 });
+  it("shows \"Player 1's turn\" and draws that player's cards only after OK", async () => {
+    const c = new GameController({ turnBanner: true });
     void c.start(settings(2, 1), 3);
     await new Promise(r => setTimeout(r, 0));
     const during = c.snapshot.get();
     expect(during.turnBanner).toBe(0);
-    expect(during.events.some(e => e.type === 'turnStart')).toBe(false);   // the turn hasn't started yet
-    await new Promise(r => setTimeout(r, 50));
+    expect(during.events.some(e => e.type === 'turnStart' && e.seat === 0)).toBe(true);
+    expect(during.events.some(e => e.type === 'draw' && e.seat === 0)).toBe(false);
+    await new Promise(r => setTimeout(r, 30));
+    expect(c.snapshot.get().turnBanner).toBe(0);                            // it waits, however long it takes
+    c.turnOk();
+    await new Promise(r => setTimeout(r, 0));
     expect(c.snapshot.get().turnBanner).toBeNull();
-    expect(c.snapshot.get().events.some(e => e.type === 'turnStart' && e.seat === 0)).toBe(true);
+    expect(c.snapshot.get().events.some(e => e.type === 'draw' && e.seat === 0)).toBe(true);
+    c.stop();
+  });
+
+  it('a bot draws without waiting for anyone', async () => {
+    const c = new GameController({ turnBanner: true });
+    void c.start({ ...settings(2, 2), firstSeat: 0 }, 3);
+    await new Promise(r => setTimeout(r, 0));
+    expect(c.snapshot.get().turnBanner).toBeNull();
     c.stop();
   });
 

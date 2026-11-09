@@ -193,6 +193,18 @@ describe('board-state', () => {
     viewer: 0, events: [], prompt: null, passTo: null, ...over,
   });
 
+  it('End Turn turns green once there are no actions left', async () => {
+    await setup([29], 1);
+    expect(sideButton('End Turn').classList.contains('btw-ready')).toBe(false);
+    render(null, root!);
+    await setup([29], 0);
+    expect(sideButton('End Turn').classList.contains('btw-ready')).toBe(true);
+  });
+
+  it('the turn banner keeps the board locked until OK', () => {
+    expect(canInteract(snap({ turnBanner: 0 }))).toBe(false);
+  });
+
   it('canInteract: only on your turn, with nothing waiting', () => {
     expect(canInteract(snap({}))).toBe(true);
     expect(canInteract(snap({}), true)).toBe(false);

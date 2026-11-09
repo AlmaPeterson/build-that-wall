@@ -86,6 +86,15 @@ export function Overlays({ controller }: { controller: GameController }) {
     }
   }, [tutorial, tipHidden, events.length, prompt, passTo, viewer, controller]);
 
+  // Pass'n'Play: the pass screen was this player's OK, so their cards only wait for popups to be closed.
+  // On the next tick, so a popup that this same update brings up gets its turn first.
+  const passedOk = snap.turnBanner != null && !!snap.sharedDevice && !view?.over && passTo === null && !prompt && !notices.length && !recap && !adThen;
+  useEffect(() => {
+    if (!passedOk) return;
+    const t = setTimeout(() => controller.turnOk(), 0);
+    return () => clearTimeout(t);
+  }, [passedOk, controller]);
+
   if (!view) return null;
 
   const playAgain = () => { const s = controller.state?.settings; if (s) startLocalGame(s); };
@@ -117,12 +126,13 @@ export function Overlays({ controller }: { controller: GameController }) {
     const skipped = snap.skipped != null;
     const lines = skipped ? [...recap.lines, { text: "You're in Quarantine: you drew your cards but skip the rest of this turn." }] : recap.lines;
     modal = <Recap lines={lines} myTurn={recap.myTurn && !skipped}
-      onClose={() => { setRecap(null); if (skipped) controller.skipSeen(); }} />;
+      onClose={() => { setRecap(null); if (skipped) controller.skipSeen(); else if (recap.myTurn && snap.turnBanner === viewer) controller.turnOk(); }} />;
   } else if (snap.skipped != null && !view.over) {
     modal = <BigNotice head="QUARANTINE" title="TURN SKIPPED" sub={seatName(view, snap.skipped) + " is in Quarantine: they drew their cards but skip the rest of this turn."}
       onClose={() => controller.skipSeen()} />;
-  } else if (snap.turnBanner != null && !view.over) {
-    modal = <TurnBanner name={seatName(view, snap.turnBanner)} />;
+  } else if (snap.turnBanner != null && !view.over && !snap.sharedDevice) {
+    // Last in this chain, so it (and the player's cards) waits for every popup above to be closed
+    modal = <TurnBanner name={seatName(view, snap.turnBanner)} onOk={() => controller.turnOk()} />;
   }
 
   return (

@@ -19,6 +19,8 @@ export interface GameOptions {
   emit?: Emit;
   /** Called before a turn starts, e.g. to show the pass-the-device screen in Pass'n'Play. */
   beforeTurn?(seat: Seat): Promise<void>;
+  /** Called after a turn has started, just before that seat draws: a person's cards wait until they tap OK. */
+  beforeDraw?(seat: Seat): Promise<void>;
   /** Called before each bot action, e.g. to pace bots so people can follow what they do. */
   beforeBotAction?(seat: Seat): Promise<void>;
   /** A human's turn was skipped (Quarantine): the game waits for this, e.g. until they tap OK. */
@@ -201,6 +203,8 @@ export class Game implements GameApi {
       s.actionsLeft = 1;
       this.emit({ type: 'limited', seat, card: c, text: this.name(seat) + ' has only 1 action (' + cardName(c) + ').' });
     }
+    if (this.opts.beforeDraw) await this.opts.beforeDraw(seat);
+    if (s.over || p.left) return false;                     // online: they left while the game waited for them
     // Draw, counting each time the draw pile runs out
     const drawn: CardId[] = [];
     for (let i = 0; i < s.settings.cardsPerTurn; i++) {

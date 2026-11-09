@@ -125,8 +125,8 @@ function Shell(props: {
 
 const Choices = ({ children }: { children: ComponentChildren }) => <div class="btw-ov-choices">{children}</div>;
 
-function Choice({ plain, onClick, children }: { plain?: boolean; onClick: () => void; children: ComponentChildren }) {
-  return <button type="button" class={'btw-ov-btn' + (plain ? ' btw-ov-btn--plain' : '')} onClick={onClick}>{children}</button>;
+function Choice({ plain, ready, onClick, children }: { plain?: boolean; ready?: boolean; onClick: () => void; children: ComponentChildren }) {
+  return <button type="button" class={'btw-ov-btn' + (plain ? ' btw-ov-btn--plain' : '') + (ready ? ' btw-ready' : '')} onClick={onClick}>{children}</button>;
 }
 
 function CardButton({ id, onClick, badge, picked }: { id: CardId; onClick: () => void; badge?: string; picked?: boolean }) {
@@ -200,14 +200,17 @@ function PickHandCards({ d, view, onDone }: { d: Extract<Decision, { kind: 'pick
     : p.length < d.max ? [...p, slot] : d.max === 1 ? [slot] : p));
   const sets = d.card === 23;
   const what = (n: number) => n + (sets ? (n === 1 ? ' set' : ' sets') : (n === 1 ? ' wall' : ' walls'));
-  const sub = (d.min === d.max ? 'Pick ' + what(d.max) : 'Pick up to ' + what(d.max)) + ', then build them all at once.'
-    + (sets && d.max > 1 ? ' Each set after the first costs 1 action.' : '');
+  // Fewer walls in hand than the card allows: picking them all is the most there is
+  const full = picks.length >= Math.min(d.max, d.options.length);
+  const sub = full ? "That's the most you can build. Press the green button to build."
+    : (d.min === d.max ? 'Pick ' + what(d.max) : 'Pick up to ' + what(d.max)) + ', then build them all at once.'
+      + (sets && d.max > 1 ? ' Each set after the first costs 1 action.' : '');
   return (
     <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose)} sub={sub}>
       <HandCards hand={handOf(d)} slots={d.options} onPick={toggle}
         picked={slot => picks.includes(slot)} badge={slot => (picks.includes(slot) ? '✓ ' + (picks.indexOf(slot) + 1) : undefined)} />
       <Choices>
-        <Choice onClick={() => { if (picks.length >= d.min) onDone(picks); }}>
+        <Choice ready={full} onClick={() => { if (picks.length >= d.min) onDone(picks); }}>
           {picks.length >= d.min ? 'Build ' + what(picks.length) : 'Pick ' + (d.min - picks.length) + ' more'}
         </Choice>
       </Choices>

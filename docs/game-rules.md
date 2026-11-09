@@ -137,11 +137,12 @@ top card is taken. If both are empty, nothing is drawn. After drawing, `fix pack
    goes to the discard pile.
 3. **1-action limit**: if `Limit Next[Turn] > 0`, that card (9 or 16) goes to the discard pile,
    `Limit Next[Turn] = 0`, and `Actions Left = 1`.
-4. **Draw** `Cards Per Turn` (3) cards (section 3). Track exhaustion: if the draw pile becomes
+4. Human: show the "it is your turn" banner and wait for OK, after any popups (the TypeScript
+   game; the old game drew first). In Pass'n'Play the pass screen's button counts as that OK. **Draw** `Cards Per Turn` (3) cards (section 3). Track exhaustion: if the draw pile becomes
    empty after a draw, `Exhaust Pending += 1`, `Exhaust Flag = 1`.
 5. `fix pack draws` for this seat.
 6. Human whose hand is on screen: show the turn recap ("what happened to you since your last
-   turn", `btwlinks.turnRecap`) and the "it is your turn" banner.
+   turn", `btwlinks.turnRecap`). In the TypeScript game this comes before the banner in step 4.
 7. `check exhaust`, then `win check` (section 10). Stop if the game is over.
 8. `resolve immediates` (section 7).
 9. **Quarantine**: if `Skip Next[Turn] = 1`: clear it; the target may block with Self-Defense

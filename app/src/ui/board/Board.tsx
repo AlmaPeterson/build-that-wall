@@ -173,7 +173,7 @@ export function Board({ controller }: { controller: GameController }) {
 
       <div class="at side">
         <Button onClick={() => setConfirm(true)}>End Game</Button>
-        <Button disabled={!live} onClick={() => void act({ type: 'endTurn' }, 'click')}>End Turn</Button>
+        <Button class={live && view.actionsLeft < 1 ? 'btw-ready' : ''} disabled={!live} onClick={() => void act({ type: 'endTurn' }, 'click')}>End Turn</Button>
         <Button disabled={!live} onClick={() => { playSfx('click'); setMenu(true); }}>Build Wall</Button>
         <Button onClick={() => screen.set('settings')}>Settings</Button>
         <Button color={tutorial ? 'gold' : 'red'} aria-pressed={tutorial}

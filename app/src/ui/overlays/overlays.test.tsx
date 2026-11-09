@@ -10,7 +10,7 @@ import { createGame, type Decision, type GameEvent, type GameState } from '../..
 import { GameController, type Prompt } from '../controller';
 import { Overlays } from './Overlays';
 import { PICK_SECONDS, PromptView } from './Prompt';
-import { PASS_GUARD_MS, PassScreen, Recap, WinScreen } from './Screens';
+import { PASS_GUARD_MS, PassScreen, Recap, TurnBanner, WinScreen } from './Screens';
 import { optionLabel, passWhy, personal, recapFor, wallToastFor } from './text';
 
 let root: HTMLElement;
@@ -163,6 +163,99 @@ describe('pass screen', () => {
     vi.setSystemTime(1_000_000 + PASS_GUARD_MS);
     click("I'm Ben - show me");
     expect(ready).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('turn banner', () => {
+  it('ignores the first moment, then OK starts the turn', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000_000);
+    const ok = vi.fn();
+    act(() => render(<TurnBanner name="Ann" onOk={ok} />, root));
+    expect(root.textContent).toContain("Ann's turn");
+    click('OK');
+    expect(ok).not.toHaveBeenCalled();
+    vi.setSystemTime(1_000_000 + PASS_GUARD_MS);
+    click('OK');
+    expect(ok).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits behind a popup: no OK and no cards until the popup is closed', async () => {
+    const c = new GameController({ turnBanner: true });
+    void c.start({ players: 2, bots: 1, difficulties: ['medium'], names: ['Ann'], ending: 1, endingTimes: 1, actionsPerTurn: 3, cardsPerTurn: 3, packCards: [], firstSeat: 0 }, 3);
+    await act(async () => { render(<Overlays controller={c} />, root); await new Promise(r => setTimeout(r, 0)); });
+    (c as unknown as { events: GameEvent[] }).events.push({ type: 'finalRound', seat: 1, text: 'Final round!' });
+    await act(async () => { c.refresh(); await new Promise(r => setTimeout(r, 0)); });
+    expect(root.querySelector('.btw-turn')).toBeNull();
+    expect(root.textContent).toContain('FINAL ROUND');
+    click('OK');
+    await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    expect(root.querySelector('.btw-turn')).not.toBeNull();
+    expect(c.snapshot.get().events.some(e => e.type === 'draw' && e.seat === 0)).toBe(false);
+    c.stop();
+  });
+});
+
+describe("Pass'n'Play turn start", () => {
+  const tick = () => act(async () => { await new Promise(r => setTimeout(r, 5)); });
+  const showMe = () => {
+    const realNow = Date.now;
+    Date.now = () => realNow() + PASS_GUARD_MS + 1;
+    try { click('show me'); } finally { Date.now = realNow; }
+  };
+  const game = async () => {
+    const c = new GameController({ passScreen: true, turnBanner: true });
+    void c.start({ players: 2, bots: 0, difficulties: [], names: [], ending: 1, endingTimes: 1, actionsPerTurn: 3, cardsPerTurn: 3, packCards: [], firstSeat: 0 }, 5);
+    await act(async () => { render(<Overlays controller={c} />, root); await new Promise(r => setTimeout(r, 5)); });
+    return c;
+  };
+  const drew = (c: GameController) => c.snapshot.get().events.some(e => e.type === 'draw' && e.seat === 0);
+
+  it('the pass screen counts as OK: no banner, and the cards are drawn', async () => {
+    const c = await game();
+    expect(drew(c)).toBe(false);
+    showMe();
+    await tick();
+    await tick();                                   // the banner's turn comes up, then the cards are drawn
+    expect(root.querySelector('.btw-turn')).toBeNull();
+    expect(drew(c)).toBe(true);
+    c.stop();
+  });
+
+  it('the cards still wait for a popup to be closed', async () => {
+    const c = await game();
+    (c as unknown as { events: GameEvent[] }).events.push({ type: 'finalRound', seat: 1, text: 'Final round!' });
+    await act(async () => { c.refresh(); await new Promise(r => setTimeout(r, 5)); });
+    showMe();
+    await tick();
+    expect(root.textContent).toContain('FINAL ROUND');
+    expect(drew(c)).toBe(false);
+    click('OK');
+    await tick();
+    expect(root.querySelector('.btw-turn')).toBeNull();
+    expect(drew(c)).toBe(true);
+    c.stop();
+  });
+});
+
+describe('picking several walls to build', () => {
+  const picker = () => buttons().find(b => b.textContent?.startsWith('Build') || b.textContent?.startsWith('Pick'))!;
+  it('the Build button turns green once the most walls are picked', () => {
+    ask({ kind: 'pickHandCards', seat: 0, card: 3, purpose: 'build', options: [0, 3, 1], cards: [29, 30, 14], min: 1, max: 2 });
+    expect(picker().classList.contains('btw-ready')).toBe(false);
+    click('Wall Section 1');
+    expect(picker().classList.contains('btw-ready')).toBe(false);
+    click('Wall Section 2');
+    expect(picker().classList.contains('btw-ready')).toBe(true);
+    expect(root.textContent).toContain("That's the most you can build.");
+    click('Wall Section 2');
+    expect(picker().classList.contains('btw-ready')).toBe(false);
+  });
+
+  it('with fewer walls than the card allows, picking them all counts', () => {
+    ask({ kind: 'pickHandCards', seat: 0, card: 13, purpose: 'build', options: [0], cards: [29], min: 1, max: 3 });
+    click('Wall Section 1');
+    expect(picker().classList.contains('btw-ready')).toBe(true);
   });
 });
 

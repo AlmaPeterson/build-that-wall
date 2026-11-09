@@ -17,6 +17,8 @@ export interface LobbyPlayer { seat: number; name: string }      // room seat (1
 
 /** Decisions travel through the room's ask/answer with this mode; l1 holds the decision as JSON. */
 export const ASK_MODE = 'btw2';
+/** Sent the same way, as { kind: TURN_OK }: it's this player's turn, and the host waits for them to tap OK. */
+export const TURN_OK = 'turnOk';
 
 export function isToHost(d: unknown): d is ToHost {
   return !!d && typeof d === 'object' && ['name', 'act', 'resync'].includes((d as { k?: string }).k ?? '');
