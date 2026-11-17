@@ -18,6 +18,8 @@ export class HostController extends GameController {
   private remoteWaiting: Waiting | null = null;
   /** Stops waiting for a remote player's OK on the turn banner, if that's what the game is waiting for. */
   private stopTurnOk: ((seat: Seat) => void) | null = null;
+  /** Stops waiting for a remote player's answer (a bot took over their seat): the safe fallback answer is used. */
+  private stopAsk = new Map<Seat, () => void>();
 
   constructor(private readonly room: Pick<OnlineRoom, 'sendData' | 'ask'>, roomSeats: number[], memory?: BotMemory, turnBanner = false) {
     super({
@@ -47,6 +49,45 @@ export class HostController extends GameController {
     return left;
   }
 
+  /** A player left the game: a bot plays their cards from now on. */
+  playerLeft(seat: Seat): Promise<void> {
+    return this.botFor(seat, this.nameOf(seat) + ' left the game, so a bot is playing for them.');
+  }
+
+  override canHandToBot(seat: Seat): boolean {
+    const s = this.state;
+    return !!s && !s.over && seat > 0 && seat < this.roomSeats.length && !!s.seats[seat] && !s.seats[seat]!.bot && !s.seats[seat]!.left;
+  }
+
+  /** The host lets a bot play for someone who isn't playing (away, stuck, or gone without saying so). */
+  override handToBot(seat: Seat): void {
+    if (!this.canHandToBot(seat)) return;
+    void this.botFor(seat, 'The host let a bot play for ' + this.nameOf(seat) + '.');
+  }
+
+  /** A player who left came back (a new page on their device): they play their seat again. */
+  playerBack(seat: Seat): void {
+    if (this.state?.seats[seat]?.standIn) this.takeBack(seat, this.nameOf(seat) + ' is back and playing again.');
+    this.resyncSeat(seat);
+  }
+
+  /** Their device asked for the seat back (they're still connected and a bot has been playing it). */
+  private seatBack(seat: Seat): void {
+    if (!this.state?.seats[seat]?.standIn) return;
+    this.takeBack(seat, this.nameOf(seat) + ' is back and playing again.');
+  }
+
+  private async botFor(seat: Seat, text: string): Promise<void> {
+    if (!this.canHandToBot(seat)) return;
+    const done = this.standIn(seat, text);
+    // Anything the game was waiting on them for is answered now, so the game goes on
+    this.stopTurnOk?.(seat);
+    this.stopAsk.get(seat)?.();
+    await done;
+  }
+
+  private nameOf(seat: Seat): string { return this.state?.seats[seat]?.name ?? 'Player ' + (seat + 1); }
+
   /** The game seat played from a room seat, or -1. */
   gameSeat(roomSeat: number): Seat { return this.roomSeats.indexOf(roomSeat); }
 
@@ -54,6 +95,7 @@ export class HostController extends GameController {
   receive(msg: ToHost, fromRoomSeat: number): void {
     const seat = this.gameSeat(fromRoomSeat);
     if (seat <= 0) return;
+    if (msg.k === 'playAgain') { this.seatBack(seat); return; }
     if (msg.k === 'resync') {
       this.sentEvents.set(seat, 0); this.sentView.delete(seat);
       this.sendNow();
@@ -128,9 +170,12 @@ export class HostController extends GameController {
         this.refresh();
         this.sendNow();                     // they need the latest view to answer
         try {
-          const value = await this.room.ask(this.roomSeats[seat]!, { l1: JSON.stringify(d), l2: '', l3: '', card: 'card' in d ? d.card : 0, mode: ASK_MODE });
+          const asked = this.room.ask(this.roomSeats[seat]!, { l1: JSON.stringify(d), l2: '', l3: '', card: 'card' in d ? d.card : 0, mode: ASK_MODE });
+          const stopped = new Promise<string>(stop => { this.stopAsk.set(seat, () => stop('')); });
+          const value = await Promise.race([asked, stopped]);
           return back(parseAnswer(d, value));
         } finally {
+          this.stopAsk.delete(seat);
           this.remoteWaiting = null;
           this.refresh();
         }

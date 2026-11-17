@@ -92,7 +92,7 @@ export type GameMsg = StateMsg | AskMsg | AnswerMsg | EndTurnMsg | DataMsg;
 // ---- player -> host (on /up)
 
 export type UpMsg =
-  | { t: 'hello'; cid: string }
+  | { t: 'hello'; cid: string; back?: 1 }      // back: coming back to a running game this device left
   | { t: 'bye'; cid: string }
   | { t: 'hb'; cid: string }
   | { t: 'away' | 'back'; cid: string }       // this page went into the background / came back

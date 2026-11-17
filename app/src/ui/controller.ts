@@ -223,6 +223,26 @@ export class GameController {
 
   async leave(seat: Seat): Promise<void> { await this.game?.leave(seat); this.publish(); }
 
+  /** Online host: a bot plays this person's seat from now on (see Game.standIn). */
+  protected async standIn(seat: Seat, text: string): Promise<void> {
+    const done = this.game?.standIn(seat, text);
+    this.publish();
+    await done;
+    this.publish();
+  }
+
+  /** Online host: the person takes their seat back from the bot. */
+  protected takeBack(seat: Seat, text: string): void { this.game?.takeBack(seat, text); this.publish(); }
+
+  /** Online host: may the host let a bot play this seat (a person on another device)? */
+  canHandToBot(_seat: Seat): boolean { return false; }
+  /** Online host: let a bot play this seat. */
+  handToBot(_seat: Seat): void {}
+  /** Online player: a bot is playing this device's seat, and the player can take it back. */
+  canPlayAgain(): boolean { return false; }
+  /** Online player: take this device's seat back from the bot. */
+  playAgain(): void {}
+
   /** Pass'n'Play with 2+ humans on this device: the device is handed between them. */
   private passing(): boolean {
     const s = this.game?.state;

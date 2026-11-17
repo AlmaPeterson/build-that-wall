@@ -44,6 +44,9 @@ export class OnlineClientController extends GameController {
     });
   }
 
+  override canPlayAgain(): boolean { return !!this.view && !this.view.over && !!this.view.seats[this.seatNo]?.standIn; }
+  override playAgain(): void { if (this.canPlayAgain()) this.send({ k: 'playAgain' }); }
+
   override ready(): void {}
   override async leave(): Promise<void> {}
 

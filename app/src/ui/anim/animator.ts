@@ -3,7 +3,7 @@
 // cost/discard → presentation → response (if required) → result. A later phase never starts before the
 // preceding phase lands. No DOM here: FlightLayer draws the flights it publishes.
 import { CARD_BACK, isImmediate, type CardId, type GameState, type Seat } from '../../game';
-import { shownHand } from '../board/board-state';
+import { shownHand, watching } from '../board/board-state';
 import type { GameSnapshot } from '../controller';
 import { createStore, type Store } from '../store';
 import { CENTER, placeRect, seatRect, type Rect, type Seating } from './layout';
@@ -320,7 +320,7 @@ export function planStep(prev: GameSnapshot, next: GameSnapshot, speed: number, 
     // Played cards never stop to be read: they cross the board face up, straight to where they go
     // (a card that can still be blocked waits at its target). Only your own card that has nowhere to
     // go yet (it waits for your choice) is shown big in the middle.
-    const me = next.view && !next.view.seats[next.viewer]?.bot ? next.viewer : -1;
+    const me = next.view && !watching(next.view, next.viewer) ? next.viewer : -1;
     const watchBots = !!next.openHands;
     // Every card, including a Play Immediately card, travels to its discard destination before its effect may begin.
     if (watchBots || reveal.seat !== me || m.to.at !== 'center') {
@@ -440,7 +440,7 @@ function lerp(a: Rect, b: Rect, k: number): Rect {
 
 function seating(s: GameSnapshot): Seating {
   const v = s.view!;
-  return { mine: v.seats[s.viewer]?.bot ? -1 : s.viewer, hand: shownHand(s) };
+  return { mine: watching(v, s.viewer) ? -1 : s.viewer, hand: shownHand(s) };
 }
 
 /** Where a played card was in its player's hand (slot 0 if the viewer can't see that hand). */

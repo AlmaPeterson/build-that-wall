@@ -26,6 +26,8 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow-x: hidden; background: var(--paper); color: var(--ink); font-family: var(--font-body); }
+/* No pull-to-refresh on phones: a downward swipe on the board reloaded the page by accident, and with it an online game */
+html, body { overscroll-behavior-y: none; }
 #app { height: 100%; }
 button { font: inherit; }
 

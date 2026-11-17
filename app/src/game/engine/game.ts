@@ -6,7 +6,7 @@ import { actionCost, isImmediate } from '../cardinfo';
 import type { BotPlayer, CardRules, EffectContext, GameApi } from '../contracts';
 import { insertionShuffle, nextRandom, randomInt } from '../rng';
 import type {
-  CardMove, Action, ActionResult, Answer, BuildPayment, CardId, Decider, Decision, Emit, GameEvent, GameState, Seat, WallRef,
+  CardMove, Action, ActionResult, Answer, BuildPayment, CardId, Decider, Decision, Difficulty, Emit, GameEvent, GameState, Seat, WallRef,
 } from '../types';
 import * as board from './board';
 import { cardName } from './board';
@@ -130,11 +130,14 @@ export class Game implements GameApi {
       return { ok: true };
     }
     this.busy = true;
+    let result: ActionResult;
     try {
-      return await this.perform(seat, action);
+      result = await this.perform(seat, action);
     } finally {
       this.busy = false;
     }
+    await this.carryOnAsBot(seat);      // a bot took over this seat part-way through the action
+    return result;
   }
 
   /** An online player left: they get no more turns or cards. */
@@ -148,6 +151,42 @@ export class Game implements GameApi {
       return;
     }
     if (s.turn === seat && !this.busy) await this.runTurns(false);
+  }
+
+  /**
+   * Online: a bot plays this person's seat from now on (they left, or the host handed it over). Their cards
+   * and walls stay in the game. If it's their turn, the bot plays the rest of it.
+   */
+  async standIn(seat: Seat, text: string, level: Difficulty = 'medium'): Promise<void> {
+    const s = this.state, p = s.seats[seat];
+    if (!p || p.bot || p.left || s.over) return;
+    p.bot = level;
+    p.standIn = true;
+    this.emit({ type: 'announce', seat, text });
+    await this.carryOnAsBot(seat);
+  }
+
+  /** Online: the person whose seat a bot was playing takes it back (from the bot's next move on). */
+  takeBack(seat: Seat, text: string): void {
+    const s = this.state, p = s.seats[seat];
+    if (!p || !p.standIn || s.over) return;
+    p.bot = null;
+    p.standIn = false;
+    this.emit({ type: 'announce', seat, text });
+  }
+
+  /** It's this seat's turn, a bot plays it now and nothing else is running: the bot plays the rest of the turn. */
+  private async carryOnAsBot(seat: Seat): Promise<void> {
+    const s = this.state;
+    if (s.over || this.busy || s.turn !== seat || !s.seats[seat]?.bot) return;
+    this.busy = true;
+    try {
+      await this.botTurn(seat);
+      if (s.over || (s.turn === seat && !s.seats[seat]!.bot)) return;   // they took it back: their move
+      await this.turnLoop(false);
+    } finally {
+      this.busy = false;
+    }
   }
 
   // ======== turns
@@ -180,6 +219,7 @@ export class Game implements GameApi {
       }
       if (!this.state.seats[seat]!.bot) return;             // wait for the human
       await this.botTurn(seat);
+      if (!this.state.over && this.state.turn === seat && !this.state.seats[seat]!.bot) return;   // took their seat back
     }
   }
 
@@ -258,13 +298,13 @@ export class Game implements GameApi {
     const s = this.state;
     for (let i = 0; i < BOT_ACTION_LIMIT && !s.over && s.turn === seat && s.actionsLeft >= 1; i++) {
       if (this.opts.beforeBotAction) await this.opts.beforeBotAction(seat);
-      if (s.over || s.turn !== seat) break;
+      if (s.over || s.turn !== seat || !s.seats[seat]!.bot) break;
       const action = this.opts.bot.nextAction(this, seat);
       if (action.type === 'endTurn') break;
       const r = await this.perform(seat, action);
       if (!r.ok) break;
     }
-    if (!s.over && s.turn === seat) this.emit({ type: 'turnEnd', seat, text: this.name(seat) + ' ended their turn.' });
+    if (!s.over && s.turn === seat && s.seats[seat]!.bot) this.emit({ type: 'turnEnd', seat, text: this.name(seat) + ' ended their turn.' });
   }
 
   // ======== actions

@@ -142,21 +142,175 @@ describe('online game', () => {
     expect(hostC.snapshot.get().waitingFor).toBeNull();
   });
 
-  it('a player who leaves while the game waits for their OK does not hold everyone up', async () => {
+  it('a player who leaves while the game waits for their OK does not hold everyone up: a bot plays for them', async () => {
     const { hostC, clientC, guest } = await twoPlayers();
     const ended = hostC.act({ type: 'endTurn' });
     await until(() => clientC.snapshot.get().turnBanner === 1);
     guest.leave();
-    await ended;
-    expect(hostC.state!.seats[1]!.left).toBe(true);
-    expect(hostC.allEvents.filter(e => e.type === 'draw' && e.seat === 1)).toHaveLength(0);
+    await okTurn(hostC);                                     // the bot played their turn: the host's turn again
+    expect((await ended).ok).toBe(true);
+    const seat = hostC.state!.seats[1]!;
+    expect(seat).toMatchObject({ bot: 'medium', standIn: true, left: false, name: 'Gus' });
+    expect(hostC.state!.turn).toBe(0);
+    expect(hostC.allEvents.filter(e => e.type === 'draw' && e.seat === 1)).toHaveLength(1);
+    expect(hostC.allEvents.some(e => e.text === 'Gus left the game, so a bot is playing for them.')).toBe(true);
+    expect(hostC.state!.over).toBeNull();                    // the game goes on
   });
 
-  it('a player who leaves mid-game gets no more turns', async () => {
+  it('a player who leaves mid-game keeps their cards in the game, played by a bot', async () => {
     const { guest, hostC } = await twoPlayers();
+    const hand = hostC.state!.seats[1]!.hand.length;
     guest.leave();
-    await until(() => !!hostC.state!.over || !!hostC.state!.seats[1]!.left, 3000);
-    expect(hostC.state!.seats[1]!.left).toBe(true);
+    await until(() => !!hostC.state!.seats[1]!.standIn);
+    expect(hostC.state!.seats[1]!.hand.length).toBe(hand);
+    await passTurn(hostC, hostC);                            // the bot's turn, then the host's banner
+    expect(hostC.state!.turn).toBe(0);
+  });
+
+  it("the host can let a bot play for someone who isn't moving, and they can take their seat back", async () => {
+    const { hostC, clientC } = await twoPlayers();
+    await passTurn(hostC, clientC);
+    await until(() => hostC.api!.resting && hostC.state!.turn === 1);
+    expect(hostC.canHandToBot(0)).toBe(false);               // never the host's own seat
+    expect(hostC.canHandToBot(1)).toBe(true);
+    hostC.handToBot(1);
+    await okTurn(hostC);                                     // the bot finished the guest's turn
+    expect(hostC.state!.seats[1]).toMatchObject({ bot: 'medium', standIn: true });
+    expect(hostC.canHandToBot(1)).toBe(false);
+    // The guest still sees their own hand, and can take the seat back
+    await until(() => !!clientC.snapshot.get().view?.seats[1]?.standIn);
+    expect(clientC.snapshot.get().view!.seats[1]!.hand).toEqual(hostC.state!.seats[1]!.hand);
+    expect(clientC.canPlayAgain()).toBe(true);
+    clientC.playAgain();
+    await until(() => hostC.state!.seats[1]!.bot === null);
+    expect(hostC.state!.seats[1]!.standIn).toBe(false);
+    await until(() => !clientC.canPlayAgain());
+    await passTurn(hostC, clientC);                          // their turn again: it waits for them
+    await until(() => hostC.api!.resting && hostC.state!.turn === 1);
+    expect(hostC.state!.turn).toBe(1);
+  });
+
+  it('leaving from End Game (or Back) tells the host straight away, and "Back to the game" shows the board again', async () => {
+    const relay = new FakeRelay();
+    const hostShown: GameController[] = [], clientShown: GameController[] = [];
+    let home = 0;
+    const host = session(relay, 'Hana', hostShown);
+    const guest = new OnlineSession({
+      connect: relay.connect, name: () => 'Gus', baseSettings: () => ({ ...DEFAULT_SETTINGS, firstSeat: 0 }),
+      show: c => clientShown.push(c), wait: () => Promise.resolve(), home: () => { home++; },
+    });
+    sessions.push(host, guest);
+    await host.hostRoom();
+    await guest.join(host.state.get().code);
+    await until(() => host.state.get().players.length === 2);
+    void host.start(7);
+    await until(() => clientShown.length === 1);
+    guest.backToGame();
+    expect(clientShown).toHaveLength(2);
+    expect(clientShown[1]).toBe(clientShown[0]);
+    guest.askLeave();
+    expect(guest.state.get().confirmLeave).toBe(true);
+    guest.keepPlaying();
+    expect(guest.state.get().confirmLeave).toBe(false);
+    guest.askLeave();
+    guest.confirmLeave();
+    expect(home).toBe(1);
+    expect(guest.state.get().phase).toBe('idle');
+    await until(() => !!hostShown[0]!.state?.seats[1]?.standIn);
+  });
+
+  it('a question waiting on someone is answered for them when a bot takes over', async () => {
+    const { hostC, clientC } = await twoPlayers();
+    const remote = (hostC as unknown as { remote(seat: number): Decider }).remote(1);
+    const asked = remote.decide({ kind: 'block', seat: 1, attacker: 0, card: 9 }, hostC.state!);
+    await until(() => clientC.snapshot.get().prompt?.decision.kind === 'block');
+    hostC.handToBot(1);
+    expect(await asked).toBe(false);                         // the safe answer: don't block
+  });
+});
+
+describe('rejoining', () => {
+  /** A device's saved rejoin info, shared by the page before and after a reload. */
+  const device = () => { let v = ''; return { load: () => v, save: (x: string | null) => { v = x ?? ''; } }; };
+  const guestPage = (relay: FakeRelay, store: ReturnType<typeof device>, shown: GameController[], now = () => Date.now()) => {
+    const g = new OnlineSession({
+      connect: relay.connect, name: () => 'Gus', baseSettings: () => ({ ...DEFAULT_SETTINGS, firstSeat: 0 }),
+      show: c => shown.push(c), wait: () => Promise.resolve(), rejoinStore: store, now,
+    });
+    sessions.push(g);
+    return g;
+  };
+  async function game(store: ReturnType<typeof device>) {
+    const relay = new FakeRelay();
+    const hostShown: GameController[] = [], clientShown: GameController[] = [];
+    const host = session(relay, 'Hana', hostShown);
+    sessions.push(host);
+    const guest = guestPage(relay, store, clientShown);
+    await host.hostRoom();
+    await guest.join(host.state.get().code);
+    await until(() => host.state.get().players.length === 2);
+    void host.start(7);
+    await until(() => clientShown.length === 1 && !!clientShown[0]!.snapshot.get().view);
+    await okTurn(hostShown[0]!);
+    await until(() => hostShown[0]!.api!.resting);
+    return { relay, host, guest, hostC: hostShown[0]!, clientC: clientShown[0]! };
+  }
+
+  it('after a reload the page goes straight back into the game, to the same seat, and the bot stops', async () => {
+    const store = device();
+    const { relay, guest, hostC } = await game(store);
+    const hand = [...hostC.state!.seats[1]!.hand];
+    guest.pageClosing();                                         // the page reloads
+    await until(() => !!hostC.state!.seats[1]!.standIn);
+    const shown: GameController[] = [];
+    const again = guestPage(relay, store, shown);                // the reloaded page
+    expect(again.autoRejoinable()).toBe(true);
+    expect(await again.rejoin()).toBe(true);
+    await until(() => hostC.state!.seats[1]!.bot === null);
+    expect(hostC.state!.seats[1]!.standIn).toBe(false);
+    await until(() => shown.length === 1 && !!shown[0]!.snapshot.get().view);
+    expect(again.state.get().phase).toBe('playing');
+    expect(shown[0]!.snapshot.get().viewer).toBe(1);
+    expect(shown[0]!.snapshot.get().view!.seats[1]!.hand).toEqual(hand);    // nothing was played meanwhile
+    expect(shown[0]!.snapshot.get().events.length).toBe(hostC.allEvents.length);
+    expect(hostC.allEvents.some(e => e.text === 'Gus is back and playing again.')).toBe(true);
+    // Their turn waits for them again
+    await passTurn(hostC, shown[0]!);
+    await until(() => hostC.api!.resting && hostC.state!.turn === 1);
+  });
+
+  it('after choosing Leave, the game is offered (not joined) from the Online screen', async () => {
+    const store = device();
+    const { relay, guest, hostC } = await game(store);
+    guest.askLeave(); guest.confirmLeave();
+    await until(() => !!hostC.state!.seats[1]!.standIn);
+    const again = guestPage(relay, store, []);
+    expect(again.autoRejoinable()).toBe(false);
+    expect(again.rejoinable()).not.toBeNull();
+    expect(await again.rejoin()).toBe(true);
+    await until(() => hostC.state!.seats[1]!.bot === null);
+  });
+
+  it('a game that has gone (or an hour later) is not offered, and a failed rejoin says why', async () => {
+    const store = device();
+    const { relay, guest, host } = await game(store);
+    guest.pageClosing();
+    let t = Date.now();
+    const later = guestPage(relay, store, [], () => t);
+    t += 61 * 60000;
+    expect(later.rejoinable()).toBeNull();
+    host.leave();                                                // the host closed the game
+    const again = guestPage(relay, store, []);
+    expect(await again.rejoin()).toBe(false);
+    expect(again.state.get().error).toMatch(/Couldn't get back/);
+    expect(again.rejoinable()).toBeNull();                       // forgotten
+  });
+
+  it("the host doesn't give a seat to someone who wasn't in the game", async () => {
+    const store = device();
+    const { relay } = await game(store);
+    store.save(JSON.stringify({ code: 'ZZZZZ', cid: 'cnobody', at: Date.now(), auto: true }));
+    expect(await guestPage(relay, store, []).rejoin()).toBe(false);
   });
 });
 

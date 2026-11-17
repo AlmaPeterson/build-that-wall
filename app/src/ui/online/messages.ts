@@ -6,7 +6,8 @@ import type { Waiting } from '../controller';
 export type ToHost =
   | { k: 'name'; name: string }                                   // a player's name, sent after joining
   | { k: 'act'; id: number; action: Action }                      // an action on this player's turn
-  | { k: 'resync' };                                              // missed a snapshot: send everything again
+  | { k: 'resync' }                                               // missed a snapshot: send everything again
+  | { k: 'playAgain' };                                           // a bot has been playing for this player: they're back
 
 export type ToPlayer =
   | { k: 'lobby'; players: LobbyPlayer[]; bots: number }          // broadcast while waiting to start
@@ -21,7 +22,7 @@ export const ASK_MODE = 'btw2';
 export const TURN_OK = 'turnOk';
 
 export function isToHost(d: unknown): d is ToHost {
-  return !!d && typeof d === 'object' && ['name', 'act', 'resync'].includes((d as { k?: string }).k ?? '');
+  return !!d && typeof d === 'object' && ['name', 'act', 'resync', 'playAgain'].includes((d as { k?: string }).k ?? '');
 }
 
 export function isToPlayer(d: unknown): d is ToPlayer {
