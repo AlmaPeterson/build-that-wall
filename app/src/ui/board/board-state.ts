@@ -26,7 +26,7 @@ export function shownHand(snap: GameSnapshot): Seat | null {
   if (!v) return null;
   const seat = v.seats[snap.viewer];
   if (seat?.bot && snap.openHands && v.turn >= 0 && v.seats[v.turn]) return v.turn;   // only bots: show the one playing
-  if (!seat || seat.bot) return null;                      // watch mode: no human hand to show
+  if (!seat || (seat.bot && !seat.standIn)) return null;  // watch mode: no human hand to show
   if (v.turn < 0) return null;                             // dealing: nobody's hand is shown yet
   if (snap.passTo !== null) return null;                   // the pass screen slides in over the board: show no one's hand
   if (!snap.sharedDevice) return snap.viewer;
@@ -153,6 +153,12 @@ export function payableWalls(hand: readonly CardId[], slot: number): number[] {
 /** The name shown for a seat: bots get "BOT " in front (as the old scoreboard), plus "(left)". */
 export function displayName(state: GameState, seat: Seat): string {
   const s = state.seats[seat]!;
-  const name = s.bot ? 'BOT ' + s.name.replace(/^Bot /, '') : s.name;
+  const name = s.standIn ? s.name + ' (bot)' : s.bot ? 'BOT ' + s.name.replace(/^Bot /, '') : s.name;
   return name + (s.left ? ' (left)' : '');
+}
+
+/** The viewer only watches (a bot-only game): not a person whose seat a bot is playing for a while. */
+export function watching(state: GameState, viewer: Seat): boolean {
+  const s = state.seats[viewer];
+  return !!s?.bot && !s.standIn;
 }

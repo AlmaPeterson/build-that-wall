@@ -25,11 +25,11 @@ describe('Purchases', () => {
     expect(addSpent).not.toHaveBeenCalled();
   });
 
-  it('without a server, Lifetime Gold is remembered on this device', async () => {
+  it('without a server, a year of Gold is remembered on this device', async () => {
     const { ent, checkout, addSpent, buy } = setup({ status: 'ok', id: 'O-1', test: true });
-    expect(await buy.payItem('gold', 'lifetime', price())).toBe('ok');
-    expect(checkout.mock.calls[0]![0]).toMatchObject({ title: 'Lifetime Gold', customId: 'gold:lifetime', price: 9.99 });
-    expect(ent.paidAll()).toEqual([{ kind: 'gold', id: 'lifetime', exp: 0, order: 'O-1', src: 'local' }]);
+    expect(await buy.payItem('gold', 'year', price())).toBe('ok');
+    expect(checkout.mock.calls[0]![0]).toMatchObject({ title: '1 year of Gold', customId: 'gold:year', price: 9.99 });
+    expect(ent.paidAll()).toEqual([{ kind: 'gold', id: 'year', exp: expect.any(Number), order: 'O-1', src: 'local' }]);
     expect(addSpent).toHaveBeenCalledWith(9.99);
   });
 

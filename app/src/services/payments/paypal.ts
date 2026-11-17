@@ -3,11 +3,11 @@ import { loadScript, type ScriptLoader } from '../account/script-loader';
 // ---- checkout: PayPal smart buttons (PayPal, Pay Later, Venmo, debit or credit card)
 
 export interface CheckoutRequest {
-  title: string;          // shown to the player, e.g. "Lifetime Gold"
+  title: string;          // shown to the player, e.g. "1 year of Gold"
   price: number;
   currency: string;
   clientId: string;       // empty or "test" = PayPal sandbox test mode
-  customId: string;       // "gold:lifetime", "pack:<id>", "donate:donation"; the server checks it
+  customId: string;       // "gold:year", "pack:<id>", "donate:donation"; the server checks it
   planId?: string;        // a PayPal plan id makes it a subscription
   serverCapture?: boolean; // the game server takes the payment after checking the price; the browser only approves
 }

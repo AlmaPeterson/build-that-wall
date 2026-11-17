@@ -146,7 +146,48 @@ export function Overlays({ controller }: { controller: GameController }) {
           {waitingText(snap.waitingFor, view)}
         </div>
       )}
+      {!view.over && <StandIn controller={controller} />}
       {tip && !modal && <TutorialTip best={tip.best} tips={tip.tips} onHide={() => setTipHidden(true)} />}
+    </div>
+  );
+}
+
+/** How long someone else's move can take before the host is offered "Let a bot play for them". */
+export const HAND_TO_BOT_MS = 30000;
+
+/**
+ * Online. Host: someone hasn't moved for a while (gone, away, or stuck), so a bot can play their cards.
+ * Player: a bot is playing for you, and you can take your seat back.
+ */
+function StandIn({ controller }: { controller: GameController }) {
+  const snap = useStore(controller.snapshot);
+  const view = snap.view;
+  const w = snap.waitingFor;
+  const who = w && w.seat !== snap.viewer ? w.seat
+    : view && view.turn >= 0 && view.turn !== snap.viewer && !view.seats[view.turn]?.bot ? view.turn : null;
+  const offer = who !== null && controller.canHandToBot(who);
+  const key = offer ? who + '|' + view?.turnCount + '|' + snap.events.length + '|' + JSON.stringify(w ?? null) : '';
+  const [shownFor, setShownFor] = useState('');
+  useEffect(() => {
+    if (!key) return;
+    const t = setTimeout(() => setShownFor(key), HAND_TO_BOT_MS);
+    return () => clearTimeout(t);
+  }, [key]);
+
+  if (controller.canPlayAgain()) {
+    return (
+      <div class="btw-standin" role="status">
+        <span>A bot is playing your cards.</span>
+        <button type="button" class="btw-ov-btn" onClick={() => controller.playAgain()}>Play myself again</button>
+      </div>
+    );
+  }
+  if (!offer || shownFor !== key || !view) return null;
+  const name = seatName(view, who);
+  return (
+    <div class="btw-standin" role="status">
+      <span>{name} hasn't moved for a while.</span>
+      <button type="button" class="btw-ov-btn" onClick={() => controller.handToBot(who)}>Let a bot play for {name}</button>
     </div>
   );
 }

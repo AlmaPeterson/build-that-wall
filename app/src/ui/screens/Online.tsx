@@ -16,6 +16,7 @@ export function OnlineScreen() {
   const ui = useStore(settings);
   const player = useStore(services.player);
   const [code, setCode] = useState('');
+  const [noRejoin, setNoRejoin] = useState(false);
   const codeBox = useRef<HTMLInputElement>(null);
   useEffect(() => { void services.init(); }, []);
   // The menu's choice (Quick online match, Host a private room, Join with a code): do it straight away
@@ -34,6 +35,16 @@ export function OnlineScreen() {
     <Page title="Play Online" onBack={back}>
       {st.phase === 'idle' && (
         <>
+          {!noRejoin && online.rejoinable() && (
+            <section class="btw-card" aria-labelledby="rejoin-h">
+              <h2 id="rejoin-h">Your online game</h2>
+              <p>A bot has been playing your cards since you left. Go back in and play them yourself.</p>
+              <div class="btw-row">
+                <Button onClick={() => void online.rejoin()}>Rejoin</Button>
+                <Button color="plain" onClick={() => { online.forget(); setNoRejoin(true); }}>No thanks</Button>
+              </div>
+            </section>
+          )}
           <section class="btw-card" aria-labelledby="quick-h">
             <h2 id="quick-h">Quick match</h2>
             <p>Join a game that's waiting for players, or open one for others to join.</p>
@@ -109,8 +120,8 @@ export function OnlineScreen() {
         <section class="btw-card">
           <p>Your online game is running.</p>
           <div class="btw-row">
-            <Button onClick={() => screen.set('game')}>Back to the game</Button>
-            <Button color="plain" onClick={() => online.leave()}>Leave the game</Button>
+            <Button onClick={() => online.backToGame()}>Back to the game</Button>
+            <Button color="plain" onClick={() => online.askLeave()}>Leave the game</Button>
           </div>
         </section>
       )}

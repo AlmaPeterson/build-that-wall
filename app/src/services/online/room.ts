@@ -53,6 +53,8 @@ export interface RoomEvents {
   onDropped?(): void;
   /** Host: a player said "Still here"; their seat was kept (send them everything again). */
   onStillHere?(seat: number): void;
+  /** Host: a player who left the running game came back (same device id) and has their seat again. */
+  onRejoin?(seat: number): void;
 }
 
 export type Role = '' | 'host' | 'client';
@@ -148,6 +150,7 @@ export class OnlineRoom {
   private cid = '';
   private conns = new Map<number, { cid: string }>();     // host: seat -> player
   private cid2seat = new Map<string, number>();
+  private former = new Map<string, number>();             // host: device id -> seat, of players who left the running game
   private seen = new Map<number, number>();               // host: seat -> last heard from
   private away = new Set<number>();                       // host: seats whose page is in the background
   private stillAsked = new Map<number, number>();         // host: seat -> when it was asked "Still here?"
@@ -177,6 +180,8 @@ export class OnlineRoom {
   get role(): Role { return this._role; }
   get seat(): number { return this._seat; }
   get code(): string { return this._code; }
+  /** This device's id in the room: the host gives the same seat back to it (rejoin). */
+  get clientId(): string { return this.cid; }
   /** Last problem code, e.g. "timeout" ("" = none). */
   get error(): string { return this._err; }
   /** The last problem in words for the player. */
@@ -202,13 +207,16 @@ export class OnlineRoom {
     return this._code;
   }
 
-  /** Joins a room. Resolves the seat (2-6), -1 for a spectator, or 0 if it failed (see error). */
-  async join(code: string, wait = JOIN_WAIT_MS): Promise<number> {
+  /**
+   * Joins a room. Resolves the seat (2-6), -1 for a spectator, or 0 if it failed (see error).
+   * cid: come back into a running game this device left, as the device it was then (the host knows it).
+   */
+  async join(code: string, wait = JOIN_WAIT_MS, cid?: string): Promise<number> {
     this.leave();
     const clean = String(code).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!clean) return 0;
     if (!(await this.connect())) return 0;
-    return this.joinCode(clean, wait);
+    return this.joinCode(clean, wait, cid);
   }
 
   /** Quick match: join the fullest open world room, or open one if none is free. Resolves the seat. */
@@ -252,7 +260,7 @@ export class OnlineRoom {
       setTimeout(() => tr.end(), 300);     // let the goodbye go out first
     }
     this._role = ''; this._code = ''; this._seat = 1; this.was = false; this.last = '';
-    this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.away.clear(); this.stillAsked.clear(); this.joining = false;
+    this.conns.clear(); this.cid2seat.clear(); this.former.clear(); this.seen.clear(); this.away.clear(); this.stillAsked.clear(); this.joining = false;
     this.hostAway = false;
     this.stopTimers();
     this.backWaiter?.();
@@ -412,12 +420,12 @@ export class OnlineRoom {
     this._code = code; this._role = 'host'; this._seat = 1;
     this.max = Math.max(2, Math.min(6, +(max ?? 6) || 6));
     this.spectators = spectators; this.world = world;
-    this.conns.clear(); this.cid2seat.clear(); this.seen.clear();
+    this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.former.clear();
     this.events.onSeat?.(1);
   }
 
-  private async joinCode(code: string, wait: number): Promise<number> {
-    this._code = code; this.cid = 'c' + this.random().toString(36).slice(2, 12); this._err = '';
+  private async joinCode(code: string, wait: number, cid?: string): Promise<number> {
+    this._code = code; this.cid = cid || 'c' + this.random().toString(36).slice(2, 12); this._err = '';
     const t = topics(code);
     const info = await new Promise<RoomInfo | null>((res) => {
       this.roomWait = res;
@@ -433,7 +441,7 @@ export class OnlineRoom {
     this.joining = true;
     const seat = await new Promise<number>((res) => {
       this.joinDone = (s) => { this.joinDone = null; res(s); };
-      this.pub(t.up, { t: 'hello', cid: this.cid });
+      this.pub(t.up, cid ? { t: 'hello', cid: this.cid, back: 1 } : { t: 'hello', cid: this.cid });
       setTimeout(() => { if (this.joinDone) { this._err = 'timeout'; this.joinDone = null; res(0); } }, wait);
     });
     this.joining = false;
@@ -458,7 +466,7 @@ export class OnlineRoom {
     const t = topics(this._code);
     if (this._role === 'host' && topic === t.up) {
       if (!('cid' in d) || typeof d.cid !== 'string') return;
-      if (d.t === 'hello') { this.hostHello(d.cid); return; }
+      if (d.t === 'hello') { this.hostHello(d.cid, d.back === 1); return; }
       const s = this.cid2seat.get(d.cid);
       if (d.t === 'bye') { if (s) this.gone(s); return; }
       if (!s) return;
@@ -486,12 +494,23 @@ export class OnlineRoom {
     }
   }
 
-  private hostHello(cid: string): void {
+  private hostHello(cid: string, back = false): void {
     const to = topics(this._code).client(cid);
     const known = this.cid2seat.get(cid);
     if (known) {
       this.pub(to, { t: 'welcome', seat: known });
       this.askStill(known);                               // reconnected while asked "Still here?"
+      return;
+    }
+    // Coming back into the running game they left (a reload, Back, or Leave by mistake): the same seat again
+    const seatBack = this.former.get(cid);
+    if (back) {
+      if (seatBack === undefined || !this.game.isRunning() || this.conns.has(seatBack)) { this.pub(to, { t: 'full' }); return; }
+      this.former.delete(cid);
+      this.conns.set(seatBack, { cid }); this.cid2seat.set(cid, seatBack); this.seen.set(seatBack, Date.now());
+      this.pub(to, { t: 'welcome', seat: seatBack });
+      this.roomInfo();
+      this.events.onRejoin?.(seatBack);
       return;
     }
     let seat = 0;
@@ -598,6 +617,8 @@ export class OnlineRoom {
   }
 
   private playerLeft(seat: number): void {
+    const c = this.conns.get(seat);
+    if (c) this.former.set(c.cid, seat);                 // they may come back (rejoin)
     this.drop(seat, false);
     this.pub(topics(this._code).down, { t: 'playerleft', seat });
     this.events.onPlayerLeft?.(seat);

@@ -30,8 +30,11 @@ function MyName() {
 
   if (!editing) {
     return (
-      <button type="button" class="menu__name" onClick={() => { setTyped(named ? player.name : ''); setError(''); setEditing(true); }}>
-        {named ? <>Playing as <b>{player.name}</b> <span class="menu__name-edit" aria-hidden="true">✎</span></> : <>Tap to set your name <span aria-hidden="true">✎</span></>}
+      <button type="button" class={'menu__name' + (named ? '' : ' menu__name--unset')} onClick={() => { setTyped(named ? player.name : ''); setError(''); setEditing(true); }}>
+        {named
+          ? <>Playing as <b>{player.name}</b> <span class="menu__name-edit" aria-hidden="true">✎</span></>
+          // Not required, but easy to spot: without it other players see "Player 2" online and on the leaderboard
+          : <><span class="menu__name-ask">✎ Set your name</span><span class="menu__name-why">So other players know who you are. You're <b>{player.name}</b> for now.</span></>}
       </button>
     );
   }

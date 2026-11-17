@@ -11,9 +11,10 @@ import type { GameController } from '../controller';
 import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
 import {
-  canInteract, displayName, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice,
+  canInteract, displayName, cardActions, dropAction, manHourWalls, payableWalls, type DropZone, shownHand, type CardChoice, watching,
 } from './board-state';
 import { ConfirmEnd } from './BoardModal';
+import { online } from '../online';
 import { ActionLog } from './ActionLog';
 import { CardPopup } from './CardPopup';
 import { cardImage } from '../assets';
@@ -151,8 +152,8 @@ export function Board({ controller }: { controller: GameController }) {
 
       <Scoreboard state={view} />
       <Piles state={view} />
-      {!view.seats[snap.viewer]?.bot ? <MyWalls state={view} seat={snap.viewer} /> : null}
-      <OtherWalls state={view} viewer={view.seats[snap.viewer]?.bot ? -1 : snap.viewer} />
+      {!watching(view, snap.viewer) ? <MyWalls state={view} seat={snap.viewer} /> : null}
+      <OtherWalls state={view} viewer={watching(view, snap.viewer) ? -1 : snap.viewer} />
 
       {handSeat !== null
         ? snap.openHands
@@ -178,7 +179,7 @@ export function Board({ controller }: { controller: GameController }) {
         <Button color={tutorial ? 'gold' : 'red'} aria-pressed={tutorial}
           onClick={() => settings.update(s => ({ ...s, tutorial: !s.tutorial }))}>Tutorial</Button>
         <Button onClick={() => screen.set('instructions')}>Instructions</Button>
-        <Button color="plain" class="side__end-game" onClick={() => setConfirm(true)}>End Game</Button>
+        <Button color="plain" class="side__end-game" onClick={() => (online.controller === controller ? online.askLeave() : setConfirm(true))}>End Game</Button>
       </div>
 
 

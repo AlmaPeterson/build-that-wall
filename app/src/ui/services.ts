@@ -31,7 +31,7 @@ export interface PlayerInfo {
   owner: boolean;
 }
 
-export type GoldItem = 'lifetime' | 'month' | 'year';
+export type GoldItem = 'month' | 'year';
 
 export interface ServiceDeps {
   storage: KeyValueStorage | null;
@@ -131,7 +131,7 @@ export function createServices(deps: ServiceDeps) {
 
   function price(item: GoldItem | 'donate', amount?: number): PriceInfo {
     const c = config.get();
-    const p = item === 'lifetime' ? c.goldPriceLifetime : item === 'year' ? c.goldPriceYear : item === 'month' ? c.goldPriceMonth : (amount ?? 5);
+    const p = item === 'year' ? c.goldPriceYear : item === 'month' ? c.goldPriceMonth : (amount ?? 5);
     return { price: p, currency: c.currency, clientId: c.paypalClientId, server: c.serverUrl };
   }
 
@@ -139,8 +139,7 @@ export function createServices(deps: ServiceDeps) {
   async function buyGold(item: GoldItem): Promise<BuyResult> {
     if (signInExpired(store)) return 'server-login';         // before PayPal: the server couldn't record the payment
     const c = config.get();
-    const r = item === 'lifetime' ? await purchases.payItem('gold', 'lifetime', price(item))
-      : await purchases.paySub(item, item === 'year' ? c.paypalPlanYear : c.paypalPlanMonth, price(item));
+    const r = await purchases.paySub(item, item === 'year' ? c.paypalPlanYear : c.paypalPlanMonth, price(item));
     refresh();
     return r;
   }

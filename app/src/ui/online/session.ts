@@ -28,6 +28,8 @@ export interface OnlineState {
   still: number;
   /** A message to show after being taken out of an online game (e.g. away too long); '' = none. */
   notice: string;
+  /** "Leave the online game?" is showing (End Game, or the browser's Back button). */
+  confirmLeave?: boolean;
 }
 
 export interface SessionDeps {
@@ -45,7 +47,26 @@ export interface SessionDeps {
   wait?: (ms: number) => Promise<void>;
   /** Back to the main menu (this player left the online game). */
   home?: () => void;
+  /** Where this device remembers the running game it's in, to get back into it (rejoin). */
+  rejoinStore?: { load(): string; save(value: string | null): void };
+  now?: () => number;
 }
+
+/** The online game this device was playing in (not as the host), to get back into it. */
+export interface RejoinInfo {
+  code: string;
+  /** This device's id in that room: the host gives its seat back to it. */
+  cid: string;
+  /** When it left (Date.now() ms). */
+  at: number;
+  /** It left without meaning to (reload, closed page): go straight back in when the page opens again. */
+  auto: boolean;
+}
+
+/** Back in automatically after a reload this soon; with the Rejoin button this soon. */
+export const AUTO_REJOIN_MS = 10 * 60000;
+export const REJOIN_MS = 60 * 60000;
+export const REJOIN_FAILED = "Couldn't get back into that game. It may have ended.";
 
 const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, difficulties: [], status: '', error: '', still: 0, notice: '' };
 export const AWAY_NOTICE = "You didn't answer \"Still here?\" in time, so you've left the online game.";
@@ -83,7 +104,7 @@ export class OnlineSession {
       onAsk: q => this.onAsk(q),
       onJoin: seat => { if (!this.names.has(seat)) this.names.set(seat, 'Player ' + seat); this.lobby(); },
       onPlayerLeft: seat => this.onPlayerLeft(seat),
-      onHostLost: () => this.set({ phase: 'ended', error: 'The host left the game.' }),
+      onHostLost: () => { this.forget(); this.set({ phase: 'ended', error: 'The host left the game.' }); },
       onStatus: status => this.set({ status }),
       // Back after a dropped connection: anything sent meanwhile was missed, so catch up
       onReconnected: () => {
@@ -94,12 +115,15 @@ export class OnlineSession {
       onDropped: () => this.away(),
       // Host: they're back; send them everything again
       onStillHere: seat => { const g = this.host?.gameSeat(seat) ?? -1; if (g > 0) this.host?.resyncSeat(g); },
+      // Host: someone who left came back to their seat: they play it again
+      onRejoin: seat => { const g = this.host?.gameSeat(seat) ?? -1; if (g > 0) this.host?.playerBack(g); },
     }, this.deps.random);
   }
 
   // ---- getting into a room
 
   async hostRoom(max = 6): Promise<boolean> {
+    this.forget();                                    // a different game now
     this.reset('Opening a room...');
     const code = await this.room.host({ max });
     if (!code) return this.failed();
@@ -110,6 +134,7 @@ export class OnlineSession {
   }
 
   async join(code: string): Promise<boolean> {
+    this.forget();                                    // a different game now
     this.reset('Joining ' + code.toUpperCase() + '...');
     const tries = this.deps.autoJoin?.() ? AUTO_JOIN_TRIES : 1;
     let seat = 0;
@@ -124,6 +149,7 @@ export class OnlineSession {
   }
 
   async quick(max = 6): Promise<boolean> {
+    this.forget();                                    // a different game now
     this.reset('Connecting to the online service...');
     const seat = await this.room.quick(max);
     if (seat <= 0) return this.failed();
@@ -141,11 +167,80 @@ export class OnlineSession {
     this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat });
   }
 
+  /** In a room or a game: leaving it now affects the other players, so Back and End Game ask first. */
+  get inRoom(): boolean { const p = this.state.get().phase; return p === 'lobby' || p === 'playing'; }
+
+  /** Ask "Leave the online game?" (End Game, or the browser's Back button). */
+  askLeave(): void { if (this.inRoom) this.set({ confirmLeave: true }); }
+  keepPlaying(): void { this.set({ confirmLeave: false }); }
+
+  /** Yes, leave: the others are told straight away (a bot plays this player's cards), and back to the menu. */
+  confirmLeave(): void {
+    this.set({ confirmLeave: false });
+    this.remember(false);
+    this.controller?.stop();
+    this.leave();
+    this.deps.home?.();
+  }
+
+  // ---- getting back into a game this device left
+
+  /** The game this device left, if it may still be going (within `ms` of leaving). */
+  rejoinable(ms = REJOIN_MS): RejoinInfo | null {
+    if (this.state.get().phase !== 'idle') return null;
+    let info: RejoinInfo | null = null;
+    try { info = JSON.parse(this.deps.rejoinStore?.load() || 'null') as RejoinInfo | null; } catch { /* not saved right */ }
+    if (!info || typeof info.code !== 'string' || typeof info.cid !== 'string' || !info.code || !info.cid) return null;
+    return this.now() - (+info.at || 0) <= ms ? info : null;
+  }
+
+  /** Left without meaning to (a reload): go straight back in? */
+  autoRejoinable(): boolean { return !!this.rejoinable(AUTO_REJOIN_MS)?.auto; }
+
+  /** Go back into the game this device left: the host gives the same seat back and the bot stops playing it. */
+  async rejoin(): Promise<boolean> {
+    const info = this.rejoinable();
+    if (!info) return false;
+    this.reset('Getting you back into your game...');
+    // Ready before the host's welcome: it sends everything again straight away, and the board shows once that arrives (onData)
+    const client = new OnlineClientController(msg => this.room.sendData(1, msg));
+    this.client = client;
+    const seat = await this.room.join(info.code, undefined, info.cid);
+    if (this.client !== client) return false;                          // the player gave up (Cancel)
+    if (seat <= 0) {
+      this.forget();
+      this.room.leave();
+      this.client = null;
+      this.set({ phase: 'idle', status: '', error: REJOIN_FAILED });
+      return false;
+    }
+    this.set({ role: 'client', code: info.code, seat, error: '', ...(this.running ? {} : { status: 'Catching up on the game...' }) });
+    return true;
+  }
+
+  /** Not going back: forget the game this device left. */
+  forget(): void { this.deps.rejoinStore?.save(null); }
+
+  /** A player (not the host) in a running game: remember it, to get back in. auto: left without meaning to. */
+  private remember(auto: boolean): void {
+    if (this.room.role !== 'client' || !this.running || !this.client || this.client.state?.over) return;
+    const info: RejoinInfo = { code: this.room.code, cid: this.room.clientId, at: this.now(), auto };
+    this.deps.rejoinStore?.save(JSON.stringify(info));
+  }
+
+  private now(): number { return (this.deps.now ?? Date.now)(); }
+
+  /** Show the running game again (from the Online screen). */
+  backToGame(): void {
+    const c = this.controller;
+    if (c && this.running) this.deps.show(c);
+  }
+
   /** The page went into the background (another window or app) or came back. */
   pageVisible(visible: boolean): void { this.room.setAway(!visible); }
 
   /** The page is closing for good: say goodbye now, so nobody waits for us. */
-  pageClosing(): void { this.room.leave(); }
+  pageClosing(): void { this.remember(true); this.room.leave(); }
 
   leave(): void {
     this.room.leave();
@@ -176,6 +271,7 @@ export class OnlineSession {
 
   /** Too late (or the host gave up on us): we've left the game; back to the menu with a message. */
   private away(): void {
+    this.remember(false);
     this.leave();
     this.set({ notice: AWAY_NOTICE });
     this.deps.home?.();
@@ -257,9 +353,9 @@ export class OnlineSession {
   private onPlayerLeft(roomSeat: number): void {
     if (this.host) {
       const seat = this.host.gameSeat(roomSeat);
-      if (seat > 0) void this.host.leave(seat);
+      if (seat > 0) void this.host.playerLeft(seat);
     }
-    this.names.delete(roomSeat);
+    if (!this.running) this.names.delete(roomSeat);
     this.lobby();
   }
 
@@ -289,6 +385,7 @@ export class OnlineSession {
   /** The result screen may stay open, but this room is no longer a running game. */
   private finished(): void {
     if (!this.running) return;
+    this.forget();
     this.running = false;
     this.set({ phase: 'ended', status: '' });
   }

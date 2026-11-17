@@ -29,10 +29,10 @@ export class Purchases {
 
   private useServer(server: string) { return !!verifiedUser(this.store) && isServerUrl(server); }
 
-  // kind "gold" (id lifetime/month/year), "pack" (id = pack id) or "donate"
+  // kind "gold" (id month/year), "pack" (id = pack id) or "donate"
   async payItem(kindIn: string, id: string, p: PriceInfo, title = ''): Promise<BuyResult> {
     const kind = ['pack', 'donate'].includes(kindIn) ? kindIn : 'gold';
-    const names: Record<string, string> = { lifetime: 'Lifetime Gold', month: '30 days of Gold', year: '1 year of Gold' };
+    const names: Record<string, string> = { month: '30 days of Gold', year: '1 year of Gold' };
     const name = kind === 'gold' ? (names[id] || 'Gold') : kind === 'donate' ? 'Donation to support Build That Wall' : (title || id);
     const item = kind === 'donate' ? 'donate:donation' : kind + ':' + id;
     const serverCapture = this.useServer(p.server);

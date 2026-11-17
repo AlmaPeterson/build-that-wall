@@ -72,6 +72,8 @@ export interface SeatState {
   quarantine?: CardId;
   limitNext: CardId;             // 9 or 16 held here: 1 action next turn; 0 = none
   left: boolean;                 // an online player who left the game
+  /** Online: a person's seat that a bot is playing for now (they left, or the host handed it over). */
+  standIn?: boolean;
 }
 
 export interface GameResult {
