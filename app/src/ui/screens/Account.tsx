@@ -31,11 +31,11 @@ export function AccountScreen() {
         <p>{player.gold ? <span class="btw-gold">{player.goldInfo || 'Gold is active'}</span> : 'Gold unlocks every extra and supports the game.'}</p>
         {(!player.signedIn || player.expired) && <p class="btw-muted">Sign in {player.expired ? 'again' : 'first'}: Gold belongs to your account, so it follows you to every device.</p>}
         <div class="btw-row">
-          {(['lifetime', 'year', 'month'] as GoldItem[]).map(item => (
+          {(['year', 'month'] as GoldItem[]).map(item => (
             <Button key={item} color="gold" disabled={busy || !player.signedIn || player.expired} onClick={() => run(async () => {
               say('gold', buyMessage(await services.buyGold(item), 'gold'));
             })}>
-              {item === 'lifetime' ? 'Lifetime' : item === 'year' ? '1 year' : '30 days'}: {money(item === 'lifetime' ? config.goldPriceLifetime : item === 'year' ? config.goldPriceYear : config.goldPriceMonth, config.currency)}
+              {item === 'year' ? '1 year' : '30 days'}: {money(item === 'year' ? config.goldPriceYear : config.goldPriceMonth, config.currency)}
             </Button>
           ))}
         </div>

@@ -29,7 +29,7 @@ function fakeFetch(settingsFile: Record<string, unknown>, server: Record<string,
 function make(opts: { server?: Record<string, unknown>; signedIn?: boolean; checkout?: Checkout } = {}) {
   const storage = new MemoryStorage();
   if (opts.signedIn) storage.setItem('btw:user', JSON.stringify({ name: 'Ann', email: 'ann@example.com', sub: '1', token: 'tok' }));
-  const { f, calls } = fakeFetch({ 'Server URL': SERVER, 'Gold Price Lifetime': 12.5, 'Currency': 'EUR' }, opts.server);
+  const { f, calls } = fakeFetch({ 'Server URL': SERVER, 'Gold Price Year': 12.5, 'Currency': 'EUR' }, opts.server);
   const relay = new FakeRelay();
   const checkout: Checkout = opts.checkout ?? (async () => ({ status: 'ok', id: 'O-1', test: true }));
   const s = createServices({ storage, fetch: f, connect: relay.connect, checkout, openWindow: () => {} });
@@ -65,7 +65,7 @@ describe('app services', () => {
       const checkout = vi.fn() as unknown as Checkout;
       const { s } = make({ checkout });
       useUser(s, 1000);
-      expect(await s.buyGold('lifetime')).toBe('server-login');
+      expect(await s.buyGold('year')).toBe('server-login');
       expect(await s.donate(5)).toBe('server-login');
       expect(checkout).not.toHaveBeenCalled();
     });
@@ -95,7 +95,7 @@ describe('app services', () => {
   it('loads game-settings.json and works signed out (guest play)', async () => {
     const { s } = make();
     await s.init();
-    expect(s.config.get().goldPriceLifetime).toBe(12.5);
+    expect(s.config.get().goldPriceYear).toBe(12.5);
     expect(s.config.get().currency).toBe('EUR');
     expect(s.player.get()).toMatchObject({ signedIn: false, gold: false, name: 'Player' });
   });
@@ -110,7 +110,7 @@ describe('app services', () => {
   it("a purchase the server doesn't answer unlocks nothing and says not to pay again", async () => {
     const { s } = make({ signedIn: true });       // no /paypal/confirm answer: the server is unreachable
     await s.init();
-    const r = await s.buyGold('lifetime');
+    const r = await s.buyGold('year');
     expect(r).toBe('noserver');
     expect(s.player.get().gold).toBe(false);
     expect(buyMessage(r, 'gold')!.text).toMatch(/don't pay again/);
@@ -118,11 +118,11 @@ describe('app services', () => {
 
   it('a confirmed purchase unlocks Gold with the price from game-settings.json', async () => {
     const checkout = vi.fn<Checkout>(async () => ({ status: 'ok', id: 'O-2', approved: true, test: false }));
-    const { s, calls } = make({ signedIn: true, checkout, server: { '/paypal/confirm': { packs: [], gold: { plan: 'lifetime', exp: 0 } } } });
+    const { s, calls } = make({ signedIn: true, checkout, server: { '/paypal/confirm': { packs: [], gold: { plan: 'year', exp: 4102444800 } } } });
     await s.init();
-    expect(await s.buyGold('lifetime')).toBe('ok');
+    expect(await s.buyGold('year')).toBe('ok');
     expect(checkout.mock.calls[0]![0]).toMatchObject({ price: 12.5, currency: 'EUR', serverCapture: true });
-    expect(calls.find(c => c.url.endsWith('?path=paypal%2Fconfirm'))!.body).toMatchObject({ item: 'gold:lifetime', orderID: 'O-2' });
+    expect(calls.find(c => c.url.endsWith('?path=paypal%2Fconfirm'))!.body).toMatchObject({ item: 'gold:year', orderID: 'O-2' });
     expect(s.player.get().gold).toBe(true);
   });
 

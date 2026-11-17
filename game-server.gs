@@ -499,7 +499,6 @@ function price_(item) {
   const p = (k, d) => Number(props.getProperty(k) || d);
   if (item === 'gold:month') return p('PRICE_GOLD_MONTH', 2.99);
   if (item === 'gold:year') return p('PRICE_GOLD_YEAR', 19.99);
-  if (item === 'gold:lifetime') return p('PRICE_GOLD_LIFETIME', 9.99);
   if (item.startsWith('pack:')) return (safeJson_(props.getProperty('PACK_PRICES')) || {})[item.slice(5)] || 0.99;
   if (item.startsWith('donate:')) return 0.01;
   return Infinity;                                  // anything else can't be bought
@@ -520,8 +519,8 @@ function paypalConfirm_(sheet, row, body) {
   orders.appendRow([orderID, sheet.getRange(row, C.sub).getValue(), item, amount, new Date()]);
   const gold = readJson_(sheet, row, C.gold, null);
   const lifetime = gold && gold.exp === 0;
-  if (item === 'gold:lifetime') writeJson_(sheet, row, C.gold, { plan: 'lifetime', exp: 0 });
-  if ((item === 'gold:month' || item === 'gold:year') && !lifetime) {   // never shorten Lifetime Gold
+  // Lifetime Gold is no longer sold (2026-11-16), but players who bought it keep it: never shorten it
+  if ((item === 'gold:month' || item === 'gold:year') && !lifetime) {
     const start = gold && gold.exp > now_() ? gold.exp : now_();
     writeJson_(sheet, row, C.gold, { plan: item.slice(5), exp: start + (item === 'gold:year' ? 365 : 30) * DAY });
   }

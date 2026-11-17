@@ -8,7 +8,6 @@ export interface GameSettings {
   paypalClientId: string;
   paypalPlanMonth: string;
   paypalPlanYear: string;
-  goldPriceLifetime: number;
   goldPriceYear: number;
   goldPriceMonth: number;
   currency: string;
@@ -19,7 +18,7 @@ export interface GameSettings {
 
 export const DEFAULT_SETTINGS: GameSettings = {
   serverUrl: '', googleClientId: '', feedbackUrl: '', paypalClientId: '', paypalPlanMonth: '', paypalPlanYear: '',
-  goldPriceLifetime: 9.99, goldPriceYear: 19.99, goldPriceMonth: 2.99, currency: 'USD',
+  goldPriceYear: 19.99, goldPriceMonth: 2.99, currency: 'USD',
   amazonTag: '', merchUrl: '', freeOnlinePlayers: 4,
 };
 
@@ -27,7 +26,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
 const FILE_KEYS: Record<string, keyof GameSettings> = {
   'Server URL': 'serverUrl', 'Google Client ID': 'googleClientId', 'Feedback URL': 'feedbackUrl',
   'PayPal Client ID': 'paypalClientId', 'PayPal Plan Month': 'paypalPlanMonth', 'PayPal Plan Year': 'paypalPlanYear',
-  'Gold Price Lifetime': 'goldPriceLifetime', 'Gold Price Year': 'goldPriceYear', 'Gold Price Month': 'goldPriceMonth',
+  'Gold Price Year': 'goldPriceYear', 'Gold Price Month': 'goldPriceMonth',
   'Currency': 'currency', 'Amazon Tag': 'amazonTag', 'Merch URL': 'merchUrl', 'Free Online Players': 'freeOnlinePlayers',
 };
 
