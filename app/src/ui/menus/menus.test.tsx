@@ -199,6 +199,21 @@ describe('starting games', () => {
     expect(game().seats[0]!.bot).toBeNull();
   });
 
+  it('Just watch bots play: pick how many and how hard first, then Start', () => {
+    act(() => { render(<MenuScreen />, root); });
+    click('Play');
+    act(() => { [...root.querySelectorAll('button')].find(b => b.textContent === 'Just watch bots play')!.click(); });
+    expect(screen.get()).toBe('menu');                          // nothing starts yet
+    expect(root.textContent).toContain('Watch bots play');
+    act(() => { (root.querySelector('[aria-label="Bots more"]') as HTMLButtonElement).click(); });
+    const bots = settings.get().game.bots;
+    expect(settings.get().game.players).toBe(bots);
+    click('Easy');
+    click('Start');
+    expect(screen.get()).toBe('game');
+    expect(game().seats.map(s => s.bot)).toEqual(Array(bots).fill('easy'));
+  });
+
   it('bots can be set one by one', () => {
     settings.set(clampSettings({ ...DEFAULT_UI_SETTINGS, game: { ...DEFAULT_UI_SETTINGS.game, players: 3, bots: 2, difficulties: Array(6).fill('easy') } }));
     act(() => { render(<MenuScreen />, root); });

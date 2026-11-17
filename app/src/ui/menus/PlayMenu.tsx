@@ -1,5 +1,5 @@
-// Play: first how you want to play (bots, Pass'n'Play or online), then only what that way needs (how many
-// bots and how hard, how many people and their names). Online goes to the Online screen (find a game, open
+// Play: first how you want to play (bots, Pass'n'Play, online or just watching bots), then only what that way
+// needs (how many bots and how hard, how many people and their names). Online goes to the Online screen (find a game, open
 // a room, or join with a code). What was picked is kept in the settings, so next time it's already chosen.
 import { useState } from 'preact/hooks';
 import type { Ending } from '../../game';
@@ -12,7 +12,7 @@ import { PlayerNames } from './PlayerNames';
 import { ENDING_NAMES, MAX_PLAYERS, MIN_PLAYERS, updateSettings, type BotLevel } from './prefs';
 import { startPassNPlay, startVsBots, startWatch } from './start';
 
-type Step = 'mode' | 'bots' | 'pass' | 'names';
+type Step = 'mode' | 'bots' | 'watch' | 'pass' | 'names';
 
 const LEVELS: { value: BotLevel; name: string }[] = [
   { value: 'easy', name: 'Easy' }, { value: 'medium', name: 'Medium' }, { value: 'hard', name: 'Hard' }, { value: 'random', name: 'Random' },
@@ -109,6 +109,12 @@ export function PlayMenu({ onClose }: { onClose: () => void }) {
       setGame({ players: Math.min(MAX_PLAYERS, people + g.bots), bots: Math.min(g.bots, MAX_PLAYERS - people) });
       setStep('pass');
     };
+    const pickWatch = () => {
+      // 2-6 bots and nobody else
+      const bots = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, g.players));
+      setGame({ players: bots, bots });
+      setStep('watch');
+    };
     return (
       <Modal title="How do you want to play?" onClose={onClose}>
         <div class="menu-list play">
@@ -118,7 +124,7 @@ export function PlayMenu({ onClose }: { onClose: () => void }) {
           <p class="play__about">Pass'n'Play: friends take turns on this device.</p>
           <div class="play__buttons">
             <Button color="plain" onClick={onClose}>Cancel</Button>
-            <button type="button" class="play__link" onClick={() => { onClose(); startWatch(); }}>Just watch bots play</button>
+            <button type="button" class="play__link" onClick={pickWatch}>Just watch bots play</button>
           </div>
         </div>
       </Modal>
@@ -137,6 +143,24 @@ export function PlayMenu({ onClose }: { onClose: () => void }) {
           <div class="play__buttons">
             <Button color="plain" onClick={() => setStep('mode')}>Back</Button>
             <Button onClick={() => { onClose(); startVsBots(); }}>Start</Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (step === 'watch') {
+    return (
+      <Modal title="Watch bots play" onClose={onClose}>
+        <div class="play settings">
+          <Row label="How many bots?">
+            <Stepper label="Bots" value={g.bots} min={MIN_PLAYERS} max={MAX_PLAYERS} onChange={bots => setGame({ players: bots, bots })} />
+          </Row>
+          <BotLevels g={g} />
+          <MoreOptions g={g} />
+          <div class="play__buttons">
+            <Button color="plain" onClick={() => setStep('mode')}>Back</Button>
+            <Button onClick={() => { onClose(); startWatch(); }}>Start</Button>
           </div>
         </div>
       </Modal>
