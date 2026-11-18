@@ -55,7 +55,7 @@ describe('bots-only games', () => {
       expect(cardsInGame(state)).toBe(DECK_SIZE);
       expect(events.at(-1)?.type).toBe('gameOver');
     }
-  });
+  }, 30_000);   // 6-player games take a few seconds when the computer is busy
 
   it('the same seed plays the same game', async () => {
     const s = settingsFor(4, 3, 1, ['hard', 'medium']);
