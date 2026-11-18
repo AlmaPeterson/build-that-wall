@@ -1,7 +1,8 @@
 // What the TypeScript game sends inside the room's data messages (services/online, t: 'x').
 // The host runs the game; each player only ever receives their own view of it.
 import type { Action, ActionResult, Answer, Decision, Ending, GameEvent, GameState, Seat } from '../../game';
-import type { Waiting } from '../controller';
+import type { Device } from '../../services/online';
+import type { SavedGame, Waiting } from '../controller';
 
 export type ToHost =
   | { k: 'name'; name: string; guests?: string[] }                // a player's name, sent after joining, and the people playing on their device too
@@ -12,7 +13,25 @@ export type ToHost =
 export type ToPlayer =
   | { k: 'lobby'; players: LobbyPlayer[]; bots: number; ending?: Ending; endingTimes?: 1 | 2 }   // broadcast while waiting to start
   | { k: 'snap'; seat: Seat; view: GameState; events: GameEvent[]; from: number; total: number; waiting?: Waiting | null }
-  | { k: 'result'; id: number; result: ActionResult };
+  | { k: 'result'; id: number; result: ActionResult }
+  | Backup                                                        // to the heir: the game, to carry on if the host leaves
+  | { k: 'nobackup' };                                            // to a former heir: someone else is the heir now
+
+/**
+ * The host keeps one other device (the heir) up to date with the whole game, so it can take over hosting
+ * if the host leaves. takeover: take over now (the device that opened the room is back, and gets it again).
+ */
+export interface Backup {
+  k: 'backup';
+  saved: SavedGame;
+  /** Room seat of each human game seat (as HostController's roomSeats). */
+  roomSeats: number[];
+  devices: Device[];
+  formers: Device[];
+  /** The device that opened the room: hosting goes back to it when it returns. */
+  origin: string;
+  takeover?: boolean;
+}
 
 /** Room seat (1 = host). A guest plays on the same device as the room seat's player (Pass'n'Play inside an online game). */
 export interface LobbyPlayer { seat: number; name: string; guest?: boolean }
@@ -30,7 +49,7 @@ export function isToHost(d: unknown): d is ToHost {
 }
 
 export function isToPlayer(d: unknown): d is ToPlayer {
-  return !!d && typeof d === 'object' && ['lobby', 'snap', 'result'].includes((d as { k?: string }).k ?? '');
+  return !!d && typeof d === 'object' && ['lobby', 'snap', 'result', 'backup', 'nobackup'].includes((d as { k?: string }).k ?? '');
 }
 
 /**

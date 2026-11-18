@@ -5,7 +5,7 @@
 // that device passes itself between them like Pass'n'Play. The host's own guests play on this device.
 import { redactEvent, viewFor, type Action, type ActionResult, type Answer, type BotMemory, type Decider, type Decision, type GameSettings, type GameState, type Seat } from '../../game';
 import type { OnlineRoom } from '../../services/online';
-import { GameController, waitingOn, type Waiting } from '../controller';
+import { GameController, waitingOn, type SavedGame, type Waiting } from '../controller';
 import { ASK_MODE, TURN_OK, parseAnswer, type ToHost, type ToPlayer } from './messages';
 
 const SEND_DELAY_MS = 40;      // gather a burst of changes (a bot's turn) into one snapshot
@@ -23,9 +23,11 @@ export class HostController extends GameController {
   /** Stops waiting for a remote player's answer (a bot took over their seat): the safe fallback answer is used. */
   private stopAsk = new Map<Seat, () => void>();
 
-  constructor(private readonly room: Pick<OnlineRoom, 'sendData' | 'ask'>, roomSeats: number[], memory?: BotMemory, turnBanner = false) {
+  /** onSave: the game so far, whenever it can be carried on from there (sent to the heir, who takes over if the host leaves). */
+  constructor(private readonly room: Pick<OnlineRoom, 'sendData' | 'ask'>, roomSeats: number[], memory?: BotMemory, turnBanner = false,
+    onSave?: (saved: SavedGame | null) => void) {
     super({
-      passScreen: true, memory, turnBanner,
+      passScreen: true, memory, turnBanner, onSave,
       localSeats: roomSeats.flatMap((r, seat) => (r === 1 ? [seat] : [])),
       remoteDecider: seat => ((roomSeats[seat] ?? 1) !== 1 ? this.remote(seat) : null),
     });
@@ -90,6 +92,9 @@ export class HostController extends GameController {
   }
 
   private nameOf(seat: Seat): string { return this.state?.seats[seat]?.name ?? 'Player ' + (seat + 1); }
+
+  /** Room seat of each human game seat. */
+  get seatMap(): number[] { return [...this.roomSeats]; }
 
   /** The game seats played on this device: the host and their guests. */
   get hostSeats(): Seat[] { return this.roomSeats.flatMap((r, seat) => (r === 1 ? [seat] : [])); }

@@ -55,7 +55,21 @@ export interface RoomEvents {
   onStillHere?(seat: number): void;
   /** Host: a player who left the running game came back (same device id) and has their seat again. */
   onRejoin?(seat: number): void;
+  /**
+   * Player: the host left (or went quiet) while a game was running. Return true to wait a little for another
+   * device to take over hosting (becomeHost) instead of ending; this device may be the one that does.
+   */
+  onHostGone?(): boolean;
+  /** Player: another device hosts the room from now on (it took over, or this device handed hosting to it). */
+  onNewHost?(cid: string): void;
+  /** Host: handing hosting to another device didn't happen in time; this device is still the host. */
+  onHandOverFailed?(): void;
+  /** Host: the connection dropped, and another device took over hosting meanwhile. This device has left the room. */
+  onReplaced?(): void;
 }
+
+/** A device in the room and its seat (1 = the host). */
+export interface Device { cid: string; seat: number }
 
 export type Role = '' | 'host' | 'client';
 
@@ -97,6 +111,8 @@ export const STILL_MS = 60000;
 export const STILL_GRACE_MS = 20000;
 // Quick match: a room whose host doesn't welcome us this fast is probably left over; try the next one
 const QUICK_JOIN_WAIT_MS = 4000;
+// The host left a running game: how long players wait for another device to take over before giving up
+const MIGRATE_MS = 15000;
 
 /** Is this retained room info from a host that's still there? (A host in the background updates it rarely.) */
 export function roomAlive(info: RoomInfo, now: number, fresh: number): boolean {
@@ -167,6 +183,8 @@ export class OnlineRoom {
   private scan: Map<string, RoomInfo> | null = null;
   private roomWait: ((info: RoomInfo | null) => void) | null = null;
   private joinDone: ((seat: number) => void) | null = null;
+  private waitingHost: ReturnType<typeof setTimeout> | null = null;   // player: the host left; waiting for a new one
+  private handingOver: { cid: string; seat: number; timer: ReturnType<typeof setTimeout> } | null = null;   // host: giving hosting to cid
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private beatTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -262,6 +280,7 @@ export class OnlineRoom {
     this._role = ''; this._code = ''; this._seat = 1; this.was = false; this.last = '';
     this.conns.clear(); this.cid2seat.clear(); this.former.clear(); this.seen.clear(); this.away.clear(); this.stillAsked.clear(); this.joining = false;
     this.hostAway = false;
+    this.clearMigration();
     this.stopTimers();
     this.backWaiter?.();
     this.events.onSeat?.(1);
@@ -331,6 +350,78 @@ export class OnlineRoom {
     return true;
   }
 
+  /** Host: every device in the room, this one (seat 1) included. */
+  devices(): Device[] {
+    if (this._role !== 'host') return [];
+    return [{ cid: this.cid, seat: 1 }, ...[...this.conns].map(([seat, c]) => ({ cid: c.cid, seat }))].sort((a, b) => a.seat - b.seat);
+  }
+
+  /** Host: the devices that left the running game and may come back to their seat. */
+  formerDevices(): Device[] {
+    return this._role === 'host' ? [...this.former].map(([cid, seat]) => ({ cid, seat })) : [];
+  }
+
+  /**
+   * Player: host this room from now on, with these devices in their seats (this one becomes seat 1) and these
+   * former players able to come back. Everyone is told ('newhost').
+   */
+  async becomeHost(devices: Device[], formers: Device[]): Promise<void> {
+    if (!this._code || this._role === 'host') return;
+    this.clearMigration();
+    const t = topics(this._code), now = Date.now();
+    this._role = 'host'; this._seat = 1; this.hostAway = false;
+    this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.former.clear(); this.away.clear(); this.stillAsked.clear();
+    for (const d of devices) {
+      if (d.cid === this.cid || d.seat <= 1) continue;
+      this.conns.set(d.seat, { cid: d.cid }); this.cid2seat.set(d.cid, d.seat); this.seen.set(d.seat, now);
+    }
+    for (const f of formers) if (!this.cid2seat.has(f.cid)) this.former.set(f.cid, f.seat);
+    this.events.onSeat?.(1);
+    this.unsub(t.client(this.cid));
+    await this.sub(t.up);
+    this.pub(t.down, { t: 'newhost', cid: this.cid });
+    this.roomInfo();
+    this.startTimers();
+  }
+
+  /**
+   * Host: give hosting to the device `cid` (it takes over with becomeHost when it gets the game); this device
+   * becomes a player in `seat`. If that doesn't happen soon, it stays the host (onHandOverFailed).
+   */
+  async handOver(cid: string, seat: number): Promise<void> {
+    if (this._role !== 'host' || this.handingOver) return;
+    const t = topics(this._code);
+    const timer = setTimeout(() => { this.handingOver = null; this.events.onHandOverFailed?.(); }, MIGRATE_MS);
+    this.handingOver = { cid, seat, timer };
+    await this.sub(t.down); await this.sub(t.client(this.cid));
+  }
+
+  /** The other device has taken over: this one is a player now. */
+  private becomeClient(seat: number, hostCid: string): void {
+    this.clearMigration();
+    this.unsub(topics(this._code).up);
+    this._role = 'client'; this._seat = seat; this.lastSeen = Date.now(); this.hostAway = false;
+    this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.former.clear(); this.away.clear(); this.stillAsked.clear();
+    this.events.onSeat?.(seat);
+    this.events.onNewHost?.(hostCid);
+  }
+
+  private clearMigration(): void {
+    if (this.waitingHost) clearTimeout(this.waitingHost);
+    this.waitingHost = null;
+    if (this.handingOver) clearTimeout(this.handingOver.timer);
+    this.handingOver = null;
+  }
+
+  /** Player: the host left or went quiet. During a game, wait for another device to take over; otherwise it's over. */
+  private hostGone(): void {
+    if (this._role !== 'client' || this.waitingHost) return;
+    if (!this.game.isRunning() || !this.events.onHostGone?.()) { this.lost(); return; }
+    if (this._role !== 'client') return;                   // this device took over straight away
+    this.lastSeen = Date.now();
+    this.waitingHost = setTimeout(() => { this.waitingHost = null; this.lost(); }, MIGRATE_MS);
+  }
+
   /** Host: send data to every connected player at once (for things everyone may see). */
   broadcastData(data: unknown): void {
     if (this._role === 'host') this.pub(topics(this._code).down, { t: 'x', to: 0, from: 1, data });
@@ -369,7 +460,7 @@ export class OnlineRoom {
         if (await this.connect()) {
           if (!still()) { this.dropConnection(); return; }
           await this.rejoin();
-          this.events.onReconnected?.();
+          if (this._role) this.events.onReconnected?.();
           return;
         }
         await new Promise(r => setTimeout(r, RECONNECT_MS));
@@ -384,6 +475,13 @@ export class OnlineRoom {
   private async rejoin(): Promise<void> {
     const t = topics(this._code);
     if (this._role === 'host') {
+      // Gone long enough for another device to take over hosting: this one has left the room
+      const info = await this.peekRoom(this._code);
+      if (info?.host && info.host !== this.cid && roomAlive(info, Date.now(), ROOM_STALE_MS)) {
+        this._role = ''; this.stopTimers();
+        this.events.onReplaced?.();
+        return;
+      }
       await this.sub(t.up);
       const now = Date.now();
       for (const s of this.seen.keys()) this.seen.set(s, now);      // we were the one who couldn't hear them
@@ -418,6 +516,7 @@ export class OnlineRoom {
 
   private openAsHost(code: string, max: number | undefined, spectators: boolean, world: boolean): void {
     this._code = code; this._role = 'host'; this._seat = 1;
+    this.cid = 'c' + this.random().toString(36).slice(2, 12);     // so another device can host after us, and we can come back
     this.max = Math.max(2, Math.min(6, +(max ?? 6) || 6));
     this.spectators = spectators; this.world = world;
     this.conns.clear(); this.cid2seat.clear(); this.seen.clear(); this.former.clear();
@@ -427,12 +526,7 @@ export class OnlineRoom {
   private async joinCode(code: string, wait: number, cid?: string): Promise<number> {
     this._code = code; this.cid = cid || 'c' + this.random().toString(36).slice(2, 12); this._err = '';
     const t = topics(code);
-    const info = await new Promise<RoomInfo | null>((res) => {
-      this.roomWait = res;
-      void this.sub(t.room);
-      setTimeout(() => res(null), ROOM_WAIT_MS);
-    });
-    this.roomWait = null; this.unsub(t.room);
+    const info = await this.peekRoom(code);
     if (!info || !info.open || !roomAlive(info, Date.now(), ROOM_STALE_MS)) {
       if (info && info.open) this.clearRoom(code);         // left over by a host that's gone
       this._err = 'peer-unavailable'; return 0;
@@ -445,9 +539,22 @@ export class OnlineRoom {
       setTimeout(() => { if (this.joinDone) { this._err = 'timeout'; this.joinDone = null; res(0); } }, wait);
     });
     this.joining = false;
+    if (this._role === 'host') return seat;               // handed hosting straight away (coming back to a game we hosted)
     if (seat !== 0) { this._role = 'client'; this.lastSeen = Date.now(); this.startTimers(); return seat; }
     this.unsub(t.down); this.unsub(t.client(this.cid));
     return 0;
+  }
+
+  /** The room's retained info, or null if there's none. */
+  private async peekRoom(code: string): Promise<RoomInfo | null> {
+    const t = topics(code);
+    const info = await new Promise<RoomInfo | null>((res) => {
+      this.roomWait = res;
+      void this.sub(t.room);
+      setTimeout(() => res(null), ROOM_WAIT_MS);
+    });
+    this.roomWait = null; this.unsub(t.room);
+    return info;
   }
 
   // ---- incoming
@@ -464,6 +571,11 @@ export class OnlineRoom {
     if (!d) return;
     this.lastSeen = Date.now();
     const t = topics(this._code);
+    // Handing hosting over: the other device says it has taken over
+    if (this.handingOver && topic === t.down && d.t === 'newhost') {
+      if (d.cid === this.handingOver.cid) this.becomeClient(this.handingOver.seat, d.cid);
+      return;
+    }
     if (this._role === 'host' && topic === t.up) {
       if (!('cid' in d) || typeof d.cid !== 'string') return;
       if (d.t === 'hello') { this.hostHello(d.cid, d.back === 1); return; }
@@ -486,7 +598,13 @@ export class OnlineRoom {
       if (d.t === 'hb') return;
       if (d.t === 'away') { this.hostAway = true; return; }
       if (d.t === 'back') { this.hostAway = false; return; }
-      if (d.t === 'end') { this.lost(); return; }
+      if (d.t === 'end') { this.hostGone(); return; }
+      if (d.t === 'newhost') {
+        if (this.waitingHost) clearTimeout(this.waitingHost);
+        this.waitingHost = null; this.hostAway = false;
+        if (this._role === 'client' && d.cid !== this.cid) this.events.onNewHost?.(d.cid);
+        return;
+      }
       if (d.t === 'still') { if (this._role === 'client') this.events.onStillAsk?.(Math.max(0, +d.left || 0)); return; }
       if (d.t === 'dropped') { if (this._role === 'client') { this._role = ''; this.stopTimers(); this.events.onDropped?.(); } return; }
       if ('_except' in d && d._except !== undefined && d._except === this._seat) return;
@@ -634,7 +752,7 @@ export class OnlineRoom {
 
   private roomInfo(): void {
     if (this._role !== 'host') return;
-    const info: RoomInfo = { open: 1, players: this.count, max: this.max, running: this.game.isRunning() ? 1 : 0, world: this.world ? 1 : 0, ts: Date.now() };
+    const info: RoomInfo = { open: 1, players: this.count, max: this.max, running: this.game.isRunning() ? 1 : 0, world: this.world ? 1 : 0, ts: Date.now(), host: this.cid };
     if (this.myAway) info.away = 1;
     this.pub(topics(this._code).room, info, true);
   }
@@ -698,7 +816,7 @@ export class OnlineRoom {
       // While either page is in the background, silence is expected; back in front, setAway reconnects if needed
       // (Never while this page is in the background: it can't tell, and coming back checks the connection.)
       const limit = this.hostAway ? AWAY_GONE_MS : GONE_MS;
-      if (!this.myAway && Date.now() - (this.lastSeen || Date.now()) > limit) this.lost();
+      if (!this.myAway && Date.now() - (this.lastSeen || Date.now()) > limit) this.hostGone();
     }
   }
 }

@@ -36,6 +36,8 @@ export interface RoomInfo {
   ts: number;
   /** The host's page is in the background: its timers barely run, so ts goes stale while it's still there. */
   away?: 1;
+  /** The host's device id: another device may take over hosting a running game (see 'newhost'). */
+  host?: string;
 }
 
 // ---- game messages: can travel both ways, the host relays them between players
@@ -110,6 +112,7 @@ export type DownMsg =
   | { t: 'still'; left: number }               // (on /c/<cid>) the host hasn't heard from you: still there? left = ms to answer
   | { t: 'dropped' }                           // (on /c/<cid>) you didn't answer in time: you've left the game
   | { t: 'end' }
+  | { t: 'newhost'; cid: string }              // the device with this id hosts the room from now on (the host left, or handed it back)
   /** _except: the seat this was relayed from, which ignores it. */
   | (GameMsg & { _except?: number; cid?: string });
 

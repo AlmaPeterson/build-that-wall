@@ -127,6 +127,15 @@ export class OnlineClientController extends GameController {
     done?.();
   }
 
+  /** Another device hosts the game now: questions the old host asked will never be answered there; the new host asks again. */
+  hostChanged(): void {
+    this.pending = [];
+    this.turnOkDone = null; this.turnOkSeat = null;
+    for (const done of this.results.values()) done({ ok: false, reason: 'The host changed. Try again.' });
+    this.results.clear();
+    this.publishView();
+  }
+
   /** This device's first seat (its own player). */
   get seat(): Seat { return this.mine[0] ?? 0; }
   /** Every seat played on this device. */

@@ -1,13 +1,17 @@
 // An online session for the Online screen: quick match, host a room, join with a code, the lobby,
 // starting the game (host) and following it (players). Any device can add guests: more people playing on
 // that same device, who pass it between them (Pass'n'Play inside an online game).
+//
+// If the host leaves a running game, the game goes on: the host keeps one other device (the heir) up to date
+// with the whole game, and the heir takes over hosting while a bot plays the old host's cards. When the device
+// that opened the room comes back, it gets its seat back and hosting is handed back to it.
 import type { BotMemory, Difficulty, Ending, GameSettings } from '../../game';
 import { OnlineRoom, cleanName, type AskMsg, type Connect } from '../../services/online';
-import type { GameController } from '../controller';
+import type { GameController, SavedGame } from '../controller';
 import { createStore, type Store } from '../store';
 import { OnlineClientController } from './client';
 import { HostController } from './host';
-import { ASK_MODE, MAX_SEATS, TURN_OK, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
+import { ASK_MODE, MAX_SEATS, TURN_OK, isToHost, isToPlayer, type Backup, type LobbyPlayer, type ToPlayer } from './messages';
 
 export type Phase = 'idle' | 'connecting' | 'lobby' | 'playing' | 'ended';
 export type BotLevel = Difficulty | 'random';
@@ -68,6 +72,8 @@ export interface RejoinInfo {
   at: number;
   /** It left without meaning to (reload, closed page): go straight back in when the page opens again. */
   auto: boolean;
+  /** It was the host: another device takes over hosting, and gives it back when this one returns. */
+  host?: boolean;
 }
 
 /** Back in automatically after a reload this soon; with the Rejoin button this soon. */
@@ -90,6 +96,16 @@ export class OnlineSession {
   private running = false;
   private stillTimer: ReturnType<typeof setTimeout> | null = null;
   private stopWatchingEnd: (() => void) | null = null;
+  /** The controller on the board now. */
+  private showing: GameController | null = null;
+  /** Host: the game as it was last saved, for the heir. */
+  private lastSave: SavedGame | null = null;
+  /** Host: the device the backups go to. */
+  private heirCid = '';
+  /** The device that opened the room: hosting goes back to it when it returns. */
+  private originCid = '';
+  /** Player: the host's latest backup (this device is the heir). */
+  private backup: Backup | null = null;
 
   constructor(private readonly deps: SessionDeps) {
     this.room = this.makeRoom();
@@ -125,7 +141,13 @@ export class OnlineSession {
       // Host: they're back; send them everything again
       onStillHere: seat => { for (const g of this.host?.gameSeats(seat) ?? []) this.host?.resyncSeat(g); },
       // Host: someone who left came back to their seat: they (and their guests) play again
-      onRejoin: seat => { for (const g of this.host?.gameSeats(seat) ?? []) this.host?.playerBack(g); },
+      onRejoin: seat => this.onRejoin(seat),
+      // The host left a running game: the heir takes over, and everyone waits for it
+      onHostGone: () => { if (this.backup) void this.takeOver(this.backup); return this.running; },
+      onNewHost: () => this.onNewHost(),
+      onHandOverFailed: () => this.handOverFailed(),
+      // This device was the host, dropped out, and another device took over meanwhile: come back in as a player
+      onReplaced: () => { this.remember(true, true); void this.rejoin(); },
     }, this.deps.random);
   }
 
@@ -137,6 +159,7 @@ export class OnlineSession {
     const code = await this.room.host({ max });
     if (!code) return this.failed();
     this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
+    this.originCid = this.room.clientId;
     this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '', difficulties: this.startingLevels(), ...this.startingEnding() });
     this.lobby();
     return true;
@@ -164,6 +187,7 @@ export class OnlineSession {
     if (seat <= 0) return this.failed();
     if (this.room.role === 'host') {
       this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
+      this.originCid = this.room.clientId;
       this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '', difficulties: this.startingLevels(), ...this.startingEnding() });
       this.lobby();
     } else this.joined(seat);
@@ -241,7 +265,13 @@ export class OnlineSession {
     // Ready before the host's welcome: it sends everything again straight away, and the board shows once that arrives (onData)
     const client = new OnlineClientController(msg => this.room.sendData(1, msg));
     this.client = client;
-    const seat = await this.room.join(info.code, undefined, info.cid);
+    // Right after the host left, the room is closed for a moment until another device takes over: the old host tries a few times
+    let seat = 0;
+    for (let i = 0; i < (info.host ? 3 : 1) && seat <= 0 && this.client === client; i++) {
+      if (i) await (this.deps.wait ?? sleep)(2500);
+      if (this.client === client) seat = await this.room.join(info.code, undefined, info.cid);
+    }
+    if (this.host) return true;                                         // we opened this room: hosting was handed straight back
     if (this.client !== client) return false;                          // the player gave up (Cancel)
     if (seat <= 0) {
       this.forget();
@@ -258,9 +288,12 @@ export class OnlineSession {
   forget(): void { this.deps.rejoinStore?.save(null); }
 
   /** A player (not the host) in a running game: remember it, to get back in. auto: left without meaning to. */
-  private remember(auto: boolean): void {
-    if (this.room.role !== 'client' || !this.running || !this.client || this.client.state?.over) return;
-    const info: RejoinInfo = { code: this.room.code, cid: this.room.clientId, at: this.now(), auto };
+  /** replaced: this device was the host and another device took over (the room no longer says we host it). */
+  private remember(auto: boolean, replaced = false): void {
+    const role = this.room.role, c = this.controller;
+    if ((role !== 'client' && role !== 'host' && !replaced) || !this.running || !c || c.state?.over) return;
+    const info: RejoinInfo = { code: this.room.code || this.state.get().code, cid: this.room.clientId, at: this.now(), auto };
+    if (role === 'host' || replaced) info.host = true;
     this.deps.rejoinStore?.save(JSON.stringify(info));
   }
 
@@ -282,6 +315,7 @@ export class OnlineSession {
     this.room.leave();
     this.running = false;
     this.host = null; this.client = null; this.names.clear(); this.guestsBy.clear();
+    this.showing = null; this.lastSave = null; this.heirCid = ''; this.originCid = ''; this.backup = null;
     this.clearStill();
     this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
     this.state.set({ ...IDLE, guests: this.state.get().guests });   // the people on this device stay for next time
@@ -373,12 +407,141 @@ export class OnlineSession {
       ...base, players: roomSeats.length + bots, bots, difficulties, ending: this.state.get().ending, endingTimes: this.state.get().endingTimes,
       names: people.map(p => p.name),
     };
-    this.host = new HostController(this.room, roomSeats, this.deps.memory, true);
+    this.host = this.newHost(roomSeats);
     this.running = true;
     this.set({ phase: 'playing', status: '', error: '' });
-    this.deps.show(this.host);
-    this.watchForEnd(this.host);
+    this.display(this.host);
     return this.host.start(settings, seed);
+  }
+
+  /** Show a controller on the board (once). */
+  private display(c: GameController): void {
+    if (this.showing === c) return;
+    this.showing = c;
+    this.deps.show(c);
+    this.watchForEnd(c);
+  }
+
+  // ---- the host leaving: another device carries on hosting
+
+  private newHost(roomSeats: number[]): HostController {
+    return new HostController(this.room, roomSeats, this.deps.memory, true, saved => { this.lastSave = saved; this.sendBackup(); });
+  }
+
+  /** The device that takes over if the host leaves: the one that opened the room, if it's here, else the lowest seat. */
+  private heir(): { cid: string; seat: number } | null {
+    const others = this.room.devices().filter(d => d.seat !== 1);
+    return others.find(d => d.cid === this.originCid) ?? others[0] ?? null;
+  }
+
+  private backupFor(takeover = false): Backup | null {
+    if (!this.host || !this.lastSave) return null;
+    return {
+      k: 'backup', saved: this.lastSave, roomSeats: this.host.seatMap, devices: this.room.devices(),
+      formers: this.room.formerDevices(), origin: this.originCid, ...(takeover ? { takeover: true } : {}),
+    };
+  }
+
+  /** Host: keep the heir up to date (and tell a former heir it isn't any more). */
+  private sendBackup(): void {
+    if (this.room.role !== 'host' || !this.host || this.host.state?.over) return;
+    const heir = this.heir();
+    if (this.heirCid && heir?.cid !== this.heirCid) {
+      const old = this.room.devices().find(d => d.cid === this.heirCid);
+      if (old) this.room.sendData(old.seat, { k: 'nobackup' } satisfies ToPlayer);
+    }
+    this.heirCid = heir?.cid ?? '';
+    const b = this.backupFor();
+    if (heir && b) this.room.sendData(heir.seat, b);
+  }
+
+  /**
+   * Become the host, carrying on the game in `b`. This device takes seat 1 and the old host takes this device's
+   * old seat. If the old host left, a bot plays their cards until they come back.
+   */
+  private async takeOver(b: Backup): Promise<void> {
+    if (this.host || this.room.role !== 'client') return;
+    this.backup = null;
+    const mine = this.room.seat, me = this.room.clientId;
+    const oldHost = b.devices.find(d => d.seat === 1)?.cid ?? '';
+    const swap = (r: number) => (r === 1 ? mine : r === mine ? 1 : r);
+    const roomSeats = b.roomSeats.map(swap);
+    const devices = b.devices.filter(d => d.cid !== me && d.cid !== oldHost);
+    const formers = [...b.formers];
+    if (b.takeover) devices.push({ cid: oldHost, seat: mine });        // handed to us: they're still here, as a player
+    else formers.push({ cid: oldHost, seat: mine });                    // they left: they can come back to that seat
+    this.originCid = b.origin;
+    this.client = null;
+    await this.room.becomeHost(devices, formers);
+    const saved = structuredClone(b.saved);
+    // The old host's seats (and their guests'): a bot plays them while they're away
+    const away = b.takeover ? [] : roomSeats.flatMap((r, seat) => (r === mine && !saved.state.seats[seat]?.bot ? [seat] : []));
+    // Coming back to host: our own seats are ours again (the backup was saved while a bot played them)
+    if (b.takeover) {
+      b.roomSeats.forEach((r, seat) => {
+        const p = saved.state.seats[seat];
+        if (r !== mine || !p?.standIn) return;
+        p.bot = null; p.standIn = false;
+        saved.events.push({ type: 'announce', seat, text: p.name + ' is back and playing again.' });
+      });
+    }
+    if (saved.at === 'turn') {
+      for (const seat of away) {
+        const p = saved.state.seats[seat]!;
+        p.bot = 'medium'; p.standIn = true;
+        saved.events.push({ type: 'announce', seat, text: p.name + ' left the game, so a bot is playing for them.' });
+      }
+    }
+    this.host = this.newHost(roomSeats);
+    this.lastSave = saved;
+    this.running = true;
+    this.set({ role: 'host', seat: 1, phase: 'playing', status: '', error: '' });
+    this.display(this.host);
+    void this.host.resume(saved);
+    if (saved.at === 'move') for (const seat of away) void this.host.playerLeft(seat);
+    this.host.resyncAll();
+    this.sendBackup();
+  }
+
+  /** Player: another device hosts the game now. Anything the old host asked is void; catch up with the new one. */
+  private onNewHost(): void {
+    this.backup = null;
+    if (this.host) {
+      // We handed hosting over: this device is a player now
+      this.host.stop();
+      this.host = null; this.lastSave = null; this.heirCid = '';
+      this.client = new OnlineClientController(msg => this.room.sendData(1, msg));
+      this.set({ role: 'client', seat: this.room.seat });
+    } else this.client?.hostChanged();
+    this.room.sendData(1, { k: 'resync' });
+  }
+
+  /** Host: a device came back to its seat. If it's the one that opened the room, it hosts again. */
+  private onRejoin(seat: number): void {
+    for (const g of this.host?.gameSeats(seat) ?? []) this.host?.playerBack(g);
+    const back = this.room.devices().find(d => d.seat === seat);
+    if (back && back.cid === this.originCid && back.cid !== this.room.clientId) void this.handBack(back.seat, back.cid);
+    else this.sendBackup();
+  }
+
+  private async handBack(seat: number, cid: string): Promise<void> {
+    const b = this.backupFor(true);
+    if (!b || !this.host) return;
+    await this.room.handOver(cid, seat);
+    this.room.sendData(seat, b);
+    this.host.stop();                     // the game carries on, from this backup, on their device
+  }
+
+  /** They didn't take over in time: carry on hosting from where we stopped. */
+  private handOverFailed(): void {
+    const saved = this.lastSave;
+    if (!this.host || !saved) return;
+    const roomSeats = this.host.seatMap;
+    this.host = this.newHost(roomSeats);
+    this.display(this.host);
+    void this.host.resume(structuredClone(saved));
+    this.host.resyncAll();
+    this.sendBackup();
   }
 
   // ---- messages
@@ -400,16 +563,17 @@ export class OnlineSession {
       return;
     }
     if (!isToPlayer(data) || !this.client) return;
+    if (data.k === 'backup') { if (data.takeover) void this.takeOver(data); else this.backup = data; return; }
+    if (data.k === 'nobackup') { this.backup = null; return; }
     if (data.k === 'lobby') {
       const ending = ([1, 2, 3, 4] as const).find(n => n === data.ending) ?? this.state.get().ending;
       this.set({ players: data.players, bots: data.bots, ending, endingTimes: data.endingTimes === 2 ? 2 : 1 });
       return;
     }
-    if (data.k === 'snap' && !this.running) {
+    if (data.k === 'snap' && this.showing !== this.client) {
       this.running = true;
       this.set({ phase: 'playing', status: '' });
-      this.deps.show(this.client);
-      this.watchForEnd(this.client);
+      this.display(this.client);
     }
     this.client.receive(data);
   }
@@ -427,6 +591,7 @@ export class OnlineSession {
     for (const seat of this.host?.gameSeats(roomSeat) ?? []) void this.host!.playerLeft(seat);
     if (!this.running) { this.names.delete(roomSeat); this.guestsBy.delete(roomSeat); }
     this.lobby();
+    this.sendBackup();                    // the heir may have been the one who left
   }
 
   /** Host: tell everyone who's in the room. */
@@ -454,6 +619,7 @@ export class OnlineSession {
     this.room.leave();
     this.running = false;
     this.host = null; this.client = null; this.names.clear(); this.guestsBy.clear();
+    this.showing = null; this.lastSave = null; this.heirCid = ''; this.originCid = ''; this.backup = null;
     this.clearStill();
     this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
     // The people on this device stay for the next room
