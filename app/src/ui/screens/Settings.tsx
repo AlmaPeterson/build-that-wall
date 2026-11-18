@@ -5,7 +5,7 @@ import { useRef } from 'preact/hooks';
 import { settings, type AnimSpeed, type TextArea, type UiSettings, goBack } from '../app-state';
 import { Button } from '../components/Button';
 import { Row, Toggle } from '../menus/controls';
-import { initSettingsPersistence, TEXT_STEPS, updateSettings } from '../menus/prefs';
+import { initSettingsPersistence, TEXT_RANGE, updateSettings } from '../menus/prefs';
 import { useStore } from '../store';
 import '../menus/menus.css';
 
@@ -15,6 +15,8 @@ const TEXT_AREAS: { area: TextArea; title: string; about: string }[] = [
   { area: 'cards', title: 'Cards in your hand', about: 'Makes your cards, and the words printed on them, bigger.' },
   { area: 'menu', title: 'Menus, windows and guides', about: 'The main menu, Settings, Instructions and the guide.' },
 ];
+
+const percent = (v: number) => Math.round(v * 100) + '%';
 
 const set = (patch: Partial<UiSettings>) => updateSettings(s => ({ ...s, ...patch }));
 
@@ -57,12 +59,13 @@ export function SettingsScreen() {
           <div class="settings__text" key={area}>
             <div class="settings__label">{title}</div>
             <div class="settings__about">{about}</div>
-            <div class="settings__steps" role="radiogroup" aria-label={title}>
-              {TEXT_STEPS[area].map(step => (
-                <button type="button" role="radio" key={step.name} aria-checked={s.textSizes[area] === step.value}
-                  class={s.textSizes[area] === step.value ? 'is-current' : ''}
-                  onClick={() => set({ textSizes: { ...s.textSizes, [area]: step.value } })}>{step.name}</button>
-              ))}
+            <div class="settings__slider">
+              <span aria-hidden="true" class="settings__small">A</span>
+              <input type="range" aria-label={title} min={TEXT_RANGE[area].min} max={TEXT_RANGE[area].max} step={0.05}
+                value={s.textSizes[area]} aria-valuetext={percent(s.textSizes[area])}
+                onInput={e => set({ textSizes: { ...s.textSizes, [area]: Number(e.currentTarget.value) } })} />
+              <span aria-hidden="true" class="settings__big">A</span>
+              <output>{percent(s.textSizes[area])}</output>
             </div>
           </div>
         ))}

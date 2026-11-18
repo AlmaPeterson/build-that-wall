@@ -23,12 +23,12 @@ const OLD_TO_LEVEL: Record<string, BotLevel> = { Easy: 'easy', Medium: 'medium',
  *  old categories one to one; "menu" uses the old "Windows and guides" size. */
 export const TEXT_PREF: Record<TextArea, string> = { menu: 'win', board: 'board', cards: 'hand', popups: 'pop' };
 
-/** The size choices per area (same steps as the old Text Size window). */
-export const TEXT_STEPS: Record<TextArea, { value: number; name: string }[]> = {
-  popups: [{ value: 0.85, name: 'Small' }, { value: 1, name: 'Normal' }, { value: 1.15, name: 'Large' }, { value: 1.3, name: 'Extra large' }],
-  board: [{ value: 0.9, name: 'Small' }, { value: 1, name: 'Normal' }, { value: 1.1, name: 'Large' }, { value: 1.2, name: 'Extra large' }],
-  cards: [{ value: 1, name: 'Normal' }, { value: 1.1, name: 'Large' }],
-  menu: [{ value: 0.85, name: 'Small' }, { value: 1, name: 'Normal' }],
+/** How small and big each area's text slider goes (1 = normal). Covers every size the old Text Size window had. */
+export const TEXT_RANGE: Record<TextArea, { min: number; max: number }> = {
+  popups: { min: 0.8, max: 1.4 },
+  board: { min: 0.8, max: 1.3 },
+  cards: { min: 0.9, max: 1.25 },
+  menu: { min: 0.8, max: 1.2 },
 };
 
 /** Every bot slot has a level, even bots not in use (the old game kept 6: Easy ×5, then Medium). */
@@ -46,9 +46,9 @@ export function clampSettings(s: UiSettings): UiSettings {
   const endingTimes = g.endingTimes === 2 ? 2 : 1;
   const names = Array.from({ length: MAX_PLAYERS }, (_, k) => String(g.names[k] ?? '').slice(0, 20));
   const textSizes = { ...s.textSizes };
-  for (const area of Object.keys(TEXT_STEPS) as TextArea[]) {
-    const v = Number(textSizes[area]);
-    textSizes[area] = v > 0 ? v : 1;
+  for (const area of Object.keys(TEXT_RANGE) as TextArea[]) {
+    const v = Number(textSizes[area]), { min, max } = TEXT_RANGE[area];
+    textSizes[area] = v > 0 ? Math.min(max, Math.max(min, Math.round(v * 100) / 100)) : 1;
   }
   return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, names }, textSizes };
 }

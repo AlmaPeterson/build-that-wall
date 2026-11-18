@@ -155,11 +155,17 @@ describe('text sizes', () => {
     expect(app.style.getPropertyValue('--text-board')).toBe('1.2');
   });
 
-  it('change when a size is picked on the Settings screen', () => {
+  it('change when a slider is moved on the Settings screen', () => {
     act(() => { render(<SettingsScreen />, root); });
-    const group = root.querySelector('[aria-label="Messages and choice lists"]')!;
-    act(() => { ([...group.querySelectorAll('button')].find(b => b.textContent === 'Large') as HTMLButtonElement).click(); });
+    const slider = root.querySelector('input[type=range][aria-label="Messages and choice lists"]') as HTMLInputElement;
+    act(() => { slider.value = '1.15'; slider.dispatchEvent(new Event('input', { bubbles: true })); });
     expect(settings.get().textSizes.popups).toBe(1.15);
+    expect(slider.parentElement!.querySelector('output')!.textContent).toBe('115%');
+  });
+
+  it('stay inside what each area allows', () => {
+    const s = clampSettings({ ...DEFAULT_UI_SETTINGS, textSizes: { menu: 3, board: 0.1, cards: 1.1, popups: -1 } });
+    expect(s.textSizes).toEqual({ menu: 1.2, board: 0.8, cards: 1.1, popups: 1 });
   });
 });
 
