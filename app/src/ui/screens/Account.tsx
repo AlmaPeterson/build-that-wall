@@ -7,6 +7,7 @@ import { Message, Page } from '../account/Page';
 import { saveMyName } from '../account/my-name';
 import { buyMessage, codeMessage, nameMessage, trialMessage, type Said } from '../account/results';
 import { Button } from '../components/Button';
+import { BACKS, HOLIDAY_NAMES, holidayOn } from '../card-back';
 import { services, type GoldItem } from '../services';
 import { useStore } from '../store';
 
@@ -53,6 +54,7 @@ export function AccountScreen() {
           })}>End payment</Button>}
         </div>
         <GoldCode busy={busy} run={run} say={s => say('gold', s)} />
+        <CardBack gold={player.gold} verified={player.verified} />
         <Message text={said.gold?.text ?? ''} ok={!!said.gold?.ok} />
       </section>
 
@@ -115,6 +117,35 @@ function AccountCard({ player, googleReady, busy, run, said, say }: { player: Pl
       </label>
       <Message text={said?.text ?? ''} ok={!!said?.ok} />
     </section>
+  );
+}
+
+/** Gold looks: the classic card back, or the holiday special (it only shows near the holidays). */
+function CardBack({ gold, verified }: { gold: boolean; verified: boolean }) {
+  const [choice, setChoice] = useState(() => services.store.get('back') || BACKS.classic);
+  const pick = (name: string) => {
+    services.store.set('back', name);
+    setChoice(name);
+    if (verified) void services.account.save(services.server());     // follows the player to their other devices
+  };
+  const now = holidayOn();
+  return (
+    <div class="btw-cardback">
+      <h3>Card back</h3>
+      <div class="btw-row" role="radiogroup" aria-label="Card back">
+        {[BACKS.classic, BACKS.holiday].map(name => (
+          <Button key={name} color={choice === name ? 'gold' : 'plain'} role="radio" aria-checked={choice === name}
+            disabled={!gold && name === BACKS.holiday} onClick={() => pick(name)}>
+            {name === BACKS.classic ? 'Classic' : 'Holiday special'}
+          </Button>
+        ))}
+      </div>
+      <p class="btw-muted">
+        {gold ? 'The holiday special only shows near the holidays: New Year, Valentine’s Day, St. Patrick’s Day, April Fools’ Day (watch out!), Independence Day, Labor Day, Halloween, Thanksgiving and Christmas.'
+          : 'Gold members can pick the holiday special card back.'}
+        {gold && now ? ' Right now: ' + HOLIDAY_NAMES[now] + '.' : ''}
+      </p>
+    </div>
   );
 }
 

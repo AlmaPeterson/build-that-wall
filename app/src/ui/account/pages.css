@@ -10,6 +10,8 @@
 .btw-page__body { width: min(100%, 760px); margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
 .btw-card { background: var(--paper); border: 3px solid var(--red-dark); border-radius: var(--radius); padding: 14px 16px; }
 .btw-card h2 { font-family: var(--font); color: var(--red); font-size: calc(1.2rem * var(--text-menu)); margin: 0 0 8px; }
+.btw-cardback { margin-top: 12px; }
+.btw-cardback h3 { margin: 0 0 4px; font-size: 1rem; color: var(--red); }
 .btw-card p { margin: 6px 0; line-height: 1.4; }
 .btw-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 .btw-row .btw-button { font-size: calc(1rem * var(--text-menu)); padding: 0.3em 0.9em; }

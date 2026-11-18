@@ -1,6 +1,7 @@
 // Draw and discard piles, actions left and the jail (Walls Display › define draw board).
 import type { GameState } from '../../game';
-import { CARD_BACK_IMAGE, cardImage } from '../assets';
+import { cardImage } from '../assets';
+import { cardBackImage } from '../card-back';
 import { cardById } from '../../data/cards';
 import { zoomProps } from '../components/zoom';
 
@@ -24,7 +25,7 @@ export function Piles({ state }: { state: GameState }) {
         <div class="piles__labels"><span>Draw</span><span>Discard</span></div>
         <div class="piles__box">
           <div class="piles__slot" aria-label={`Draw pile, ${state.draw.length} cards`}>
-            {state.draw.length > 0 && <img src={CARD_BACK_IMAGE()} alt="" />}
+            {state.draw.length > 0 && <img src={cardBackImage(state.draw.length)} alt="" />}
             <span class="piles__count">{state.draw.length}</span>
           </div>
           <div class="piles__slot" aria-label={`Discard pile, ${state.discard.length} cards`}>

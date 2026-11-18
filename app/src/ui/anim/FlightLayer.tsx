@@ -4,7 +4,8 @@ import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { CardPopup } from '../board/CardPopup';
 import { openCardBelow, showCard, zoomedCard } from '../components/zoom';
 import { cardById } from '../../data/cards';
-import { CARD_BACK_IMAGE, cardImage } from '../assets';
+import { cardImage } from '../assets';
+import { cardBackImage } from '../card-back';
 import { useStore } from '../store';
 import type { Animator, Flight } from './animator';
 import './anim.css';
@@ -44,7 +45,7 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
       // Right-click any face-up card in the air to see it full size (it pauses the game until closed)
       onContextMenu={!back ? e => { e.preventDefault(); e.stopPropagation(); onOpen(); } : undefined}
       title={flight.big && !back ? 'Tap to read this card' : undefined}>
-      <img src={CARD_BACK_IMAGE()} alt="" draggable={false} />
+      <img src={cardBackImage(flight.id)} alt="" draggable={false} />
       {!back && (
         <div ref={front} class="flight__face" style={{ opacity: k.face ? 1 : 0 }}>
           <img src={cardImage(flight.card, 'thumb')} alt={cardById(flight.card).name} draggable={false} />

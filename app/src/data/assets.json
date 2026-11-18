@@ -380,55 +380,6 @@
      "rotationCenterX": 287,
      "rotationCenterY": 400,
      "bitmapResolution": 1
-    },
-    "hol Christmas": {
-     "path": "assets/cards/hol-christmas.svg",
-     "number": 50,
-     "rotationCenterX": 287,
-     "rotationCenterY": 400,
-     "bitmapResolution": 1
-    },
-    "hol Halloween": {
-     "path": "assets/cards/hol-halloween.svg",
-     "number": 51,
-     "rotationCenterX": 287,
-     "rotationCenterY": 400,
-     "bitmapResolution": 1
-    },
-    "hol Independence Day": {
-     "path": "assets/cards/hol-independence-day.svg",
-     "number": 52,
-     "rotationCenterX": 287,
-     "rotationCenterY": 400,
-     "bitmapResolution": 1
-    },
-    "hol Valentine's Day": {
-     "path": "assets/cards/hol-valentines-day.svg",
-     "number": 53,
-     "rotationCenterX": 287,
-     "rotationCenterY": 400,
-     "bitmapResolution": 1
-    },
-    "hol St. Patrick's Day": {
-     "path": "assets/cards/hol-st-patricks-day.svg",
-     "number": 54,
-     "rotationCenterX": 287,
-     "rotationCenterY": 400,
-     "bitmapResolution": 1
-    },
-    "hol Thanksgiving": {
-     "path": "assets/cards/hol-thanksgiving.svg",
-     "number": 55,
-     "rotationCenterX": 287,
-     "rotationCenterY": 400,
-     "bitmapResolution": 1
-    },
-    "hol New Year": {
-     "path": "assets/cards/hol-new-year.svg",
-     "number": 56,
-     "rotationCenterX": 287,
-     "rotationCenterY": 400,
-     "bitmapResolution": 1
     }
    },
    "sounds": {
