@@ -62,6 +62,9 @@
 .score__row--hand .score__name { font-weight: normal; }
 .score__row--turn .score__name, .score__row--turn .score__num { color: #d8332d; font-weight: bold; }
 .score__num { font-weight: bold; text-align: right; }
+/* Arial, so the arrow's line is no taller than the number's (Times draws it from a taller fallback font) */
+.score__arrow { font-family: Arial, sans-serif; margin-left: 0.25em; }
+.score__arrow.is-off { visibility: hidden; }
 .score__mark {
   background: #d8332d; color: #fff; border-radius: calc(var(--u) * 3);
   font: bold calc(var(--u) * 6.5) Arial, sans-serif; padding: 0 calc(var(--u) * 2);

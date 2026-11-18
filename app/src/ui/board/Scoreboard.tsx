@@ -24,7 +24,8 @@ export function Scoreboard({ state }: { state: GameState }) {
             <span class="score__name">{displayName(state, seat)}</span>
             {s.skipNext && <span class="score__mark" title="Quarantined: skips their next turn">SKIP</span>}
             {!s.skipNext && s.limitNext > 0 && <span class="score__mark" title="Only 1 action next turn">1 ACT</span>}
-            <span class="score__num">{s.hand.length}{seat === state.turn ? ' ◀' : ''}</span>
+            {/* The arrow's space is always kept, so the number doesn't jump when the turn moves */}
+            <span class="score__num">{s.hand.length}<span class={'score__arrow' + (seat === state.turn ? '' : ' is-off')} aria-hidden={seat !== state.turn}>◀</span></span>
           </div>
         ))}
       </div>

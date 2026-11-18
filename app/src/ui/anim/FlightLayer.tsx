@@ -14,14 +14,18 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
   const box = useRef<HTMLDivElement>(null);
   const front = useRef<HTMLDivElement>(null);
   const anims = useRef<Animation[]>([]);
+  // The card is drawn at its biggest size and scaled down, and only its transform is animated: the browser
+  // moves it without laying the page out again each frame, so it glides smoothly even while bots are thinking
+  // (animating width and height made cards stutter a few pixels at a time on phones)
+  const size = { w: Math.max(...flight.keys.map(f => f.w)), h: Math.max(...flight.keys.map(f => f.h)) };
+  const place = (f: Flight['keys'][number]) => `translate(${f.x * unit}px, ${f.y * unit}px) scale(${f.w / size.w}, ${f.h / size.h})`;
   useLayoutEffect(() => {
     const el = box.current, face = front.current;
     if (!el || duration <= 0 || typeof el.animate !== 'function') return;
     const offset = (t: number) => Math.min(1, t / duration);
     const frames = flight.keys.map(k => ({
       offset: offset(k.t),
-      transform: `translate(${k.x * unit}px, ${k.y * unit}px)`,
-      width: `${k.w * unit}px`, height: `${k.h * unit}px`,
+      transform: place(k),
       // A direct hand-to-destination route has a midpoint only to resize the card. It must not look
       // as if it stopped there (especially in bot-watch mode).
       easing: flight.continuous ? 'linear' : 'ease-in-out',
@@ -40,7 +44,7 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
   const k = flight.keys[0]!;
   const back = flight.card === 4;
   return (
-    <div ref={box} class={'flight' + (flight.big ? ' flight--big' : '')} style={{ transform: `translate(${k.x * unit}px, ${k.y * unit}px)`, width: `${k.w * unit}px`, height: `${k.h * unit}px` }}
+    <div ref={box} class={'flight' + (flight.big ? ' flight--big' : '')} style={{ transform: place(k), width: `${size.w * unit}px`, height: `${size.h * unit}px` }}
       onClick={flight.big && !back ? e => { e.stopPropagation(); onOpen(); } : undefined}
       // Right-click any face-up card in the air to see it full size (it pauses the game until closed)
       onContextMenu={!back ? e => { e.preventDefault(); e.stopPropagation(); onOpen(); } : undefined}
