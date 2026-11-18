@@ -1,7 +1,7 @@
 // An online session for the Online screen: quick match, host a room, join with a code, the lobby,
 // starting the game (host) and following it (players). Any device can add guests: more people playing on
 // that same device, who pass it between them (Pass'n'Play inside an online game).
-import type { BotMemory, Difficulty, GameSettings } from '../../game';
+import type { BotMemory, Difficulty, Ending, GameSettings } from '../../game';
 import { OnlineRoom, cleanName, type AskMsg, type Connect } from '../../services/online';
 import type { GameController } from '../controller';
 import { createStore, type Store } from '../store';
@@ -23,6 +23,10 @@ export interface OnlineState {
   /** More people playing on this device (their names), as well as this device's own player. */
   guests: string[];
   bots: number;
+  /** How the game ends (the host picks it in the lobby; players see it there). */
+  ending: Ending;
+  /** How many times the draw pile must run out (endings 2-4). */
+  endingTimes: 1 | 2;
   /** Host: each bot's difficulty (bot k = difficulties[k]); 'random' picks one when the game starts. */
   difficulties: BotLevel[];
   status: string;
@@ -71,7 +75,7 @@ export const AUTO_REJOIN_MS = 10 * 60000;
 export const REJOIN_MS = 60 * 60000;
 export const REJOIN_FAILED = "Couldn't get back into that game. It may have ended.";
 
-const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], guests: [], bots: 0, difficulties: [], status: '', error: '', still: 0, notice: '' };
+const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], guests: [], bots: 0, ending: 1, endingTimes: 1, difficulties: [], status: '', error: '', still: 0, notice: '' };
 export const AWAY_NOTICE = "You didn't answer \"Still here?\" in time, so you've left the online game.";
 const AUTO_JOIN_TRIES = 20, AUTO_JOIN_MS = 2000;
 
@@ -133,7 +137,7 @@ export class OnlineSession {
     const code = await this.room.host({ max });
     if (!code) return this.failed();
     this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
-    this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '', difficulties: this.startingLevels() });
+    this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '', difficulties: this.startingLevels(), ...this.startingEnding() });
     this.lobby();
     return true;
   }
@@ -160,7 +164,7 @@ export class OnlineSession {
     if (seat <= 0) return this.failed();
     if (this.room.role === 'host') {
       this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
-      this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '', difficulties: this.startingLevels() });
+      this.set({ phase: 'lobby', role: 'host', code: this.room.code, seat: 1, status: '', error: '', difficulties: this.startingLevels(), ...this.startingEnding() });
       this.lobby();
     } else this.joined(seat);
     return true;
@@ -340,6 +344,13 @@ export class OnlineSession {
     return devices.flatMap(seat => list.filter(p => p.seat === seat));
   }
 
+  /** Host: how the game ends, and how many times the deck must run out (endings 2-4). Everyone in the room sees it. */
+  setEnding(ending: Ending, endingTimes: 1 | 2 = this.state.get().endingTimes): void {
+    if (this.room.role !== 'host' || this.running || ![1, 2, 3, 4].includes(ending)) return;
+    this.set({ ending, endingTimes: endingTimes === 2 ? 2 : 1 });
+    this.lobby();
+  }
+
   /** Host: set one bot's difficulty (bot 0 is the first bot). */
   setBotDifficulty(bot: number, level: BotLevel): void {
     if (this.room.role !== 'host' || bot < 0 || bot > 5 || !LEVELS.includes(level)) return;
@@ -359,7 +370,7 @@ export class OnlineSession {
     const chosen = this.state.get().difficulties;
     const difficulties: BotLevel[] = Array.from({ length: bots }, (_, i) => chosen[i] ?? 'medium');
     const settings: GameSettings = {
-      ...base, players: roomSeats.length + bots, bots, difficulties,
+      ...base, players: roomSeats.length + bots, bots, difficulties, ending: this.state.get().ending, endingTimes: this.state.get().endingTimes,
       names: people.map(p => p.name),
     };
     this.host = new HostController(this.room, roomSeats, this.deps.memory, true);
@@ -389,7 +400,11 @@ export class OnlineSession {
       return;
     }
     if (!isToPlayer(data) || !this.client) return;
-    if (data.k === 'lobby') { this.set({ players: data.players, bots: data.bots }); return; }
+    if (data.k === 'lobby') {
+      const ending = ([1, 2, 3, 4] as const).find(n => n === data.ending) ?? this.state.get().ending;
+      this.set({ players: data.players, bots: data.bots, ending, endingTimes: data.endingTimes === 2 ? 2 : 1 });
+      return;
+    }
     if (data.k === 'snap' && !this.running) {
       this.running = true;
       this.set({ phase: 'playing', status: '' });
@@ -419,7 +434,14 @@ export class OnlineSession {
     if (this.room.role !== 'host') return;
     const players = this.seatList();
     this.set({ players });
-    if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots: this.state.get().bots } satisfies ToPlayer);
+    const { bots, ending, endingTimes } = this.state.get();
+    if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots, ending, endingTimes } satisfies ToPlayer);
+  }
+
+  /** How games end from Settings (the Play menu's More options), as a starting point the host can change in the lobby. */
+  private startingEnding(): Pick<OnlineState, 'ending' | 'endingTimes'> {
+    const base = this.deps.baseSettings();
+    return { ending: ([1, 2, 3, 4] as const).find(n => n === base.ending) ?? 1, endingTimes: base.endingTimes === 2 ? 2 : 1 };
   }
 
   /** The bots' difficulties from Settings, as a starting point the host can change in the lobby. */

@@ -1,6 +1,6 @@
 // What the TypeScript game sends inside the room's data messages (services/online, t: 'x').
 // The host runs the game; each player only ever receives their own view of it.
-import type { Action, ActionResult, Answer, Decision, GameEvent, GameState, Seat } from '../../game';
+import type { Action, ActionResult, Answer, Decision, Ending, GameEvent, GameState, Seat } from '../../game';
 import type { Waiting } from '../controller';
 
 export type ToHost =
@@ -10,7 +10,7 @@ export type ToHost =
   | { k: 'playAgain' };                                           // a bot has been playing for this player: they're back
 
 export type ToPlayer =
-  | { k: 'lobby'; players: LobbyPlayer[]; bots: number }          // broadcast while waiting to start
+  | { k: 'lobby'; players: LobbyPlayer[]; bots: number; ending?: Ending; endingTimes?: 1 | 2 }   // broadcast while waiting to start
   | { k: 'snap'; seat: Seat; view: GameState; events: GameEvent[]; from: number; total: number; waiting?: Waiting | null }
   | { k: 'result'; id: number; result: ActionResult };
 

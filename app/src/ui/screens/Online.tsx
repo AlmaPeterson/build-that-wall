@@ -3,14 +3,27 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { screen, settings } from '../app-state';
 import { Message, Page } from '../account/Page';
 import { Button } from '../components/Button';
+import { ENDING_NAMES, updateSettings } from '../menus/prefs';
 import { onlineIntent } from '../menus/start';
 import { online } from '../online';
 import { MAX_SEATS, type LobbyPlayer } from '../online/messages';
 import type { BotLevel } from '../online/session';
+import type { Ending } from '../../game';
 import { services } from '../services';
 import { useStore } from '../store';
 
 const BOT_LEVELS: [BotLevel, string][] = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['random', 'Random']];
+
+/** Host: change how the game ends, and remember it for next time (the Play menu's More options too). */
+function pickEnding(ending: Ending, endingTimes: 1 | 2): void {
+  online.setEnding(ending, endingTimes);
+  updateSettings(s => ({ ...s, game: { ...s.game, ending, endingTimes } }));
+}
+
+/** "Exhaust Deck (the deck runs out twice)" and so on. */
+function endingText(ending: Ending, times: 1 | 2): string {
+  return ENDING_NAMES[ending] + (ending !== 1 ? (times === 2 ? ' (the deck runs out twice)' : ' (the deck runs out once)') : '');
+}
 
 /** "host", "(you)", or for a guest whose device they share. */
 function whoIs(p: LobbyPlayer, mySeat: number, players: LobbyPlayer[]): string {
@@ -136,12 +149,28 @@ export function OnlineScreen() {
                 </div>
               ))}
               <div class="btw-row">
+                <label for="online-ending">The game ends with</label>
+                <select id="online-ending" class="btw-input" value={String(st.ending)} onChange={e => pickEnding(Number(e.currentTarget.value) as Ending, st.endingTimes)}>
+                  {([1, 2, 3, 4] as Ending[]).map(n => <option key={n} value={String(n)}>{ENDING_NAMES[n]}</option>)}
+                </select>
+              </div>
+              {st.ending !== 1 && (
+                <div class="btw-row">
+                  <label for="online-times">The deck runs out</label>
+                  <select id="online-times" class="btw-input" value={String(st.endingTimes)} onChange={e => pickEnding(st.ending, e.currentTarget.value === '2' ? 2 : 1)}>
+                    <option value="1">Once</option>
+                    <option value="2">Twice</option>
+                  </select>
+                </div>
+              )}
+              <div class="btw-row">
                 <Button disabled={st.players.length + st.bots < 2} onClick={() => void online.start()}>Start game</Button>
                 <Button color="plain" onClick={() => online.leave()}>Close room</Button>
               </div>
             </>
           ) : (
             <>
+              <p>The game ends with: <b>{endingText(st.ending, st.endingTimes)}</b></p>
               <p class="btw-muted" role="status">{st.status || 'Waiting for the host to start...'}</p>
               <div class="btw-row"><Button color="plain" onClick={() => online.leave()}>Leave</Button></div>
             </>
