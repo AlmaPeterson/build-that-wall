@@ -54,10 +54,11 @@ export interface ControllerOptions {
   /** Pass'n'Play with 2+ humans: show the pass-the-device screen before each human turn. */
   passScreen?: boolean;
   /**
-   * Online host: the only seat shown on this device. Its hand is the one on screen, and other players'
-   * drawn cards are hidden in `events`. Default: every human seat on this device (Pass'n'Play).
+   * Online host: the seats played on this device. Only their hands are ever on screen, and other players'
+   * drawn cards are hidden in `events`; with 2 or more, the device is passed between them like Pass'n'Play.
+   * Default: every human seat (Pass'n'Play).
    */
-  localSeat?: Seat;
+  localSeats?: Seat[];
   /** Online host: who answers for a human seat that isn't on this device. null = ask on this device. */
   remoteDecider?: (seat: Seat) => Decider | null;
   /** Pause before each bot action (ms) so people can follow it; watch mode uses `watchDelay`. Default 0 (tests). */
@@ -153,7 +154,7 @@ export class GameController {
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
-      beforeTurn: async seat => { this.save('turn'); if (this.passing()) await this.passTo(seat); },
+      beforeTurn: async seat => { this.save('turn'); if (this.passing() && this.isLocal(seat)) await this.passTo(seat); },
       beforeDraw: seat => this.waitForTurnOk(seat),
       afterSkip: seat => this.waitForSkipOk(seat),
       beforeBotAction: async () => {
@@ -187,7 +188,7 @@ export class GameController {
       this.publish();
       // Someone else answered a question during this turn: pass the device back before the turn goes on
       const s = this.game?.state;
-      if (s && !s.over && this.passing() && !s.seats[s.turn]?.bot && this.holder !== s.turn && !this.passResolve) void this.passTo(s.turn);
+      if (s && !s.over && this.passing() && this.isLocal(s.turn) && !s.seats[s.turn]?.bot && this.holder !== s.turn && !this.passResolve) void this.passTo(s.turn);
     });
   }
 
@@ -243,11 +244,16 @@ export class GameController {
   /** Online player: take this device's seat back from the bot. */
   playAgain(): void {}
 
+  /** Is this seat played on this device (not by someone on another device)? */
+  protected isLocal(seat: Seat): boolean {
+    return (this.opts.localSeats?.includes(seat) ?? true) && !this.opts.remoteDecider?.(seat);
+  }
+
   /** Pass'n'Play with 2+ humans on this device: the device is handed between them. */
   private passing(): boolean {
     const s = this.game?.state;
-    if (!s || this.opts.passScreen === false || this.opts.localSeat !== undefined) return false;
-    return s.seats.filter((x, i) => !x.bot && !this.opts.remoteDecider?.(i)).length >= 2;
+    if (!s || this.opts.passScreen === false) return false;
+    return s.seats.filter((x, i) => !x.bot && this.isLocal(i)).length >= 2;
   }
 
   /**
@@ -317,7 +323,7 @@ export class GameController {
 
   /** A human on this device was quarantined: hold the game until they've seen it, so it doesn't run on behind the notice. */
   private async waitForSkipOk(seat: Seat): Promise<void> {
-    if (this.opts.remoteDecider?.(seat) || (this.opts.localSeat !== undefined && this.opts.localSeat !== seat)) return;
+    if (!this.isLocal(seat)) return;
     if (this.pace) await this.pace();
     if (this.stopped) return forever;
     await new Promise<void>(resolve => { this.skipResolve = resolve; this.skipSeat = seat; this.publish(); });
@@ -332,14 +338,18 @@ export class GameController {
   /** The seat whose hand is shown: whoever is being asked something, else the current human, else the last one shown. */
   private viewer(): Seat {
     const s = this.game?.state;
-    if (this.opts.localSeat !== undefined) return this.opts.localSeat;
-    if (!s) return 0;
+    const only = this.opts.localSeats?.length === 1 ? this.opts.localSeats[0]! : null;
+    if (only !== null) return only;
+    if (!s) return this.opts.localSeats?.[0] ?? 0;
     const asked = this.prompts[0]?.decision.seat;
     if (asked !== undefined) return asked;
     if (this.holder !== null && this.passing()) return this.holder;
-    if (s.turn >= 0 && !s.seats[s.turn]?.bot) return s.turn;
+    const mine = (i: Seat) => !!s.seats[i] && !s.seats[i]!.bot && this.isLocal(i);
+    if (s.turn >= 0 && mine(s.turn)) return s.turn;
     const prev = this.snapshot.get().viewer;
-    return s.seats[prev] && !s.seats[prev]!.bot ? prev : Math.max(0, s.seats.findIndex(x => !x.bot));
+    if (mine(prev)) return prev;
+    const first = s.seats.findIndex((_, i) => mine(i));
+    return first >= 0 ? first : this.opts.localSeats?.[0] ?? 0;
   }
 
   /**
@@ -362,7 +372,7 @@ export class GameController {
   /** A local game with only bots playing: nobody's hand is secret, so the watcher sees them all. */
   private allBots(): boolean {
     const s = this.game?.state;
-    return !!s && this.opts.localSeat === undefined && s.seats.every(x => !!x.bot);
+    return !!s && this.opts.localSeats === undefined && s.seats.every(x => !!x.bot);
   }
 
   private publish(passTo: Seat | null = this.passResolve ? this.snapshot.get().passTo : null): void {

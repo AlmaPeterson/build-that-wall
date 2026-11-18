@@ -1,12 +1,13 @@
 // An online session for the Online screen: quick match, host a room, join with a code, the lobby,
-// starting the game (host) and following it (players).
+// starting the game (host) and following it (players). Any device can add guests: more people playing on
+// that same device, who pass it between them (Pass'n'Play inside an online game).
 import type { BotMemory, Difficulty, GameSettings } from '../../game';
 import { OnlineRoom, cleanName, type AskMsg, type Connect } from '../../services/online';
 import type { GameController } from '../controller';
 import { createStore, type Store } from '../store';
 import { OnlineClientController } from './client';
 import { HostController } from './host';
-import { ASK_MODE, TURN_OK, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
+import { ASK_MODE, MAX_SEATS, TURN_OK, isToHost, isToPlayer, type LobbyPlayer, type ToPlayer } from './messages';
 
 export type Phase = 'idle' | 'connecting' | 'lobby' | 'playing' | 'ended';
 export type BotLevel = Difficulty | 'random';
@@ -19,6 +20,8 @@ export interface OnlineState {
   /** This device's room seat (1 = host). */
   seat: number;
   players: LobbyPlayer[];
+  /** More people playing on this device (their names), as well as this device's own player. */
+  guests: string[];
   bots: number;
   /** Host: each bot's difficulty (bot k = difficulties[k]); 'random' picks one when the game starts. */
   difficulties: BotLevel[];
@@ -68,7 +71,7 @@ export const AUTO_REJOIN_MS = 10 * 60000;
 export const REJOIN_MS = 60 * 60000;
 export const REJOIN_FAILED = "Couldn't get back into that game. It may have ended.";
 
-const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], bots: 0, difficulties: [], status: '', error: '', still: 0, notice: '' };
+const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], guests: [], bots: 0, difficulties: [], status: '', error: '', still: 0, notice: '' };
 export const AWAY_NOTICE = "You didn't answer \"Still here?\" in time, so you've left the online game.";
 const AUTO_JOIN_TRIES = 20, AUTO_JOIN_MS = 2000;
 
@@ -78,6 +81,8 @@ export class OnlineSession {
   private host: HostController | null = null;
   private client: OnlineClientController | null = null;
   private names = new Map<number, string>();
+  /** Host: the guests on each device (room seat); the host's own are in state.guests. */
+  private guestsBy = new Map<number, string[]>();
   private running = false;
   private stillTimer: ReturnType<typeof setTimeout> | null = null;
   private stopWatchingEnd: (() => void) | null = null;
@@ -114,9 +119,9 @@ export class OnlineSession {
       onStillAsk: msLeft => this.askedStill(msLeft),
       onDropped: () => this.away(),
       // Host: they're back; send them everything again
-      onStillHere: seat => { const g = this.host?.gameSeat(seat) ?? -1; if (g > 0) this.host?.resyncSeat(g); },
-      // Host: someone who left came back to their seat: they play it again
-      onRejoin: seat => { const g = this.host?.gameSeat(seat) ?? -1; if (g > 0) this.host?.playerBack(g); },
+      onStillHere: seat => { for (const g of this.host?.gameSeats(seat) ?? []) this.host?.resyncSeat(g); },
+      // Host: someone who left came back to their seat: they (and their guests) play again
+      onRejoin: seat => { for (const g of this.host?.gameSeats(seat) ?? []) this.host?.playerBack(g); },
     }, this.deps.random);
   }
 
@@ -164,7 +169,34 @@ export class OnlineSession {
   private joined(seat: number): void {
     this.client = new OnlineClientController(msg => this.room.sendData(1, msg));
     this.set({ phase: 'lobby', role: 'client', code: this.room.code, seat, status: 'Waiting for the host to start...', error: '' });
-    this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat });
+    this.sendName();
+  }
+
+  /** Tell the host this device's player's name, and who else plays on it. */
+  private sendName(): void {
+    const seat = this.state.get().seat;
+    this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat, guests: this.state.get().guests });
+  }
+
+  // ---- more people on this device
+
+  /** Add someone who plays on this device too (before the game starts). */
+  addGuest(name: string): boolean {
+    const st = this.state.get();
+    if (st.phase !== 'lobby' || st.guests.length >= MAX_SEATS - 1 || st.players.length >= MAX_SEATS) return false;
+    this.setGuests([...st.guests, cleanName(name) || 'Guest ' + (st.guests.length + 1)]);
+    return true;
+  }
+
+  removeGuest(i: number): void {
+    const st = this.state.get();
+    if (st.phase === 'lobby') this.setGuests(st.guests.filter((_, k) => k !== i));
+  }
+
+  private setGuests(guests: string[]): void {
+    this.set({ guests });
+    if (this.room.role === 'host') { this.setBots(this.state.get().bots); return; }
+    this.sendName();
   }
 
   /** In a room or a game: leaving it now affects the other players, so Back and End Game ask first. */
@@ -245,10 +277,10 @@ export class OnlineSession {
   leave(): void {
     this.room.leave();
     this.running = false;
-    this.host = null; this.client = null; this.names.clear();
+    this.host = null; this.client = null; this.names.clear(); this.guestsBy.clear();
     this.clearStill();
     this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
-    this.state.set({ ...IDLE });
+    this.state.set({ ...IDLE, guests: this.state.get().guests });   // the people on this device stay for next time
   }
 
   // ---- "Still here?"
@@ -287,9 +319,25 @@ export class OnlineSession {
 
   /** Host: how many bots join the online players. */
   setBots(n: number): void {
-    const humans = 1 + this.room.connectedSeats().length;
-    this.set({ bots: Math.max(0, Math.min(6 - humans, Math.floor(n) || 0)) });
+    const humans = this.seatList().length;
+    this.set({ bots: Math.max(0, Math.min(MAX_SEATS - humans, Math.floor(n) || 0)) });
     this.lobby();
+  }
+
+  /**
+   * Host: everyone who will play, device by device (the host first), each device's player before their guests.
+   * At most MAX_SEATS: guests who don't fit are left out.
+   */
+  private seatList(): LobbyPlayer[] {
+    const list: LobbyPlayer[] = [];
+    const devices = [1, ...this.room.connectedSeats()];
+    for (const seat of devices) list.push({ seat, name: this.names.get(seat) ?? 'Player ' + seat });
+    for (const seat of devices) {
+      const guests = seat === 1 ? this.state.get().guests : this.guestsBy.get(seat) ?? [];
+      for (const name of guests) if (list.length < MAX_SEATS) list.push({ seat, name, guest: true });
+    }
+    // Each device's people together, in device order
+    return devices.flatMap(seat => list.filter(p => p.seat === seat));
   }
 
   /** Host: set one bot's difficulty (bot 0 is the first bot). */
@@ -303,15 +351,16 @@ export class OnlineSession {
   /** Host: start the game with everyone in the room (plus bots). */
   start(seed?: number): Promise<void> | null {
     if (this.room.role !== 'host') return null;
-    const roomSeats = [1, ...this.room.connectedSeats()];
-    const bots = Math.min(this.state.get().bots, 6 - roomSeats.length);
+    const people = this.seatList();
+    const roomSeats = people.map(p => p.seat);
+    const bots = Math.min(this.state.get().bots, MAX_SEATS - roomSeats.length);
     if (roomSeats.length + bots < 2) { this.set({ error: 'Wait for another player, or add a bot.' }); return null; }
     const base = this.deps.baseSettings();
     const chosen = this.state.get().difficulties;
     const difficulties: BotLevel[] = Array.from({ length: bots }, (_, i) => chosen[i] ?? 'medium');
     const settings: GameSettings = {
       ...base, players: roomSeats.length + bots, bots, difficulties,
-      names: roomSeats.map(s => this.names.get(s) ?? 'Player ' + s),
+      names: people.map(p => p.name),
     };
     this.host = new HostController(this.room, roomSeats, this.deps.memory, true);
     this.running = true;
@@ -326,7 +375,16 @@ export class OnlineSession {
   private onData(data: unknown, from: number): void {
     if (this.room.role === 'host') {
       if (!isToHost(data)) return;
-      if (data.k === 'name') { this.names.set(from, cleanName(data.name) || 'Player ' + from); this.lobby(); return; }
+      if (data.k === 'name') {
+        this.names.set(from, cleanName(data.name) || 'Player ' + from);
+        if (!this.running) {
+          const guests = Array.isArray(data.guests) ? data.guests.slice(0, MAX_SEATS - 1).map((g, i) => cleanName(String(g)) || 'Guest ' + (i + 1)) : [];
+          this.guestsBy.set(from, guests);
+          this.setBots(this.state.get().bots);
+        }
+        this.lobby();
+        return;
+      }
       this.host?.receive(data, from);
       return;
     }
@@ -345,24 +403,21 @@ export class OnlineSession {
     if (q.mode !== ASK_MODE || !this.client) return 'no';
     let decision;
     try { decision = JSON.parse(q.l1); } catch { return 'no'; }
-    if (decision?.kind === TURN_OK) { await this.client.askTurnOk(); return 'true'; }
+    if (decision?.kind === TURN_OK) { await this.client.askTurnOk(typeof decision.seat === 'number' ? decision.seat : undefined); return 'true'; }
     const answer = await this.client.askHere(decision);
     return JSON.stringify(answer);
   }
 
   private onPlayerLeft(roomSeat: number): void {
-    if (this.host) {
-      const seat = this.host.gameSeat(roomSeat);
-      if (seat > 0) void this.host.playerLeft(seat);
-    }
-    if (!this.running) this.names.delete(roomSeat);
+    for (const seat of this.host?.gameSeats(roomSeat) ?? []) void this.host!.playerLeft(seat);
+    if (!this.running) { this.names.delete(roomSeat); this.guestsBy.delete(roomSeat); }
     this.lobby();
   }
 
   /** Host: tell everyone who's in the room. */
   private lobby(): void {
     if (this.room.role !== 'host') return;
-    const players = [1, ...this.room.connectedSeats()].map(seat => ({ seat, name: this.names.get(seat) ?? 'Player ' + seat }));
+    const players = this.seatList();
     this.set({ players });
     if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots: this.state.get().bots } satisfies ToPlayer);
   }
@@ -376,10 +431,11 @@ export class OnlineSession {
   private reset(status: string): void {
     this.room.leave();
     this.running = false;
-    this.host = null; this.client = null; this.names.clear();
+    this.host = null; this.client = null; this.names.clear(); this.guestsBy.clear();
     this.clearStill();
     this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
-    this.state.set({ ...IDLE, phase: 'connecting', status });
+    // The people on this device stay for the next room
+    this.state.set({ ...IDLE, phase: 'connecting', status, guests: this.state.get().guests });
   }
 
   /** The result screen may stay open, but this room is no longer a running game. */

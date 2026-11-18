@@ -4,8 +4,8 @@ import type { Action, ActionResult, Answer, Decision, GameEvent, GameState, Seat
 import type { Waiting } from '../controller';
 
 export type ToHost =
-  | { k: 'name'; name: string }                                   // a player's name, sent after joining
-  | { k: 'act'; id: number; action: Action }                      // an action on this player's turn
+  | { k: 'name'; name: string; guests?: string[] }                // a player's name, sent after joining, and the people playing on their device too
+  | { k: 'act'; id: number; action: Action; seat?: Seat }         // an action on the turn of a seat played on this device
   | { k: 'resync' }                                               // missed a snapshot: send everything again
   | { k: 'playAgain' };                                           // a bot has been playing for this player: they're back
 
@@ -14,11 +14,15 @@ export type ToPlayer =
   | { k: 'snap'; seat: Seat; view: GameState; events: GameEvent[]; from: number; total: number; waiting?: Waiting | null }
   | { k: 'result'; id: number; result: ActionResult };
 
-export interface LobbyPlayer { seat: number; name: string }      // room seat (1 = host)
+/** Room seat (1 = host). A guest plays on the same device as the room seat's player (Pass'n'Play inside an online game). */
+export interface LobbyPlayer { seat: number; name: string; guest?: boolean }
+
+/** The most people in one game, on all devices together (bots fill the rest). */
+export const MAX_SEATS = 6;
 
 /** Decisions travel through the room's ask/answer with this mode; l1 holds the decision as JSON. */
 export const ASK_MODE = 'btw2';
-/** Sent the same way, as { kind: TURN_OK }: it's this player's turn, and the host waits for them to tap OK. */
+/** Sent the same way, as { kind: TURN_OK, seat }: it's that seat's turn, and the host waits for its player to tap OK. */
 export const TURN_OK = 'turnOk';
 
 export function isToHost(d: unknown): d is ToHost {

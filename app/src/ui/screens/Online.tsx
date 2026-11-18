@@ -5,11 +5,44 @@ import { Message, Page } from '../account/Page';
 import { Button } from '../components/Button';
 import { onlineIntent } from '../menus/start';
 import { online } from '../online';
+import { MAX_SEATS, type LobbyPlayer } from '../online/messages';
 import type { BotLevel } from '../online/session';
 import { services } from '../services';
 import { useStore } from '../store';
 
 const BOT_LEVELS: [BotLevel, string][] = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['random', 'Random']];
+
+/** "host", "(you)", or for a guest whose device they share. */
+function whoIs(p: LobbyPlayer, mySeat: number, players: LobbyPlayer[]): string {
+  if (p.guest) return p.seat === mySeat ? 'on your device' : 'with ' + (players.find(x => x.seat === p.seat && !x.guest)?.name ?? 'another player');
+  return (p.seat === 1 ? 'host' : '') + (p.seat === mySeat ? ' (you)' : '');
+}
+
+/** More people playing on this device: they pass it between them on their turns, like Pass'n'Play. */
+function DeviceGuests({ guests, full }: { guests: string[]; full: boolean }) {
+  const [name, setName] = useState('');
+  const add = (e: Event) => {
+    e.preventDefault();
+    if (online.addGuest(name)) setName('');
+  };
+  return (
+    <div class="online-guests">
+      <h3>More people on this device?</h3>
+      <p class="btw-muted">Add them here. On their turns you pass this device to them, like Pass'n'Play.</p>
+      {guests.length > 0 && (
+        <ul class="btw-list">{guests.map((g, i) => (
+          <li key={i}><span>{g}</span><Button color="plain" aria-label={'Remove ' + g} onClick={() => online.removeGuest(i)}>Remove</Button></li>
+        ))}</ul>
+      )}
+      <form class="btw-row" onSubmit={add}>
+        <input class="btw-input" value={name} maxLength={20} placeholder="Their name" aria-label="Name of another player on this device"
+          onInput={e => setName(e.currentTarget.value)} />
+        <Button color="plain" type="submit" disabled={full}>Add player</Button>
+      </form>
+      {full && <p class="btw-muted">The game is full (6 players).</p>}
+    </div>
+  );
+}
 
 export function OnlineScreen() {
   const st = useStore(online.state);
@@ -83,7 +116,8 @@ export function OnlineScreen() {
           {/* Quick-match rooms ("W" + 5) have no code to share; a private code (5 letters) may start with W too */}
           {st.code && !(st.code.length === 6 && st.code.startsWith('W')) && <><p>Room code:</p><p class="btw-code" aria-label={'Room code ' + st.code.split('').join(' ')}>{st.code}</p></>}
           <p>Players ({st.players.length}{st.bots ? ' + ' + st.bots + (st.bots === 1 ? ' bot' : ' bots') : ''}):</p>
-          <ul class="btw-list">{st.players.map(p => <li key={p.seat}><span>{p.name}</span><span class="btw-muted">{p.seat === 1 ? 'host' : ''}{p.seat === st.seat ? ' (you)' : ''}</span></li>)}</ul>
+          <ul class="btw-list">{st.players.map((p, i) => <li key={i}><span>{p.name}</span><span class="btw-muted">{whoIs(p, st.seat, st.players)}</span></li>)}</ul>
+          <DeviceGuests guests={st.guests} full={st.players.length >= MAX_SEATS} />
           {st.role === 'host' ? (
             <>
               <div class="btw-row">

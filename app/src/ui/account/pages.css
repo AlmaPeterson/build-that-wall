@@ -35,3 +35,9 @@ textarea.btw-input { width: 100%; min-height: 90px; font-family: monospace; font
   display: inline-block; vertical-align: middle; margin-left: 0.4em; padding: 0.15em 0.6em; border-radius: 999px;
   background: var(--gold); color: #2a1f00; font: bold 0.6em Arial, Helvetica, sans-serif; letter-spacing: 0.04em; text-transform: uppercase;
 }
+
+/* Online lobby: more people on this device */
+.online-guests { margin-top: 14px; padding-top: 10px; border-top: 2px solid #f3e7e5; }
+.online-guests h3 { margin: 0 0 4px; font-size: 1em; color: #7a1a16; }
+.online-guests li { align-items: center; }
+.online-guests .btw-input { flex: 1 1 160px; min-width: 0; }

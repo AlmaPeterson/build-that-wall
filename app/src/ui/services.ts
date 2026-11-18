@@ -248,10 +248,10 @@ export const services: AppServices = createServices({
 gameOptions.memory = services.botMemory;
 
 
-/** The human seats played on this device: online, just this player's seat; Pass'n'Play, every human. */
+/** The human seats played on this device: online, this device's player and their guests; Pass'n'Play, every human. */
 export function localSeats(c: GameController): number[] {
-  if (c instanceof HostController) return [0];
-  if (c instanceof OnlineClientController) return [c.seat];
+  if (c instanceof HostController) return c.hostSeats;
+  if (c instanceof OnlineClientController) return c.seats;
   return (c.state?.seats ?? []).flatMap((s, i) => (s.bot ? [] : [i]));
 }
 
