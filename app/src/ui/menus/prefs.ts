@@ -50,7 +50,10 @@ export function clampSettings(s: UiSettings): UiSettings {
     const v = Number(textSizes[area]), { min, max } = TEXT_RANGE[area];
     textSizes[area] = v > 0 ? Math.min(max, Math.max(min, Math.round(v * 100) / 100)) : 1;
   }
-  return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, names }, textSizes };
+  const musicVolume = Number.isFinite(s.musicVolume) ? clampInt(s.musicVolume, 0, 100) : 50;
+  const musicLinks = (Array.isArray(s.musicLinks) ? s.musicLinks : []).map(l => String(l).trim().slice(0, 500)).filter(Boolean).slice(0, 50);
+  return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, names }, textSizes, musicVolume, musicLinks,
+    musicSource: s.musicSource === 'mine' ? 'mine' : 'default' };
 }
 
 /** Read the saved settings over `base`. Missing or broken values keep `base`'s. */
@@ -65,6 +68,7 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
   // name changed on the Account screen shows in the next game. See playerOneName in start.ts.)
   const names = [...g.names];
   const mode = get('mode'), music = get('music');
+  const links = (v: string, d: string[]) => { try { const a = JSON.parse(v); return Array.isArray(a) ? a.map(String) : d; } catch { return d; } };
   return clampSettings({
     ...base,
     game: {
@@ -79,6 +83,10 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
     gameMode: mode === 'Multiplayer' ? 'multiplayer' : mode === "Pass'n'Play" ? 'passnplay' : base.gameMode,
     sound: get('sound') === '' ? base.sound : get('sound') !== '0',
     musicMode: music === 'Play One' ? 'one' : music === 'Cycle All' ? 'cycle' : base.musicMode,
+    music: get('musicon') === '' ? base.music : get('musicon') === '1',
+    musicVolume: num('musicvol', base.musicVolume),
+    musicSource: get('musicsrc') === 'mine' ? 'mine' : get('musicsrc') === 'default' ? 'default' : base.musicSource,
+    musicLinks: links(get('musiclinks'), base.musicLinks),
     autoJoin: get('autojoin') === '' ? base.autoJoin : get('autojoin') === '1',
     tutorial: get('tutor') === '' ? base.tutorial : get('tutor') === '1',
     animSpeed: (['slow', 'normal', 'fast', 'off'] as const).find(a => a === get('anim')) ?? base.animSpeed,
@@ -97,6 +105,10 @@ export function saveUiSettings(store: SaveStore, s: UiSettings): void {
   put('sound', s.sound ? '1' : '0');
   put('mode', s.gameMode === 'multiplayer' ? 'Multiplayer' : "Pass'n'Play");
   put('music', s.musicMode === 'one' ? 'Play One' : 'Cycle All');
+  put('musicon', s.music ? '1' : '0');
+  put('musicvol', String(s.musicVolume));
+  put('musicsrc', s.musicSource);
+  put('musiclinks', JSON.stringify(s.musicLinks));
   put('autojoin', s.autoJoin ? '1' : '0');
   g.difficulties.slice(0, MAX_PLAYERS).forEach((d, k) => put('ai' + (k + 1), LEVEL_TO_OLD[d]));
   put('tutor', s.tutorial ? '1' : '0');

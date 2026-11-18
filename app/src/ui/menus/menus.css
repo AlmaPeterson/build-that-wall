@@ -149,3 +149,19 @@
 .play.settings .play__buttons { position: sticky; bottom: -20px; background: var(--paper); padding: 10px 0 14px; margin-bottom: -14px; }
 .play__buttons .btw-button { flex: 1; min-width: 7em; }
 .play.menu-list .play__buttons .btw-button { flex: 0 1 auto; font-size: calc(1.05rem * var(--text-popups)); }
+
+/* ---- Music (Settings) */
+.music .settings__row { justify-content: space-between; }
+.music__add { display: flex; gap: 8px; margin: 10px 0 0; flex-wrap: wrap; }
+.music__add input { flex: 1 1 200px; min-width: 0; font: inherit; min-height: 44px; padding: 6px 10px; border: 2px solid #7a1a16; border-radius: 10px; }
+.music__add .btw-button, .music > .btw-button { margin-top: 0; }
+.music > .btw-button { margin-top: 8px; }
+.music__said { margin: 8px 0 0; color: #1d6b2a; font-weight: bold; }
+.music__said.is-bad { color: var(--red); }
+.music__list { list-style: none; padding: 0; margin: 10px 0 0; }
+.music__list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid #f3e7e5; }
+.music__list .btw-button { margin-top: 0; flex: none; }
+.music__name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 0.9em; }
+.music__name b { color: #7a1a16; margin-right: 4px; }
+.music__now { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-bottom: 2px solid #f3e7e5; color: #555; }
+.music__now .btw-button { margin-top: 0; }

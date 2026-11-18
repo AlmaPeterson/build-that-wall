@@ -1,4 +1,4 @@
-// Settings: how the app looks and sounds (sound, music, tutorial tips, card animations, text sizes). How a
+// Settings: how the app looks and sounds (sound, music (MusicSettings.tsx), tutorial tips, card animations, text sizes). How a
 // game is set up (players, bots, how it ends, names) is asked when you press Play (menus/PlayMenu.tsx),
 // and your name is on the home page. Changes are saved straight away (menus/prefs.ts).
 import { useRef } from 'preact/hooks';
@@ -7,6 +7,7 @@ import { Button } from '../components/Button';
 import { Row, Toggle } from '../menus/controls';
 import { initSettingsPersistence, TEXT_RANGE, updateSettings } from '../menus/prefs';
 import { useStore } from '../store';
+import { MusicSettings } from './MusicSettings';
 import '../menus/menus.css';
 
 const TEXT_AREAS: { area: TextArea; title: string; about: string }[] = [
@@ -38,12 +39,6 @@ export function SettingsScreen() {
       <header class="page__head page__head--with-done"><h1>Settings</h1><Button class="page__done" onClick={goBack}>Done</Button></header>
       <main class="page__main settings">
         <Row label="Sound Effects"><Toggle label="Sound Effects" on={s.sound} onChange={sound => set({ sound })} /></Row>
-        <Row label="Music Mode" id="set-music">
-          <select id="set-music" value={s.musicMode} onChange={e => set({ musicMode: e.currentTarget.value === 'one' ? 'one' : 'cycle' })}>
-            <option value="cycle">Cycle All</option>
-            <option value="one">Play One</option>
-          </select>
-        </Row>
         <Row label="Tutorial tips"><Toggle label="Tutorial tips" on={s.tutorial} onChange={tutorial => set({ tutorial })} /></Row>
         <Row label="Card animations" id="set-anim">
           <select id="set-anim" value={s.animSpeed} onChange={e => set({ animSpeed: e.currentTarget.value as AnimSpeed })}>
@@ -53,6 +48,8 @@ export function SettingsScreen() {
             <option value="off">Off</option>
           </select>
         </Row>
+
+        <MusicSettings s={s} />
 
         <h2 class="settings__section">Text size</h2>
         {TEXT_AREAS.map(({ area, title, about }) => (

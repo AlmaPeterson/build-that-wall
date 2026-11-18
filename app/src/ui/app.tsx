@@ -11,6 +11,9 @@ import { SettingsScreen } from './screens/Settings';
 import { online } from './online';
 import { StillHere } from './online/StillHere';
 import { useStore } from './store';
+import { startMusic } from './audio';
+import { initSettingsPersistence } from './menus/prefs';
+import { useEffect } from 'preact/hooks';
 
 const SCREENS: Record<Screen, FunctionComponent> = {
   menu: MenuScreen,
@@ -26,6 +29,8 @@ export function App() {
   const current = useStore(screen);
   const { textSizes } = useStore(settings);
   const Current = SCREENS[current];
+  // The music follows the saved settings, so load them first (a game picked up after a reload skips the menu)
+  useEffect(() => { initSettingsPersistence(); startMusic(); }, []);
   const style = Object.fromEntries(Object.entries(textSizes).map(([k, v]) => ['--text-' + k, String(v)]));
   return <div class="app" style={style}><Current /><StillHere session={online} /></div>;
 }
