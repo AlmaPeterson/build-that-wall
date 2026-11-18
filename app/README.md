@@ -1,7 +1,8 @@
-# Build That Wall (TypeScript)
+# Build That Wall
 
-The new version of the game. The PenguinMod version at the repo root stays live until this one
-reaches parity; see `../docs/REFACTOR_PLAN.md`.
+The game: TypeScript, Preact and Vite. Every push to `main` runs the tests, builds this folder and
+publishes it to GitHub Pages (`.github/workflows/`). The old PenguinMod version has been removed;
+`/classic/` only sends people here.
 
 ```
 npm install
@@ -12,9 +13,29 @@ npm run build      # type-check and build to dist/
 
 ## Layout
 
-- `src/services/` — things that talk to the outside world: storage, account, Gold, payments,
-  online play, feedback. No game rules, no Scratch.
-- `src/game/` — pure game logic: state, rules, cards, bots. No DOM.
-- `src/ui/` — screens and components (HTML/CSS + SVG).
-- `src/data/` — card catalogue and other static data.
-- `public/` — images and sounds, served as-is.
+- `src/game/` — the game rules, cards and bots. No DOM.
+- `src/services/` — things that talk to the outside world: storage, sign-in, Gold, payments,
+  online play, feedback.
+- `src/ui/` — screens and components (HTML/CSS + SVG), sound and music (`audio.ts`, `music/`).
+- `src/data/` — the card list and other fixed data.
+- `public/` — pictures, sounds and pages served as they are, including `game-settings.json` and
+  `how-to-play.html` (it repeats the in-game Instructions; a test keeps them the same).
+
+## Owner settings
+
+`public/game-settings.json` turns the online parts on. Empty values leave that part off, and the
+game still works without any of them.
+
+| Setting | What it's for |
+|---|---|
+| Server URL | The game server (`../game-server.gs`, a free Google Apps Script). Accounts, Gold, leaderboards and username/password sign-in need it. |
+| Google Client ID | Sign in with Google. |
+| Apple Client ID | Sign in with Apple (the Services ID). Also set `APPLE_CLIENT_ID` on the server. |
+| GitHub Client ID | Sign in with GitHub. Also set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` on the server. |
+| Feedback URL | Where Send feedback goes (usually the same as Server URL). |
+| PayPal Client ID, PayPal Plan Month, PayPal Plan Year | Selling Gold Membership. |
+| Gold Price Year, Gold Price Month, Currency | The prices shown in the store. |
+| Amazon Tag, Merch URL | Links to the real card game and merchandise. |
+| Free Online Players | Kept from the old game; this version doesn't use it yet. |
+
+How to set up the server, sign-in and PayPal is at the top of `../game-server.gs`.

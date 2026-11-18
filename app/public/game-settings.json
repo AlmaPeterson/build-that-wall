@@ -1,5 +1,5 @@
 {
-  "_help": "Edit the values below, save, and upload this file with the game. Empty = turned off / test mode. See OWNER_GUIDE.md.",
+  "_help": "Edit the values below, save, and upload this file with the game. Empty = turned off / test mode. What each one does is in app/README.md (Owner settings).",
   "Server URL": "https://script.google.com/macros/s/AKfycbyGMarun-PbGLpf_wRXQZ4lzNpZXtY2cVDHjUbXvrjXQHvq-CxymvE8VVt2BVkYyx3a/exec",
   "Google Client ID": "120665853156-g997gc32jgans3te0gjfmeu4tsbfqupj.apps.googleusercontent.com",
   "Apple Client ID": "",

@@ -1,5 +1,8 @@
 # Build That Wall: game rules (porting spec)
 
+> **Note:** this describes the old PenguinMod game, written to port it. The game as it plays now is described by the
+> in-game Instructions (`app/src/ui/menus/instructions.ts`) and the Tutorial guide (`app/src/ui/menus/guide-pages.ts`).
+
 This is what the PenguinMod version actually does, read from the blocks
 (`docs/project-dump/`, made by `tools/dump-project.py`). Phase 1 implements and tests the
 TypeScript game from this document, so it describes the code's behaviour, including its

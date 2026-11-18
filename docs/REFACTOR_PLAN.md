@@ -1,5 +1,8 @@
 # Refactor plan: Build That Wall → TypeScript
 
+> **Done:** the TypeScript game in `app/` is the live game and the PenguinMod version has been removed.
+> This plan is kept for its history.
+
 ## Why
 
 The game today is a PenguinMod (Scratch fork) project packaged into a web page:
