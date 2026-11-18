@@ -4,6 +4,8 @@
 export interface GameSettings {
   serverUrl: string;
   googleClientId: string;
+  appleClientId: string;
+  githubClientId: string;
   feedbackUrl: string;
   paypalClientId: string;
   paypalPlanMonth: string;
@@ -17,14 +19,15 @@ export interface GameSettings {
 }
 
 export const DEFAULT_SETTINGS: GameSettings = {
-  serverUrl: '', googleClientId: '', feedbackUrl: '', paypalClientId: '', paypalPlanMonth: '', paypalPlanYear: '',
+  serverUrl: '', googleClientId: '', appleClientId: '', githubClientId: '', feedbackUrl: '', paypalClientId: '', paypalPlanMonth: '', paypalPlanYear: '',
   goldPriceYear: 19.99, goldPriceMonth: 2.99, currency: 'USD',
   amazonTag: '', merchUrl: '', freeOnlinePlayers: 4,
 };
 
 // File name → our name
 const FILE_KEYS: Record<string, keyof GameSettings> = {
-  'Server URL': 'serverUrl', 'Google Client ID': 'googleClientId', 'Feedback URL': 'feedbackUrl',
+  'Server URL': 'serverUrl', 'Google Client ID': 'googleClientId', 'Apple Client ID': 'appleClientId', 'GitHub Client ID': 'githubClientId',
+  'Feedback URL': 'feedbackUrl',
   'PayPal Client ID': 'paypalClientId', 'PayPal Plan Month': 'paypalPlanMonth', 'PayPal Plan Year': 'paypalPlanYear',
   'Gold Price Year': 'goldPriceYear', 'Gold Price Month': 'goldPriceMonth',
   'Currency': 'currency', 'Amazon Tag': 'amazonTag', 'Merch URL': 'merchUrl', 'Free Online Players': 'freeOnlinePlayers',

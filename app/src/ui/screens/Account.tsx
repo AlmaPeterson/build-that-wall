@@ -114,7 +114,7 @@ function AccountCard({ player, googleReady, busy, run, said, say }: { player: Pl
         {player.expired && signIn('Sign in again')}
         {player.signedIn
           ? <Button color="plain" disabled={busy} onClick={() => { services.signOut(); say({ text: 'Signed out. Your saves stay on this device for next time.', ok: true }); }}>Sign out</Button>
-          : signIn('Sign in with Google')}
+          : signIn('Sign in')}
       </div>
       <label class="btw-row">
         <span>Your name</span>

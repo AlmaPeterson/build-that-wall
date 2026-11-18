@@ -28,6 +28,13 @@
  *       PAYPAL_CLIENT_ID, PAYPAL_SECRET = from developer.paypal.com > Apps & Credentials (optional:
  *                           only needed to sell Gold and packs; PAYPAL_ENV = sandbox while testing)
  *       FREE_PACKS        = ids of expansion packs players may claim for free, comma separated (optional)
+ *       APPLE_CLIENT_ID   = your Sign in with Apple "Services ID" (optional: turns on Sign in with Apple; see below)
+ *       GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET = from a GitHub OAuth app (optional: turns on Sign in with GitHub)
+ *     Username and password sign-in works as soon as the server is set up; nothing to add.
+ *     Sign in with Apple: developer.apple.com > Identifiers > Services IDs > make one, turn on Sign in with Apple,
+ *       add your game's address as a domain and as a return URL. Put the Services ID here and in game-settings.json.
+ *     Sign in with GitHub: github.com > Settings > Developer settings > OAuth Apps > New. Homepage and callback
+ *       URL are your game's address. Put the Client ID here and in game-settings.json, the secret only here.
  *  4. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Deploy,
  *     allow the permissions, and copy the web app URL (https://script.google.com/macros/s/.../exec).
  *  5. In game-settings.json set "Server URL" and "Feedback URL" to that web app URL, and
@@ -321,6 +328,7 @@ function json_(obj) {
 
 function handleApi_(path, body) {
   path = path.replace(/^\/+|\/+$/g, '');
+  if (path.indexOf('auth/') === 0) return handleAuth_(path.slice(5), body);   // sign in with Apple, GitHub or a password
   const user = verifyUser_(body.id_token);
   if (!user) return { error: 'login' };              // the game asks the player to sign in again
   const sheet = accountsSheet_();
@@ -401,6 +409,7 @@ function handleApi_(path, body) {
 // Google sign-in tokens are checked with Google, and must be for this game's Client ID
 function verifyUser_(idToken) {
   if (!idToken) return null;
+  if (String(idToken).indexOf('BTWS.') === 0) return verifySession_(idToken);   // Apple, GitHub or password sign-in
   const cache = CacheService.getScriptCache();
   const key = 'tok:' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken));
   const hit = cache.get(key);
@@ -567,4 +576,163 @@ function ordersSheet_() {
   let sh = ss.getSheetByName('Orders');
   if (!sh) { sh = ss.insertSheet('Orders'); sh.appendRow(['PayPal order', 'Google ID', 'Item', 'Amount', 'When']); sh.setFrozenRows(1); }
   return sh;
+}
+
+// =====================================================================================
+// SIGN IN WITH APPLE, GITHUB, OR A USERNAME AND PASSWORD
+// The server checks who the player is, then gives the game its own sign-in token (BTWS.<data>.<signature>)
+// that lasts 30 days. Google sign-in keeps using Google's own token.
+// =====================================================================================
+
+const SESSION_DAYS = 30;
+
+function handleAuth_(kind, body) {
+  let who = null;
+  if (kind === 'password-login') who = passwordLogin_(body.username, body.password);
+  else if (kind === 'password-register') who = passwordRegister_(body.username, body.password);
+  else if (kind === 'apple') who = appleLogin_(body.apple_token, body.name);
+  else if (kind === 'github') who = githubLogin_(body.code, body.redirect_uri);
+  else return { error: 'unknown' };
+  if (!who || who.error) return who || { error: 'login' };
+  const exp = now_() + SESSION_DAYS * DAY;
+  const sheet = accountsSheet_();
+  const row = findAccount_(sheet, { sub: who.id, email: who.email || '' });
+  const saved = String(sheet.getRange(row, C.name).getValue() || '');
+  const name = String(saved || who.name || 'Player').slice(0, 20);
+  return { token: makeSession_({ id: who.id, name: name, email: who.email || '', exp: exp }), id: who.id, name: name, email: who.email || '', exp: exp };
+}
+
+function sessionSecret_() {
+  const props = PropertiesService.getScriptProperties();
+  let s = props.getProperty('SESSION_SECRET');
+  if (!s) { s = Utilities.getUuid() + Utilities.getUuid(); props.setProperty('SESSION_SECRET', s); }
+  return s;
+}
+
+function makeSession_(data) {
+  const body = Utilities.base64EncodeWebSafe(Utilities.newBlob(JSON.stringify(data)).getBytes()).replace(/=+$/, '');
+  const sig = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature('BTWS.' + body, sessionSecret_())).replace(/=+$/, '');
+  return 'BTWS.' + body + '.' + sig;
+}
+
+function verifySession_(token) {
+  const parts = String(token).split('.');
+  if (parts.length !== 3) return null;
+  const sig = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature('BTWS.' + parts[1], sessionSecret_())).replace(/=+$/, '');
+  if (sig !== parts[2]) return null;
+  const data = JSON.parse(b64urlText_(parts[1]));
+  if (!data.id || Number(data.exp) < now_()) return null;
+  return { sub: String(data.id), email: String(data.email || ''), name: String(data.name || 'Player') };
+}
+
+function b64urlBytes_(s) {
+  s = String(s).replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  return Utilities.base64Decode(s);
+}
+function b64urlText_(s) { return Utilities.newBlob(b64urlBytes_(s)).getDataAsString(); }
+
+// ---- Username and password: only a salted, slowly worked hash is kept, never the password
+function loginsSheet_() {
+  const ss = accountsSheet_().getParent();
+  let sh = ss.getSheetByName('Logins');
+  if (!sh) { sh = ss.insertSheet('Logins'); sh.appendRow(['Username', 'Salt', 'Hash', 'Created']); sh.setFrozenRows(1); }
+  return sh;
+}
+
+function passwordHash_(password, salt) {
+  let h = Utilities.computeHmacSha256Signature(String(password), salt);
+  const key = Utilities.newBlob(salt).getBytes();
+  for (let i = 0; i < 2000; i++) h = Utilities.computeHmacSha256Signature(h, key);
+  return Utilities.base64Encode(h);
+}
+
+function cleanUsername_(u) {
+  const s = String(u || '').trim().toLowerCase();
+  return /^[a-z0-9._-]{3,20}$/.test(s) ? s : '';
+}
+
+function passwordRegister_(username, password) {
+  const u = cleanUsername_(username);
+  if (!u) return { error: 'username' };
+  if (String(password || '').length < 8) return { error: 'weak' };
+  const sh = loginsSheet_();
+  if (sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext()) return { error: 'taken' };
+  const salt = Utilities.getUuid();
+  sh.appendRow([u, salt, passwordHash_(password, salt), new Date()]);
+  return { id: 'pw:' + u, name: String(username).trim().slice(0, 20) };
+}
+
+function passwordLogin_(username, password) {
+  const u = cleanUsername_(username);
+  if (!u) return { error: 'wrong' };
+  // Too many wrong passwords: wait 15 minutes
+  const cache = CacheService.getScriptCache(), failKey = 'pwfail:' + u;
+  const fails = Number(cache.get(failKey) || 0);
+  if (fails >= 10) return { error: 'locked' };
+  const sh = loginsSheet_();
+  const found = sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext();
+  const row = found && found.getRow() > 1 ? sh.getRange(found.getRow(), 1, 1, 3).getValues()[0] : null;
+  if (!row || passwordHash_(password, String(row[1])) !== String(row[2])) {
+    cache.put(failKey, String(fails + 1), 900);
+    return { error: 'wrong' };
+  }
+  cache.remove(failKey);
+  return { id: 'pw:' + u, name: u };
+}
+
+// ---- Sign in with Apple: Apple's token is signed with RS256; the signature is checked here with Apple's keys
+function appleLogin_(token, name) {
+  const clientId = PropertiesService.getScriptProperties().getProperty('APPLE_CLIENT_ID');
+  if (!clientId) return { error: 'nosetup' };
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) return { error: 'login' };
+  const header = JSON.parse(b64urlText_(parts[0])), data = JSON.parse(b64urlText_(parts[1]));
+  if (header.alg !== 'RS256' || data.iss !== 'https://appleid.apple.com' || data.aud !== clientId || Number(data.exp) < now_()) return { error: 'login' };
+  const keys = JSON.parse(UrlFetchApp.fetch('https://appleid.apple.com/auth/keys').getContentText()).keys || [];
+  const key = keys.filter(k => k.kid === header.kid)[0];
+  if (!key || !rsaVerify_(parts[0] + '.' + parts[1], parts[2], key.n, key.e)) return { error: 'login' };
+  return { id: 'apple:' + data.sub, email: String(data.email || ''), name: String(name || '').trim() || 'Player' };
+}
+
+// RSA PKCS#1 v1.5 with SHA-256, using BigInt (Apps Script has no built-in way to check a signature)
+function rsaVerify_(signedText, sigB64, nB64, eB64) {
+  const big = bytes => { let x = BigInt(0); for (let i = 0; i < bytes.length; i++) x = (x << BigInt(8)) + BigInt(bytes[i] & 255); return x; };
+  const nBytes = b64urlBytes_(nB64), n = big(nBytes), e = big(b64urlBytes_(eB64)), s = big(b64urlBytes_(sigB64));
+  let m = BigInt(1), base = s % n, exp = e;
+  while (exp > BigInt(0)) { if (exp & BigInt(1)) m = (m * base) % n; base = (base * base) % n; exp >>= BigInt(1); }
+  let k = nBytes.length; while (k > 0 && (nBytes[nBytes.length - k] & 255) === 0) k--;
+  const em = []; for (let i = 0; i < k; i++) { em.unshift(Number(m & BigInt(255))); m >>= BigInt(8); }
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, signedText).map(b => b & 255);
+  const info = [0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20].concat(digest);
+  const padLen = k - 3 - info.length;
+  if (padLen < 8) return false;
+  const want = [0x00, 0x01].concat(new Array(padLen).fill(0xff), [0x00], info);
+  for (let i = 0; i < k; i++) if (em[i] !== want[i]) return false;
+  return true;
+}
+
+// ---- Sign in with GitHub: the one-time code from GitHub is swapped for the player's GitHub profile
+function githubLogin_(code, redirectUri) {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('GITHUB_CLIENT_ID'), secret = props.getProperty('GITHUB_CLIENT_SECRET');
+  if (!id || !secret) return { error: 'nosetup' };
+  const res = UrlFetchApp.fetch('https://github.com/login/oauth/access_token', {
+    method: 'post', muteHttpExceptions: true, headers: { Accept: 'application/json' },
+    payload: { client_id: id, client_secret: secret, code: String(code || ''), redirect_uri: String(redirectUri || '') },
+  });
+  const tok = JSON.parse(res.getContentText() || '{}').access_token;
+  if (!tok) return { error: 'login' };
+  const get = path => JSON.parse(UrlFetchApp.fetch('https://api.github.com' + path, {
+    muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'User-Agent': 'build-that-wall' },
+  }).getContentText() || 'null');
+  const u = get('/user');
+  if (!u || !u.id) return { error: 'login' };
+  let email = u.email || '';
+  if (!email) {
+    const list = get('/user/emails') || [];
+    const main = list.filter(m => m.primary && m.verified)[0];
+    email = main ? main.email : '';
+  }
+  return { id: 'github:' + u.id, email: email, name: String(u.name || u.login || 'Player') };
 }

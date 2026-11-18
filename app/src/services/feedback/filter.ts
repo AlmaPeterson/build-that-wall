@@ -254,7 +254,7 @@ const FAQ: [RegExp, string][] = [
   [/\b(gold|premium|trial|membership|pay|price|ads?)\b/, 'Gold gives you a colored star, name and background, holiday card backs, confetti, leaderboards and no video ads. Open Account & Store on the main menu. Signed-in players can try it free for 7 days.'],
   [/\b(online|multiplayer|friends?|room code|join|host)\b/, 'To play with friends on different devices, press Play, then Play online, and open a room. Share its code so they can join.'],
   [/\b(pass|share|one device|same device)\b/, "In Pass'n'Play, everyone shares one device. When a turn ends, pass the device to the player named on the screen; they tap the button to see their cards."],
-  [/\b(sign in|log in|login|account|google)\b/, 'Open Account & Store on the main menu and choose Sign in with Google.'],
+  [/\b(sign in|log in|login|account|google)\b/, 'Open Account & Store on the main menu and choose Sign in (Google, Apple, GitHub or a username).'],
   [/\b(music|songs?|sound)\b/, 'Music and sound effects are in Settings, where you can add your own songs or YouTube links.'],
 ];
 

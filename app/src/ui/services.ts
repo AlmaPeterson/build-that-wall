@@ -3,7 +3,7 @@
 // saves that follow you to other devices, and putting your scores on the world leaderboard.
 import { createBotMemory } from '../game/bots';
 import type { BotMemory, GameState } from '../game';
-import { AccountService, GoogleSignIn, ServerApi, getUser, isSignedIn, markSignInExpired, maskedEmail, myName, signInExpired, verifiedUser, type FetchLike } from '../services/account';
+import { AccountService, GoogleSignIn, OtherSignIn, ServerApi, githubReturn, withoutGithubQuery, getUser, isSignedIn, markSignInExpired, maskedEmail, myName, signInExpired, verifiedUser, type FetchLike } from '../services/account';
 import { DEFAULT_SETTINGS, loadSettings, type GameSettings as Config } from '../services/config';
 import { Entitlements, GoldService, TrialWatcher } from '../services/gold';
 import { Leaderboard, mqttWorldBoard } from '../services/leaderboard';
@@ -52,6 +52,7 @@ export function createServices(deps: ServiceDeps) {
   const gold = new GoldService(store, ent, api);
   const account = new AccountService(store, ent, api);
   const google = new GoogleSignIn(store);
+  const others = new OtherSignIn(store, (path, body) => api.call(config.get().serverUrl, path, body));
   const leaderboard = new Leaderboard(store, api, mqttWorldBoard(deps.connect));
   const checkout = deps.checkout ?? new PayPalCheckout().checkout;
   const purchases = new Purchases(store, ent, api, checkout, n => leaderboard.addSpent(n), deps.openWindow);
@@ -95,6 +96,13 @@ export function createServices(deps: ServiceDeps) {
     if (!started) started = (async () => {
       const r = await loadSettings(deps.fetch);
       config.set(r.settings);
+      // Back from GitHub's sign-in page (pop-ups were blocked): finish signing in
+      const gh = githubReturn(deps.location?.search ?? '');
+      if (gh && gh !== 'popup' && deps.location) {
+        try { history.replaceState(null, '', withoutGithubQuery(deps.location.href)); } catch { /* not a browser */ }
+        const r = await others.githubReturned(gh.code, gh.state);
+        if ('name' in r) toast('Signed in as ' + r.name, false);
+      }
       await gold.check(deps.location?.search ?? '');
       if (verifiedUser(store) && !signInExpired(store)) {
         await account.load(server());
@@ -109,7 +117,14 @@ export function createServices(deps: ServiceDeps) {
 
   async function signIn(): Promise<string> {
     const renewing = signInExpired(store) ? getUser(store)?.sub : undefined;
-    const name = await google.signIn(config.get().googleClientId);
+    const c = config.get();
+    // Apple, GitHub and passwords are checked by the game server, so they need one
+    const viaServer = /^https:/.test(c.serverUrl);
+    const name = await google.signIn(c.googleClientId, viaServer ? {
+      apple: c.appleClientId ? () => others.apple(c.appleClientId) : undefined,
+      github: c.githubClientId ? () => others.github(c.githubClientId) : undefined,
+      password: (mode, user, pass) => others.password(mode, user, pass),
+    } : {});
     if (name && name !== 'nosetup') {
       // Same player back: what they did while signed out of the server is newer than its copy, which /load brings down
       if (renewing && renewing === getUser(store)?.sub) await account.save(server());
