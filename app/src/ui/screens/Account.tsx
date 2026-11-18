@@ -55,6 +55,13 @@ export function AccountScreen() {
         </div>
         <GoldCode busy={busy} run={run} say={s => say('gold', s)} />
         <CardBack gold={player.gold} verified={player.verified} />
+        <div class="btw-cardback">
+          <h3>Leaderboards</h3>
+          <div class="btw-row">
+            <Button color="navy" disabled={!player.gold} onClick={() => screen.set('leaderboard')}>Leaderboard</Button>
+          </div>
+          {!player.gold && <p class="btw-muted">Leaderboards are for Gold members.</p>}
+        </div>
         <Message text={said.gold?.text ?? ''} ok={!!said.gold?.ok} />
       </section>
 
@@ -66,10 +73,9 @@ export function AccountScreen() {
 
       <Donate busy={busy} run={run} currency={config.currency} said={said.donate ?? null} say={s => say('donate', s)} />
 
-      <section class="btw-card" aria-labelledby="more-h">
-        <h2 id="more-h">More</h2>
+      <section class="btw-card" aria-labelledby="feedback-h">
+        <h2 id="feedback-h">Feedback</h2>
         <div class="btw-row">
-          <Button color="navy" onClick={() => screen.set('leaderboard')}>Leaderboard</Button>
           <Button color="navy" onClick={() => void openFeedbackBox({
             name: player.name, replyTo: userEmail(services.store), feedbackUrl: config.feedbackUrl,
             store: { get: k => services.store.get(k) || null, set: (k, v) => services.store.set(k, v) },

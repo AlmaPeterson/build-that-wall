@@ -1,8 +1,11 @@
-// Leaderboard: everyone (the game server's board, or the world board plus this device), or just this device.
+// Leaderboard (Gold members only): everyone (the game server's board, or the world board plus this device), or just this device.
 import { useEffect, useState } from 'preact/hooks';
 import { topTen, type BoardKind } from '../../services/leaderboard';
 import { Page } from '../account/Page';
+import { screen } from '../app-state';
+import { Button } from '../components/Button';
 import { services } from '../services';
+import { useStore } from '../store';
 
 const KINDS: [BoardKind, string][] = [
   ['miles', 'Best miles'], ['rate', 'Win rate'], ['wins', 'Wins'], ['games', 'Games'], ['walls', 'Walls built'],
@@ -11,6 +14,21 @@ const KINDS: [BoardKind, string][] = [
 type Source = 'everyone' | 'device';
 
 export function LeaderboardScreen() {
+  const player = useStore(services.player);
+  useEffect(() => { void services.init(); }, []);
+  if (player.gold) return <Boards />;
+  return (
+    <Page title="Leaderboard">
+      <section class="btw-card">
+        <h2>Gold members only</h2>
+        <p>Leaderboards are for Gold members. Get Gold on the Account & Store screen to see them.</p>
+        <div class="btw-row"><Button color="gold" onClick={() => screen.set('account')}>Go to Account & Store</Button></div>
+      </section>
+    </Page>
+  );
+}
+
+function Boards() {
   const [kind, setKind] = useState<BoardKind>('miles');
   const [source, setSource] = useState<Source>('everyone');
   const [lines, setLines] = useState<string[] | null>(null);
