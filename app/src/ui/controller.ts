@@ -154,7 +154,8 @@ export class GameController {
       humanDecider: seat => this.opts.remoteDecider?.(seat) ?? { decide: d => this.ask(d) },
       emit: e => { if (!this.stopped) { this.events.push(e); this.publish(); } },
       // Checked at each turn: the game (and so who is human) only exists once createLocalGame returns
-      beforeTurn: async seat => { this.save('turn'); if (this.passing() && this.isLocal(seat)) await this.passTo(seat); },
+      // Hand the device to the next person before their turn; a bot's turn needs nobody to take it
+      beforeTurn: async seat => { this.save('turn'); if (this.passing() && this.isLocal(seat) && !this.game?.state.seats[seat]?.bot) await this.passTo(seat); },
       beforeDraw: seat => this.waitForTurnOk(seat),
       afterSkip: seat => this.waitForSkipOk(seat),
       beforeBotAction: async () => {

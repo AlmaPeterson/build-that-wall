@@ -117,6 +117,24 @@ describe('GameController', () => {
     await new Promise(r => setTimeout(r, 0));
     expect(c.snapshot.get().passTo).toBeNull();
   });
+
+  it("doesn't ask anyone to take the device for a bot's turn", async () => {
+    // Two people and a bot; the bot goes first, then the people
+    for (let seed = 1; seed < 40; seed++) {
+      const c = new GameController({ passScreen: true });
+      const passed: (number | null)[] = [];
+      c.snapshot.subscribe(s => { if (s.passTo !== null && passed.at(-1) !== s.passTo) passed.push(s.passTo); });
+      void c.start({ ...settings(3, 1), firstSeat: 2 }, seed);
+      await new Promise(r => setTimeout(r, 0));
+      const s = c.state!;
+      c.stop();
+      if (!s.seats[2]!.bot || s.turn === 2) continue;            // the bot's turn must be over, with nothing to answer
+      expect(passed).not.toContain(2);
+      expect(passed[0]).toBe(s.turn);                         // straight to the next person
+      return;
+    }
+    throw new Error('no game where the bot finished its turn');
+  });
 });
 
 describe('a card being played', () => {
