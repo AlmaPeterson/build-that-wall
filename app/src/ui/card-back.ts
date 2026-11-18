@@ -7,12 +7,12 @@ import { services } from './services';
 /** Saved as "back", by name, exactly as the old game saved it (old saves and the game server keep working). */
 export const BACKS = { classic: 'Classic', holiday: 'Holiday special (near holidays)' } as const;
 
-export type Holiday = 'new-year' | 'valentines-day' | 'st-patricks-day' | 'april-fools' | 'independence-day'
+export type Holiday = 'new-year' | 'valentines-day' | 'st-patricks-day' | 'april-fools' | 'easter' | 'independence-day'
   | 'labor-day' | 'halloween' | 'thanksgiving' | 'christmas';
 
 export const HOLIDAY_NAMES: Record<Holiday, string> = {
   'new-year': 'New Year', 'valentines-day': "Valentine's Day", 'st-patricks-day': "St. Patrick's Day",
-  'april-fools': "April Fools' Day", 'independence-day': 'Independence Day', 'labor-day': 'Labor Day',
+  'april-fools': "April Fools' Day", easter: 'Easter', 'independence-day': 'Independence Day', 'labor-day': 'Labor Day',
   halloween: 'Halloween', thanksgiving: 'Thanksgiving', christmas: 'Christmas',
 };
 
@@ -21,12 +21,26 @@ const HOLIDAY_IMAGES: Record<Exclude<Holiday, 'april-fools'>, string> = {
   'new-year': 'assets/cards/hol-christmas.jpg',
   'valentines-day': 'assets/cards/hol-valentines-day.jpg',
   'st-patricks-day': 'assets/cards/hol-st-patricks-day.jpg',
+  easter: 'assets/cards/hol-easter.jpg',
   'independence-day': 'assets/cards/hol-independence-day.jpg',
   'labor-day': 'assets/cards/hol-labor-day.jpg',
   halloween: 'assets/cards/hol-halloween.jpg',
   thanksgiving: 'assets/cards/hol-thanksgiving.jpg',
   christmas: 'assets/cards/hol-christmas.jpg',
 };
+
+/** Easter Sunday in a year (the Gregorian calendar's rule). */
+export function easterSunday(year: number): Date {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const n = h + l - 7 * m + 114;
+  return new Date(year, Math.floor(n / 31) - 1, (n % 31) + 1);
+}
+
+// Whole days from one date to a later one (ignores the time of day)
+const daysBetween = (from: Date, to: Date) =>
+  Math.round((Date.UTC(to.getFullYear(), to.getMonth(), to.getDate()) - Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())) / 86400000);
 
 /** The holiday that is near on this date, if any. */
 export function holidayOn(date: Date = new Date()): Holiday | null {
@@ -36,11 +50,13 @@ export function holidayOn(date: Date = new Date()): Holiday | null {
   if (md >= 207 && md <= 214) return 'valentines-day';
   if (md >= 310 && md <= 317) return 'st-patricks-day';
   if (md === 401) return 'april-fools';
+  // Palm Sunday to Easter Sunday
+  const toEaster = daysBetween(date, easterSunday(date.getFullYear()));
+  if (toEaster >= 0 && toEaster <= 7) return 'easter';
   if (md >= 628 && md <= 705) return 'independence-day';
   // The week before Labor Day (the first Monday of September), and the day itself
   const laborDay = 1 + (8 - new Date(date.getFullYear(), 8, 1).getDay()) % 7;
-  const labor = new Date(date.getFullYear(), 8, laborDay);
-  const daysBefore = Math.round((labor.getTime() - new Date(date.getFullYear(), m - 1, d).getTime()) / 86400000);
+  const daysBefore = daysBetween(date, new Date(date.getFullYear(), 8, laborDay));
   if (daysBefore >= 0 && daysBefore <= 7) return 'labor-day';
   if (md >= 1017 && md <= 1031) return 'halloween';
   if (md >= 1120 && md <= 1130) return 'thanksgiving';

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import { cardImage } from './assets';
-import { BACKS, backImageFor, holidayOn } from './card-back';
+import { BACKS, backImageFor, easterSunday, holidayOn } from './card-back';
 
 const day = (y: number, m: number, d: number) => new Date(y, m - 1, d);
 
@@ -26,8 +26,19 @@ describe('holidays', () => {
     expect(holidayOn(day(2027, 9, 6))).toBe('labor-day');       // Labor Day 2027
   });
 
+  it('finds Easter from Palm Sunday to Easter Sunday', () => {
+    expect(easterSunday(2026)).toEqual(day(2026, 4, 5));
+    expect(easterSunday(2027)).toEqual(day(2027, 3, 28));
+    expect(easterSunday(2028)).toEqual(day(2028, 4, 16));
+    expect(holidayOn(day(2026, 3, 29))).toBe('easter');        // Palm Sunday
+    expect(holidayOn(day(2026, 4, 5))).toBe('easter');
+    expect(holidayOn(day(2026, 4, 6))).toBe(null);
+    expect(holidayOn(day(2026, 4, 1))).toBe('april-fools');    // April Fools' Day wins inside Holy Week
+    expect(backImageFor({ gold: true, choice: BACKS.holiday, date: day(2026, 4, 3) })).toBe('assets/cards/hol-easter.jpg');
+  });
+
   it('has no holiday on ordinary days', () => {
-    expect(holidayOn(day(2026, 4, 2))).toBe(null);
+    expect(holidayOn(day(2026, 4, 20))).toBe(null);
     expect(holidayOn(day(2026, 5, 15))).toBe(null);
   });
 });

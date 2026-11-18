@@ -141,7 +141,7 @@ function CardBack({ gold, verified }: { gold: boolean; verified: boolean }) {
         ))}
       </div>
       <p class="btw-muted">
-        {gold ? 'The holiday special only shows near the holidays: New Year, Valentine’s Day, St. Patrick’s Day, April Fools’ Day (watch out!), Independence Day, Labor Day, Halloween, Thanksgiving and Christmas.'
+        {gold ? 'The holiday special only shows near the holidays: New Year, Valentine’s Day, St. Patrick’s Day, April Fools’ Day (watch out!), Easter, Independence Day, Labor Day, Halloween, Thanksgiving and Christmas.'
           : 'Gold members can pick the holiday special card back.'}
         {gold && now ? ' Right now: ' + HOLIDAY_NAMES[now] + '.' : ''}
       </p>
