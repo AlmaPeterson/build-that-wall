@@ -97,7 +97,8 @@
 .guide__nav button.is-current { background: var(--red); color: #fff; }
 .guide__page { flex: 1; overflow: auto; padding: 16px 22px; }
 .guide__page h2 { margin: 0 0 10px; font-family: var(--font); color: #b3122a; }
-.guide__page ul { margin: 0; padding-left: 22px; font-size: 1.05em; line-height: 1.45; }
+.guide__full { display: block; padding: 8px 10px; font: bold 0.9em var(--font-body); color: #1f22f5; }
+.guide__page ul, .guide__page ol { margin: 0; padding-left: 22px; font-size: 1.05em; line-height: 1.45; }
 .guide__page li { margin-bottom: 8px; }
 .guide__foot { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-top: 2px solid #eee; }
 .guide__foot span { flex: 1; text-align: center; color: var(--muted); font-weight: bold; }

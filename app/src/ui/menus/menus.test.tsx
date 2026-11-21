@@ -289,14 +289,15 @@ describe('starting games', () => {
     expect(screen.get()).toBe('account');
     click('Settings');
     expect(screen.get()).toBe('settings');
-    click('Instructions');
-    expect(screen.get()).toBe('instructions');
   });
 
   it('Tutorial opens the guide; its last page starts a tutorial game', () => {
     act(() => { render(<MenuScreen />, root); });
     click('Tutorial');
     expect(root.querySelector('.guide')).not.toBeNull();
+    expect(root.textContent).not.toContain('Instructions');
+    const titles = [...root.querySelectorAll('.guide__nav button')].map(b => b.textContent);
+    expect(titles.slice(0, 5)).toEqual(['1. Welcome', '2. Rules: Goal & Setup', '3. Rules: Taking Your Turn', '4. Rules: Building Walls', '5. Rules: Winning & Key Cards']);
     const nav = [...root.querySelectorAll('.guide__nav button')];
     act(() => { (nav.at(-1) as HTMLButtonElement).click(); });
     click('Start a tutorial game');

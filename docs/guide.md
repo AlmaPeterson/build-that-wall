@@ -36,7 +36,7 @@ The guide follows the order you meet things on the website. Read it front to bac
 - **Sections 4 to 8:** starting a game, the three ways to play, and the four ways a game can end.
 - **Sections 9 to 14:** playing a game: the screen, your turn, building walls, every card, blocking, and the messages you see.
 - **Section 15:** watching card videos while you wait for your turn.
-- **Sections 16 to 18:** Settings, Account & Store, and the built-in Instructions and Tutorial.
+- **Sections 16 to 18:** Settings, Account & Store, and the built-in Tutorial and Instructions.
 - **Sections 19 to 23:** strategy, troubleshooting, the other pages on the website, keyboard and accessibility, and a glossary of game words.
 
 Button names appear in **bold**, exactly as they are written on the screen. Words in quotation marks are messages the game shows you.
@@ -82,15 +82,14 @@ Just under the header is your name box. It looks different depending on whether 
 
 The tan box glows gently to catch your eye until you set a name. Section 3 explains setting your name step by step.
 
-### 2.3 The five main buttons
+### 2.3 The four main buttons
 
 | Button | What it opens | Section |
 | --- | --- | --- |
 | **Play** | The "How do you want to play?" box, where you choose a game mode and start a game. | 4 |
 | **Settings** | Sound effects, music, tutorial tips, card animations and text sizes. | 16 |
 | **Account & Store** | Sign-in, Gold Membership, card backs, leaderboards, donations, feedback and your saved data. | 17 |
-| **Instructions** | The full rules of the game on four short pages. | 18 |
-| **Tutorial** | An illustrated guide to the whole website, page by page. | 18 |
+| **Tutorial** | The full rules of the game and an illustrated guide to the whole website, page by page. | 18 |
 
 ### 2.4 The blue footer
 
@@ -305,7 +304,7 @@ Section 8 explains each ending in detail and which to pick. Most players leave i
 
 ### 5.7 The Tutorial game
 
-The **Tutorial** button on the home page opens the illustrated guide. Its last page has a **Start a tutorial game** button, which starts a game against bots with two differences: you always go first, and Tutorial tips are switched on, so a yellow box suggests a good move every turn and explains why (section 18.3).
+The **Tutorial** button on the home page opens the Tutorial: the rules, then a picture tour of the website. Its last page has a **Start a tutorial game** button, which starts a game against bots with two differences: you always go first, and Tutorial tips are switched on, so a yellow box suggests a good move every turn and explains why (section 18.3).
 
 ## 6. Pass'n'Play
 
@@ -1388,7 +1387,7 @@ Four sliders, each from a small **A** to a big **A**, with the size as a percent
 | **Messages and choice lists** | The boxes that tell you what happened, and the lists you pick from. | 80% to 140% |
 | **Scoreboard and game screen** | Names, miles and other words on the game screen. | 80% to 130% |
 | **Cards in your hand** | Makes your cards, and the words printed on them, bigger. | 90% to 125% |
-| **Menus, windows and guides** | The main menu, Settings, Instructions and the guide. | 80% to 120% |
+| **Menus, windows and guides** | The main menu, Settings, Instructions and the Tutorial. | 80% to 120% |
 
 ![Text size sliders](guide/23-settings-text-size.png)
 
@@ -1579,13 +1578,13 @@ Press **Back** (top right of the box) to close it without sending.
 
 *The Saves card.*
 
-## 18. Instructions and the Tutorial
+## 18. The Tutorial and Instructions
 
-The website has three built-in ways to learn: the Instructions (the rules on four short pages), the illustrated guide (a picture tour of the whole website), and Tutorial tips (a coach that suggests your best move while you play).
+The website has two built-in ways to learn: the Tutorial (the rules, then a picture tour of the whole website) and Tutorial tips (a coach that suggests your best move while you play). During a game, the **Instructions** button shows just the rules.
 
-### 18.1 Instructions
+### 18.1 The rules (Instructions)
 
-Open **Instructions** on the home page, or the **Instructions** button on the game screen. The page title reads **How to Play:** followed by the page's name.
+The rules are four short pages. On the home page they are pages 2 to 5 of the **Tutorial** (section 18.2), named **Rules: Goal & Setup** and so on. During a game, press **Instructions** on the game screen to read them on their own; that page title reads **How to Play:** followed by the page's name.
 
 | Page | Title | What it covers |
 | --- | --- | --- |
@@ -1610,34 +1609,40 @@ Open **Instructions** on the home page, or the **Instructions** button on the ga
 
 *Page 4: Winning & Key Cards.*
 
-At the bottom: **◀ Back** and **Next ▶** move between pages, "Page 1 of 4" shows where you are, **Done** (on the last page) and **Back** return you to where you came from. The blue **Illustrated guide** button in the middle opens the illustrated guide.
+On the Instructions screen, at the bottom: **◀ Back** and **Next ▶** move between pages, "Page 1 of 4" shows where you are, **Done** (on the last page) and **Back** return you to where you came from. The blue **Illustrated guide** button in the middle opens the Tutorial.
 
 The same rules are on a public web page, **About & How to Play**, linked at the bottom of the home page. Share that link with someone before their first game.
 
-### 18.2 The illustrated guide
+### 18.2 The Tutorial
 
-Open it with **Tutorial** on the home page, or **Illustrated guide** on the Instructions page. It is titled **HOW TO PLAY & USE THE SITE** and has 15 pages, each with a small picture and a few short points.
+Open it with **Tutorial** on the home page, or **Illustrated guide** on the Instructions screen. It is titled **HOW TO PLAY & USE THE SITE** and has 19 pages: Welcome, the four rules pages, then 14 pages with a small picture and a few short points each.
 
 | # | Page | # | Page |
 | --- | --- | --- | --- |
-| 1 | Welcome | 9 | Zoom in and scan QR codes |
-| 2 | The main menu | 10 | When someone attacks you |
-| 3 | Starting a game | 11 | Knowing what is happening |
-| 4 | Changing your name | 12 | Knowing what to do |
-| 5 | The game screen | 13 | Winning strategies |
-| 6 | Taking your turn | 14 | Pass'n'Play and online |
-| 7 | Playing a card | 15 | Your account and Gold |
-| 8 | Building walls |  |  |
+| 1 | Welcome | 11 | Playing a card |
+| 2 | Rules: Goal & Setup | 12 | Building walls |
+| 3 | Rules: Taking Your Turn | 13 | Zoom in and scan QR codes |
+| 4 | Rules: Building Walls | 14 | When someone attacks you |
+| 5 | Rules: Winning & Key Cards | 15 | Knowing what is happening |
+| 6 | The main menu | 16 | Knowing what to do |
+| 7 | Starting a game | 17 | Winning strategies |
+| 8 | Changing your name | 18 | Pass'n'Play and online |
+| 9 | The game screen | 19 | Your account and Gold |
+| 10 | Taking your turn |  |  |
 
-![The illustrated guide](guide/45-guide.png)
+![The Tutorial](guide/45-guide.png)
 
-*The illustrated guide, page 1: Welcome.*
+*The Tutorial, page 1: Welcome.*
+
+![A rules page in the Tutorial](guide/47-guide-rules.png)
+
+*Page 2: Rules: Goal & Setup.*
 
 ![The guide's game screen page](guide/46-guide-game-screen.png)
 
-*Page 5: The game screen.*
+*Page 9: The game screen.*
 
-On a wide screen the list of topics is down the left side: tap any topic to jump to it. At the bottom, **◀ Back** and **Next ▶** move one page at a time (the arrow keys work too), with "Page 1 of 15" between them. Press **X** at the top right, or Escape, to close it.
+On a wide screen the list of topics is down the left side: tap any topic to jump to it. Under the list, **Full guide ↗** opens this guide in a new tab. At the bottom, **◀ Back** and **Next ▶** move one page at a time (the arrow keys work too), with "Page 1 of 19" between them. Press **X** at the top right, or Escape, to close it.
 
 The last page has a **Start a tutorial game** button.
 
@@ -1647,7 +1652,7 @@ The last page has a **Start a tutorial game** button.
 
 ### 18.3 The Tutorial game and Tutorial tips
 
-**Start a tutorial game** (the last page of the illustrated guide) starts a game against bots in which you go first, with Tutorial tips switched on.
+**Start a tutorial game** (the last page of the Tutorial) starts a game against bots in which you go first, with Tutorial tips switched on.
 
 Tutorial tips can be switched on in any game, two ways:
 
@@ -1669,9 +1674,9 @@ The tip updates after each move you make. Press the small **×** in its corner t
 
 ### 18.4 A learning path
 
-1. **Read this guide's sections 9 to 13,** or the 4 Instructions pages.
+1. **Read this guide's sections 9 to 13,** or the 4 rules pages at the start of the Tutorial.
 2. **Watch a game:** Play, then Just watch bots play, with 3 bots on Slow animations.
-3. **Play the tutorial game** from the last page of the illustrated guide, and follow the tips.
+3. **Play the tutorial game** from the last page of the Tutorial, and follow the tips.
 4. **Play against 2 Easy bots** with Tutorial tips on.
 5. **Turn the tips off** and play against Medium bots.
 6. **Try Hard bots,** then play friends in Pass'n'Play or online.
@@ -1842,8 +1847,8 @@ The game works with a mouse, a touch screen or a keyboard, and with screen reade
 | Tab / Shift+Tab | Everywhere | Moves between buttons, cards and boxes. |
 | Enter or Space | A button or a card | Presses the button, or opens the card. |
 | Enter | The pass screen, the turn banner, notices | Presses the main button (**I'm *Name* - show me**, **OK**). |
-| Escape | A card popup, the illustrated guide, the videos window, other boxes | Closes it. |
-| Left / Right arrow | The illustrated guide | Previous / next page. |
+| Escape | A card popup, the Tutorial, the videos window, other boxes | Closes it. |
+| Left / Right arrow | The Tutorial | Previous / next page. |
 | Enter | The Room code box | Joins the room. |
 | F11 | A computer's browser | Full screen, for bigger cards. |
 

@@ -79,7 +79,6 @@ export function MenuScreen() {
         <Button class="menu__big" onClick={() => setPlay(true)}>Play</Button>
         <Button class="menu__big" onClick={() => screen.set('settings')}>Settings</Button>
         <Button class="menu__big" onClick={() => screen.set('account')}>Account &amp; Store</Button>
-        <Button class="menu__big" onClick={() => screen.set('instructions')}>Instructions</Button>
         <Button class="menu__big" onClick={() => setGuide(true)}>Tutorial</Button>
       </main>
       <footer class="menu__foot">
