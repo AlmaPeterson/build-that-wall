@@ -32,7 +32,7 @@ function make(opts: { server?: Record<string, unknown>; signedIn?: boolean; chec
   const { f, calls } = fakeFetch({ 'Server URL': SERVER, 'Gold Price Year': 12.5, 'Currency': 'EUR' }, opts.server);
   const relay = new FakeRelay();
   const checkout: Checkout = opts.checkout ?? (async () => ({ status: 'ok', id: 'O-1', test: true }));
-  const s = createServices({ storage, fetch: f, connect: relay.connect, checkout, openWindow: () => {} });
+  const s = createServices({ storage, fetch: f, connect: relay.connect, checkout, openWindow: () => {}, paymentsOff: '' });
   return { s, storage, calls, relay };
 }
 
@@ -178,5 +178,19 @@ describe('sound effects', () => {
     settings.set({ ...settings.get(), sound: true });
     playSfx('card'); playSfx('click'); playSfx('build'); playSfx('nonsense');
     expect(played).toEqual(['assets/cards/card.wav', 'assets/buttons/click.wav', 'assets/cards/card.wav']);
+  });
+});
+
+describe('payments turned off', () => {
+  it('takes no payments, never opens PayPal, and says why', async () => {
+    const checkout = vi.fn<Checkout>(async () => ({ status: 'ok', id: 'O-1', test: true }));
+    const storage = new MemoryStorage();
+    storage.setItem('btw:user', JSON.stringify({ name: 'Ann', email: 'ann@example.com', sub: '1', token: 'tok' }));
+    const s = createServices({ storage, fetch: fakeFetch({}).f, connect: new FakeRelay().connect, checkout, openWindow: () => {} });
+    expect(s.paymentsOff).toBe('Not Ready For Payments Yet');
+    expect(await s.buyGold('year')).toBe('paused');
+    expect(await s.donate(5)).toBe('paused');
+    expect(checkout).not.toHaveBeenCalled();
+    expect(buyMessage('paused', 'gold')).toEqual({ text: 'Payments are turned off right now. Reason: Not Ready For Payments Yet', ok: false });
   });
 });

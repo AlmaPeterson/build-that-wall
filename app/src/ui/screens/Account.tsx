@@ -5,7 +5,7 @@ import { userEmail } from '../../services/account';
 import { screen } from '../app-state';
 import { Message, Page } from '../account/Page';
 import { saveMyName } from '../account/my-name';
-import { buyMessage, codeMessage, nameMessage, trialMessage, type Said } from '../account/results';
+import { buyMessage, codeMessage, nameMessage, paymentsOffText, trialMessage, type Said } from '../account/results';
 import { Button } from '../components/Button';
 import { BACKS, HOLIDAY_NAMES, holidayOn } from '../card-back';
 import { services, type GoldItem } from '../services';
@@ -31,9 +31,10 @@ export function AccountScreen() {
         <h2 id="gold-h">Gold Membership</h2>
         <p>{player.gold ? <span class="btw-gold">{player.goldInfo || 'Gold is active'}</span> : 'Gold unlocks every extra and supports the game.'}</p>
         {(!player.signedIn || player.expired) && <p class="btw-muted">Sign in {player.expired ? 'again' : 'first'}: Gold belongs to your account, so it follows you to every device.</p>}
+        {services.paymentsOff && <p class="btw-muted" role="note">{paymentsOffText(services.paymentsOff)}</p>}
         <div class="btw-row">
           {(['year', 'month'] as GoldItem[]).map(item => (
-            <Button key={item} color="gold" disabled={busy || !player.signedIn || player.expired} onClick={() => run(async () => {
+            <Button key={item} color="gold" disabled={busy || !player.signedIn || player.expired || !!services.paymentsOff} onClick={() => run(async () => {
               say('gold', buyMessage(await services.buyGold(item), 'gold'));
             })}>
               {item === 'year' ? '1 year' : '30 days'}: {money(item === 'year' ? config.goldPriceYear : config.goldPriceMonth, config.currency)}
@@ -176,10 +177,11 @@ function Donate({ busy, run, currency, said, say }: { busy: boolean; run: Run; c
     <section class="btw-card" aria-labelledby="donate-h">
       <h2 id="donate-h">Donate</h2>
       <p>Like the game? A donation helps keep it free and growing.</p>
+      {services.paymentsOff && <p class="btw-muted" role="note">{paymentsOffText(services.paymentsOff)}</p>}
       <div class="btw-row">
-        {[1, 5, 10].map(n => <Button key={n} color="navy" disabled={busy} onClick={() => give(n)}>{money(n, currency)}</Button>)}
-        <input class="btw-input" type="number" min="1" step="1" value={amount} onInput={e => setAmount((e.target as HTMLInputElement).value)} aria-label="Other amount" />
-        <Button color="navy" disabled={busy || !(+amount >= 1)} onClick={() => give(Math.round(+amount * 100) / 100)}>Give</Button>
+        {[1, 5, 10].map(n => <Button key={n} color="navy" disabled={busy || !!services.paymentsOff} onClick={() => give(n)}>{money(n, currency)}</Button>)}
+        <input class="btw-input" type="number" min="1" step="1" value={amount} disabled={!!services.paymentsOff} onInput={e => setAmount((e.target as HTMLInputElement).value)} aria-label="Other amount" />
+        <Button color="navy" disabled={busy || !(+amount >= 1) || !!services.paymentsOff} onClick={() => give(Math.round(+amount * 100) / 100)}>Give</Button>
       </div>
       <Message text={said?.text ?? ''} ok={!!said?.ok} />
     </section>

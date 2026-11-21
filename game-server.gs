@@ -44,6 +44,10 @@
  * Run testFilter() from the editor to try the feedback filter without the game.
  */
 
+// While this isn't empty, the server takes no payments (Gold or donations) and says why. '' takes payments again
+// (set PAYMENTS_OFF_REASON in app/src/services/payments/purchases.ts to '' too).
+const PAYMENTS_OFF_REASON = 'Not Ready For Payments Yet';
+
 const MODEL = 'claude-opus-5-5';
 const KNOWN_LIMIT = 400;            // how many past suggestions Claude compares against
 const FLOOD_HOURS = 6;              // the same text from anyone within this time is only handled once
@@ -386,8 +390,8 @@ function handleApi_(path, body) {
       if (body.name) sheet.getRange(row, C.name).setValue(String(body.name).slice(0, 20));
       return { ok: true };
     }
-    case 'paypal/confirm': return paypalConfirm_(sheet, row, body);
-    case 'paypal/subscribed': return paypalSubscribed_(sheet, row, body);
+    case 'paypal/confirm': return PAYMENTS_OFF_REASON ? { error: 'paused', reason: PAYMENTS_OFF_REASON } : paypalConfirm_(sheet, row, body);
+    case 'paypal/subscribed': return PAYMENTS_OFF_REASON ? { error: 'paused', reason: PAYMENTS_OFF_REASON } : paypalSubscribed_(sheet, row, body);
     case 'paypal/cancel': return paypalCancel_(sheet, row);
     case 'admin/search': {
       if (!isOwner) return { error: 'owner' };

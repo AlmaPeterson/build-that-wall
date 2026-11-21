@@ -1,5 +1,8 @@
 // What to tell the player after a purchase, a sign-in or another account action.
-import type { BuyResult } from '../../services/payments';
+import { PAYMENTS_OFF_REASON, type BuyResult } from '../../services/payments';
+
+/** "Payments are turned off right now. Reason: ..." */
+export const paymentsOffText = (reason: string) => 'Payments are turned off right now. Reason: ' + reason;
 
 export interface Said { text: string; ok: boolean }
 
@@ -9,11 +12,13 @@ const SERVER_ERRORS: Record<string, string> = {
   used: 'That payment was already used.',
   login: 'Please sign in again, then try once more.',
   order: 'Something went wrong with the payment. Nothing was charged.',
+  paused: paymentsOffText(PAYMENTS_OFF_REASON) + ' Nothing was charged.',
 };
 
 /** For a purchase. `what`: "Gold" or "your donation". cancel says nothing. */
 export function buyMessage(r: BuyResult, what: 'gold' | 'donate'): Said | null {
   if (r === 'cancel') return null;
+  if (r === 'paused') return { text: paymentsOffText(PAYMENTS_OFF_REASON), ok: false };
   if (r === 'ok') return what === 'gold'
     ? { text: 'Thank you! Gold is unlocked.', ok: true }
     : { text: 'Thank you so much! Your donation helps keep the game going.', ok: true };

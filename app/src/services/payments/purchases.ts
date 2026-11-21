@@ -11,7 +11,13 @@ export interface PriceInfo {
   server: string;     // game server URL; empty = this device only
 }
 
-export type BuyResult = 'ok' | 'cancel' | 'error' | 'noserver' | `server-${string}`;
+export type BuyResult = 'ok' | 'cancel' | 'error' | 'noserver' | 'paused' | `server-${string}`;
+
+/**
+ * While this isn't empty, nobody can pay (Gold or donations) and the store says why. Set it to '' to take
+ * payments again (and PAYMENTS_OFF_REASON in game-server.gs too).
+ */
+export const PAYMENTS_OFF_REASON = 'Not Ready For Payments Yet';
 
 const PAYPAL_AUTOPAY = 'https://www.paypal.com/myaccount/autopay/';
 

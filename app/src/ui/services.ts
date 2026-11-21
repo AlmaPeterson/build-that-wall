@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS, loadSettings, type GameSettings as Config } from '../
 import { Entitlements, GoldService, TrialWatcher } from '../services/gold';
 import { Leaderboard, mqttWorldBoard } from '../services/leaderboard';
 import { connectMqtt, type Connect } from '../services/online';
-import { PayPalCheckout, Purchases, type BuyResult, type Checkout, type PriceInfo } from '../services/payments';
+import { PAYMENTS_OFF_REASON, PayPalCheckout, Purchases, type BuyResult, type Checkout, type PriceInfo } from '../services/payments';
 import { SaveStore, browserStorage, type KeyValueStorage } from '../services/storage';
 import { controller as currentGame, gameOptions } from './app-state';
 import type { GameController } from './controller';
@@ -42,6 +42,8 @@ export interface ServiceDeps {
   /** Shows a short message (the trial countdown, feedback results). */
   toast?: (text: string, ok: boolean) => void;
   location?: { search: string; href: string };
+  /** Why payments are turned off ('' = on). Default PAYMENTS_OFF_REASON. */
+  paymentsOff?: string;
 }
 
 export function createServices(deps: ServiceDeps) {
@@ -150,8 +152,12 @@ export function createServices(deps: ServiceDeps) {
     return { price: p, currency: c.currency, clientId: c.paypalClientId, server: c.serverUrl };
   }
 
+  /** Why payments are turned off right now ('' = they're on). */
+  const paymentsOff = deps.paymentsOff ?? PAYMENTS_OFF_REASON;
+
   /** Buy Gold. Month/year renew when the owner set up a PayPal plan for them. */
   async function buyGold(item: GoldItem): Promise<BuyResult> {
+    if (paymentsOff) return 'paused';
     if (signInExpired(store)) return 'server-login';         // before PayPal: the server couldn't record the payment
     const c = config.get();
     const r = await purchases.paySub(item, item === 'year' ? c.paypalPlanYear : c.paypalPlanMonth, price(item));
@@ -160,6 +166,7 @@ export function createServices(deps: ServiceDeps) {
   }
 
   async function donate(amount: number): Promise<BuyResult> {
+    if (paymentsOff) return 'paused';
     if (signInExpired(store)) return 'server-login';
     const r = await purchases.payItem('donate', 'donation', price('donate', amount));
     refresh();
@@ -217,7 +224,7 @@ export function createServices(deps: ServiceDeps) {
   return {
     store, config, api, ent, gold, account, google, leaderboard, purchases, botMemory, player,
     connect: deps.connect, toast,
-    init, refresh, signIn, signOut, buyGold, donate, recordGame, watchGames, server,
+    init, refresh, signIn, signOut, buyGold, donate, paymentsOff, recordGame, watchGames, server,
   };
 }
 
