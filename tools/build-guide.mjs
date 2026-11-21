@@ -38,6 +38,9 @@ function pngSize(src) {
     return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
   } catch { return null; }
 }
+/** Where the published pictures are: used when the page is opened somewhere its own guide/ folder isn't (a preview, a copied file). */
+const LIVE = 'https://almapeterson.github.io/build-that-wall/';
+const fallback = ` onerror="if(!this.dataset.live){this.dataset.live=1;this.src='${LIVE}'+this.getAttribute('src');this.parentElement.href=this.src}"`;
 const sizeAttrs = src => { const d = pngSize(src); return d ? ` width="${d.w}" height="${d.h}"` : ''; };
 
 const slug = s => s.toLowerCase().replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
@@ -109,7 +112,7 @@ while (i < lines.length) {
     let cap = '';
     const cm = lines[i]?.match(/^\*([^*].*)\*\s*$/);
     if (cm) { cap = cm[1]; i++; }
-    html += `<figure><a href="${esc(pic[2])}" target="_blank"><img src="${esc(pic[2])}" alt="${esc(pic[1])}"${sizeAttrs(pic[2])} loading="lazy"></a>${cap ? `<figcaption>${inline(cap)}</figcaption>` : ''}</figure>\n`;
+    html += `<figure><a href="${esc(pic[2])}" target="_blank"><img src="${esc(pic[2])}" alt="${esc(pic[1])}"${sizeAttrs(pic[2])}${fallback} loading="lazy"></a>${cap ? `<figcaption>${inline(cap)}</figcaption>` : ''}</figure>\n`;
     continue;
   }
   // A paragraph: lines up to a blank line or another block
