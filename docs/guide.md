@@ -1110,18 +1110,6 @@ For 1 action, pick up to 4 cards from the draw and discard piles together (30 se
 
 **Tip:** jail the cards your opponents need most: the Man Hours or the Wall Sections that would complete their sets.
 
-### 12.8 Expansion pack cards (coming soon)
-
-Five more cards are planned as expansion packs. They are not in the deck yet; the Account & Store page shows **Expansion packs: Coming soon**.
-
-| Card | Cost | What it will do |
-| --- | --- | --- |
-| Reshuffle | 1 action | Shuffle the whole discard pile back into the draw pile. |
-| Give It All Away | 1 action | Hand out every card in your hand to the other players. None go to you. |
-| Fresh Start | 1 action | Every player discards their hand and draws 5 new cards. |
-| Double Time | No action | Gain 2 extra actions this turn. |
-| Hand Swap | 1 action | Swap your whole hand with a player you choose. Self-Defense can block it. |
-
 ## 13. Blocking with Self-Defense and Savings
 
 When someone attacks you and you hold the right card, the game stops and asks whether you want to block. Self-Defense blocks most attacks; Savings pays off a Debt. Blocking uses up the blocking card but costs no action, and it works on anyone's turn.
@@ -1531,7 +1519,7 @@ Each board lists the top 10. The Win rate board only includes players with 5 or 
 
 ### 17.5 Expansion packs
 
-"New cards to mix into your games are on the way. Check back here for them." The card is marked **Coming soon** and its button is greyed out. Section 12.8 lists the five planned cards.
+"New cards to mix into your games are on the way. Check back here for them." The card is marked **Coming soon** and its button is greyed out.
 
 ### 17.6 Donate
 
