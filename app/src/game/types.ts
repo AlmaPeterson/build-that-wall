@@ -11,11 +11,11 @@ export type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
 
 /**
  * 1 "3 Sets of 3 Walls", 2 "Exhaust Deck", 3 "Whatever Happens First", 4 "Whatever Happens Last" (section 10),
- * 5 "First to 50 Miles", 6 "Timed Game" (`minutes` of play, then everyone gets one last turn).
+ * 5 "First to __ Miles" (`miles`, 50 if not set), 6 "Timed Game" (`minutes` of play, then everyone gets one last turn).
  */
 export type Ending = 1 | 2 | 3 | 4 | 5 | 6;
 
-/** Miles that end a "First to 50 Miles" game. */
+/** Miles that end a "First to __ Miles" game unless the settings say otherwise. */
 export const MILES_TO_WIN = 50;
 /** How long a Timed Game lasts unless the settings say otherwise. */
 export const DEFAULT_MINUTES = 20;
@@ -30,6 +30,7 @@ export interface GameSettings {
   ending: Ending;
   endingTimes: 1 | 2;            // how many times the draw pile must run out (endings 2-4)
   minutes?: number;              // Timed Game (ending 6): minutes of play
+  miles?: number;                // First to __ Miles (ending 5): the miles that end the game
   actionsPerTurn: number;        // 3
   cardsPerTurn: number;          // 3
   packCards: CardId[];           // extra cards from active expansion packs (none yet)

@@ -1,6 +1,6 @@
 // Settings are saved in "btw:prefs" with the old game's names and values, so players who move to the
 // new version keep their settings (docs/game-rules.md section 2, Panels › when green flag clicked).
-import { DEFAULT_MINUTES, type Difficulty, type Ending } from '../../game';
+import { DEFAULT_MINUTES, MILES_TO_WIN, type Difficulty, type Ending } from '../../game';
 import { browserStorage, SaveStore } from '../../services/storage';
 import { settings, type TextArea, type UiSettings } from '../app-state';
 
@@ -16,14 +16,28 @@ export const ENDING_NAMES: Record<Ending, string> = {
   2: 'Exhaust Deck',
   3: 'Whatever Happens First',
   4: 'Whatever Happens Last',
-  5: 'First to 50 Miles',
-  6: 'Timed Game',
+  5: 'First to __ Miles',
+  6: 'Ends in __ Minutes',
 };
 
 /** Every ending, in menu order. */
 export const ENDINGS: Ending[] = [1, 2, 3, 4, 5, 6];
-/** How long a Timed Game can be. */
-export const MINUTE_CHOICES = [10, 15, 20, 30, 45, 60];
+/** The numbers you can type for First to __ Miles and Ends in __ Minutes. */
+export const MILES_RANGE = { min: 5, max: 999 };
+export const MINUTES_RANGE = { min: 1, max: 600 };
+
+/** A typed number kept in range; not a number = the default. */
+export function clampNumber(v: unknown, r: { min: number; max: number }, fallback: number): number {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) && String(v).trim() !== '' ? Math.min(r.max, Math.max(r.min, n)) : fallback;
+}
+
+/** "First to 50 Miles", "Ends in 20 Minutes", or the ending's name. */
+export function endingName(ending: Ending, g: { miles?: number; minutes?: number }): string {
+  if (ending === 5) return 'First to ' + (g.miles ?? MILES_TO_WIN) + ' Miles';
+  if (ending === 6) return 'Ends in ' + (g.minutes ?? DEFAULT_MINUTES) + (g.minutes === 1 ? ' Minute' : ' Minutes');
+  return ENDING_NAMES[ending];
+}
 /** The deck running out only matters for endings 2-4. */
 export const usesDeck = (e: Ending): boolean => e >= 2 && e <= 4;
 
@@ -54,7 +68,8 @@ export function clampSettings(s: UiSettings): UiSettings {
   const bots = clampInt(Number.isFinite(g.bots) ? g.bots : 0, 0, players);
   const levels = Array.from({ length: MAX_PLAYERS }, (_, k) => g.difficulties[k] ?? DEFAULT_LEVELS[k]!);
   const ending = ENDINGS.includes(g.ending) ? g.ending : 1;
-  const minutes = MINUTE_CHOICES.includes(Number(g.minutes)) ? Number(g.minutes) : DEFAULT_MINUTES;
+  const minutes = clampNumber(g.minutes, MINUTES_RANGE, DEFAULT_MINUTES);
+  const miles = clampNumber(g.miles, MILES_RANGE, MILES_TO_WIN);
   const endingTimes = g.endingTimes === 2 ? 2 : 1;
   const names = Array.from({ length: MAX_PLAYERS }, (_, k) => String(g.names[k] ?? '').slice(0, 20));
   const textSizes = { ...s.textSizes };
@@ -65,7 +80,7 @@ export function clampSettings(s: UiSettings): UiSettings {
   const musicVolume = Number.isFinite(s.musicVolume) ? clampInt(s.musicVolume, 0, 100) : 50;
   const musicLinks = (Array.isArray(s.musicLinks) ? s.musicLinks : []).map(l => String(l).trim().slice(0, 500)).filter(Boolean).slice(0, 50);
   const botNames = Array.from({ length: MAX_PLAYERS }, (_, k) => String((Array.isArray(s.botNames) ? s.botNames : [])[k] ?? '').slice(0, BOT_NAME_MAX));
-  return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, minutes, names }, textSizes, musicVolume, musicLinks, botNames,
+  return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, minutes, miles, names }, textSizes, musicVolume, musicLinks, botNames,
     musicSource: s.musicSource === 'mine' ? 'mine' : 'default' };
 }
 
@@ -91,6 +106,7 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
       ending: num('ending', g.ending) as Ending,
       endingTimes: num('times', g.endingTimes) as 1 | 2,
       minutes: num('minutes', g.minutes ?? DEFAULT_MINUTES),
+      miles: num('miles', g.miles ?? MILES_TO_WIN),
       difficulties: levels,
       names,
     },
@@ -118,6 +134,7 @@ export function saveUiSettings(store: SaveStore, s: UiSettings): void {
   put('ending', String(g.ending));
   put('times', String(g.endingTimes));
   put('minutes', String(g.minutes ?? DEFAULT_MINUTES));
+  put('miles', String(g.miles ?? MILES_TO_WIN));
   put('sound', s.sound ? '1' : '0');
   put('mode', s.gameMode === 'multiplayer' ? 'Multiplayer' : "Pass'n'Play");
   put('music', s.musicMode === 'one' ? 'Play One' : 'Cycle All');

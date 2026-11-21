@@ -11,7 +11,7 @@ export type ToHost =
   | { k: 'playAgain' };                                           // a bot has been playing for this player: they're back
 
 export type ToPlayer =
-  | { k: 'lobby'; players: LobbyPlayer[]; bots: number; ending?: Ending; endingTimes?: 1 | 2 }   // broadcast while waiting to start
+  | { k: 'lobby'; players: LobbyPlayer[]; bots: number; ending?: Ending; endingTimes?: 1 | 2; miles?: number; minutes?: number }   // broadcast while waiting to start
   | { k: 'snap'; seat: Seat; view: GameState; events: GameEvent[]; from: number; total: number; waiting?: Waiting | null }
   | { k: 'result'; id: number; result: ActionResult }
   | Backup                                                        // to the heir: the game, to carry on if the host leaves

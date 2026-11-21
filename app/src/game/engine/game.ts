@@ -472,10 +472,11 @@ export class Game implements GameApi {
     if ((ending === 2 || ending === 3) && s.deckDone) { end = true; reason = 'The deck ran out and the final turns are done.'; }
     if (ending === 4 && s.deckDone && maxSets >= 3) { end = true; reason = 'Both the deck and 3 sets are done.'; }
     if (ending === 5) {
-      const there = s.seats.flatMap((_, i) => (!s.seats[i]!.left && board.miles(s, i) >= MILES_TO_WIN ? [i] : []));
+      const target = s.settings.miles ?? MILES_TO_WIN;
+      const there = s.seats.flatMap((_, i) => (!s.seats[i]!.left && board.miles(s, i) >= target ? [i] : []));
       if (there.length) {
         end = true;
-        reason = this.name(there.includes(s.turn) ? s.turn : there[0]!) + ' reached ' + MILES_TO_WIN + ' miles.';
+        reason = this.name(there.includes(s.turn) ? s.turn : there[0]!) + ' reached ' + target + ' miles.';
       }
     }
     if (finalDone) {

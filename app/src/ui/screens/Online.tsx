@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { screen, settings } from '../app-state';
 import { Message, Page } from '../account/Page';
 import { Button } from '../components/Button';
-import { ENDINGS, ENDING_NAMES, updateSettings, usesDeck } from '../menus/prefs';
+import { ENDINGS, ENDING_NAMES, MILES_RANGE, MINUTES_RANGE, endingName, updateSettings, usesDeck } from '../menus/prefs';
+import { NumberBox } from '../menus/controls';
 import { onlineIntent } from '../menus/start';
 import { online } from '../online';
 import { MAX_SEATS, type LobbyPlayer } from '../online/messages';
@@ -15,14 +16,14 @@ import { useStore } from '../store';
 const BOT_LEVELS: [BotLevel, string][] = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['insane', 'Insane ★'], ['random', 'Random']];
 
 /** Host: change how the game ends, and remember it for next time (the Play menu's More options too). */
-function pickEnding(ending: Ending, endingTimes: 1 | 2): void {
-  online.setEnding(ending, endingTimes);
-  updateSettings(s => ({ ...s, game: { ...s.game, ending, endingTimes } }));
+function pickEnding(ending: Ending, endingTimes: 1 | 2, numbers: { miles?: number; minutes?: number } = {}): void {
+  online.setEnding(ending, endingTimes, numbers);
+  updateSettings(s => ({ ...s, game: { ...s.game, ending, endingTimes, ...numbers } }));
 }
 
 /** "Exhaust Deck (the deck runs out twice)" and so on. */
-function endingText(ending: Ending, times: 1 | 2): string {
-  if (ending === 6) return ENDING_NAMES[6] + ' (' + (settings.get().game.minutes ?? 20) + ' minutes)';
+function endingText(ending: Ending, times: 1 | 2, numbers: { miles: number; minutes: number }): string {
+  if (ending === 5 || ending === 6) return endingName(ending, numbers);
   return ENDING_NAMES[ending] + (usesDeck(ending) ? (times === 2 ? ' (the deck runs out twice)' : ' (the deck runs out once)') : '');
 }
 
@@ -184,6 +185,20 @@ export function OnlineScreen() {
                   {ENDINGS.map(n => <option key={n} value={String(n)}>{ENDING_NAMES[n]}</option>)}
                 </select>
               </div>
+              {st.ending === 5 && (
+                <div class="btw-row">
+                  <label for="online-miles">First to</label>
+                  <NumberBox id="online-miles" label="Miles that win" value={st.miles} {...MILES_RANGE} unit="miles"
+                    onChange={miles => pickEnding(st.ending, st.endingTimes, { miles })} />
+                </div>
+              )}
+              {st.ending === 6 && (
+                <div class="btw-row">
+                  <label for="online-minutes">Ends in</label>
+                  <NumberBox id="online-minutes" label="Minutes of play" value={st.minutes} {...MINUTES_RANGE} unit="minutes"
+                    onChange={minutes => pickEnding(st.ending, st.endingTimes, { minutes })} />
+                </div>
+              )}
               {usesDeck(st.ending) && (
                 <div class="btw-row">
                   <label for="online-times">The deck runs out</label>
@@ -200,7 +215,7 @@ export function OnlineScreen() {
             </>
           ) : (
             <>
-              <p>The game ends with: <b>{endingText(st.ending, st.endingTimes)}</b></p>
+              <p>The game ends with: <b>{endingText(st.ending, st.endingTimes, st)}</b></p>
               <p class="btw-muted" role="status">{st.status || 'Waiting for the host to start...'}</p>
               <div class="btw-row"><Button color="plain" onClick={() => online.leave()}>Leave</Button></div>
             </>

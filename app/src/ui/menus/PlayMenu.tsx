@@ -2,15 +2,15 @@
 // needs (how many bots and how hard, how many people and their names). Online goes to the Online screen (find a game, open
 // a room, or join with a code). What was picked is kept in the settings, so next time it's already chosen.
 import { useState } from 'preact/hooks';
-import type { Ending } from '../../game';
+import { DEFAULT_MINUTES, MILES_TO_WIN, type Ending } from '../../game';
 import { screen, settings, type UiSettings } from '../app-state';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { useStore } from '../store';
 import { services } from '../services';
-import { Choice, Row, Stepper } from './controls';
+import { Choice, NumberBox, Row, Stepper } from './controls';
 import { PlayerNames } from './PlayerNames';
-import { BOT_NAME_MAX, ENDINGS, ENDING_NAMES, MINUTE_CHOICES, usesDeck, MAX_PLAYERS, MIN_PLAYERS, updateSettings, type BotLevel } from './prefs';
+import { BOT_NAME_MAX, ENDINGS, ENDING_NAMES, MILES_RANGE, MINUTES_RANGE, endingName, usesDeck, MAX_PLAYERS, MIN_PLAYERS, updateSettings, type BotLevel } from './prefs';
 import { startPassNPlay, startVsBots, startWatch } from './start';
 
 type Step = 'mode' | 'bots' | 'watch' | 'pass' | 'names';
@@ -95,7 +95,7 @@ function MoreOptions({ g }: { g: UiSettings['game'] }) {
   if (!open) {
     return (
       <button type="button" class="play__link play__more" onClick={() => setOpen(true)}>
-        <span class="play__more-link">More options</span> <span class="play__more-now">(game ends: {ENDING_NAMES[g.ending]})</span>
+        <span class="play__more-link">More options</span> <span class="play__more-now">(game ends: {endingName(g.ending, g)})</span>
       </button>
     );
   }
@@ -106,11 +106,16 @@ function MoreOptions({ g }: { g: UiSettings['game'] }) {
           {ENDINGS.map(n => <option key={n} value={String(n)}>{ENDING_NAMES[n]}</option>)}
         </select>
       </Row>
+      {g.ending === 5 && (
+        <Row label="First to" id="play-miles">
+          <NumberBox id="play-miles" label="Miles that win" value={g.miles ?? MILES_TO_WIN} {...MILES_RANGE} unit="miles"
+            onChange={miles => setGame({ miles })} />
+        </Row>
+      )}
       {g.ending === 6 && (
-        <Row label="How long?" id="play-minutes">
-          <select id="play-minutes" value={String(g.minutes ?? 20)} onChange={e => setGame({ minutes: Number(e.currentTarget.value) })}>
-            {MINUTE_CHOICES.map(m => <option key={m} value={String(m)}>{m} minutes</option>)}
-          </select>
+        <Row label="Ends in" id="play-minutes">
+          <NumberBox id="play-minutes" label="Minutes of play" value={g.minutes ?? DEFAULT_MINUTES} {...MINUTES_RANGE} unit="minutes"
+            onChange={minutes => setGame({ minutes })} />
         </Row>
       )}
       {usesDeck(g.ending) && (

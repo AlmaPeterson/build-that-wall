@@ -21,6 +21,12 @@ describe('new endings', () => {
     }
   });
 
+  it('First to __ Miles uses the number typed', async () => {
+    const g = createLocalGame({ settings: settings(5, { miles: 20 }), seed: 5 });
+    await g.start();
+    expect(g.state.over!.reason).toMatch(/reached 20 miles/);
+  });
+
   it("Timed Game: when the minutes are up, everyone gets one last turn and the game ends", async () => {
     let now = 0;
     const events: string[] = [];

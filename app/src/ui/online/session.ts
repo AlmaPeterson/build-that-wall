@@ -5,7 +5,7 @@
 // If the host leaves a running game, the game goes on: the host keeps one other device (the heir) up to date
 // with the whole game, and the heir takes over hosting while a bot plays the old host's cards. When the device
 // that opened the room comes back, it gets its seat back and hosting is handed back to it.
-import type { BotMemory, Difficulty, Ending, GameSettings } from '../../game';
+import { DEFAULT_MINUTES, MILES_TO_WIN, type BotMemory, type Difficulty, type Ending, type GameSettings } from '../../game';
 import { OnlineRoom, cleanName, type AskMsg, type Connect } from '../../services/online';
 import type { GameController, SavedGame } from '../controller';
 import { createStore, type Store } from '../store';
@@ -31,6 +31,9 @@ export interface OnlineState {
   ending: Ending;
   /** How many times the draw pile must run out (endings 2-4). */
   endingTimes: 1 | 2;
+  /** First to __ Miles and Ends in __ Minutes: the numbers. */
+  miles: number;
+  minutes: number;
   /** Host: each bot's difficulty (bot k = difficulties[k]); 'random' picks one when the game starts. */
   difficulties: BotLevel[];
   status: string;
@@ -85,7 +88,7 @@ export const AUTO_REJOIN_MS = 10 * 60000;
 export const REJOIN_MS = 60 * 60000;
 export const REJOIN_FAILED = "Couldn't get back into that game. It may have ended.";
 
-const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], guests: [], bots: 0, ending: 1, endingTimes: 1, difficulties: [], status: '', error: '', still: 0, notice: '' };
+const IDLE: OnlineState = { phase: 'idle', role: '', code: '', seat: 1, players: [], guests: [], bots: 0, ending: 1, endingTimes: 1, miles: MILES_TO_WIN, minutes: DEFAULT_MINUTES, difficulties: [], status: '', error: '', still: 0, notice: '' };
 export const AWAY_NOTICE = "You didn't answer \"Still here?\" in time, so you've left the online game.";
 const AUTO_JOIN_TRIES = 20, AUTO_JOIN_MS = 2000;
 
@@ -390,9 +393,11 @@ export class OnlineSession {
   }
 
   /** Host: how the game ends, and how many times the deck must run out (endings 2-4). Everyone in the room sees it. */
-  setEnding(ending: Ending, endingTimes: 1 | 2 = this.state.get().endingTimes): void {
+  setEnding(ending: Ending, endingTimes: 1 | 2 = this.state.get().endingTimes, numbers: { miles?: number; minutes?: number } = {}): void {
     if (this.room.role !== 'host' || this.running || ![1, 2, 3, 4, 5, 6].includes(ending)) return;
-    this.set({ ending, endingTimes: endingTimes === 2 ? 2 : 1 });
+    const st = this.state.get();
+    const whole = (v: number | undefined, keep: number, lo: number, hi: number) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v!))) : keep);
+    this.set({ ending, endingTimes: endingTimes === 2 ? 2 : 1, miles: whole(numbers.miles, st.miles, 5, 999), minutes: whole(numbers.minutes, st.minutes, 1, 600) });
     this.lobby();
   }
 
@@ -416,7 +421,7 @@ export class OnlineSession {
     // Insane bots are for a Gold host
     const difficulties: BotLevel[] = Array.from({ length: bots }, (_, i) => chosen[i] ?? 'medium').map(d => (d === 'insane' && !this.deps.gold?.() ? 'hard' : d));
     const settings: GameSettings = {
-      ...base, players: roomSeats.length + bots, bots, difficulties, ending: this.state.get().ending, endingTimes: this.state.get().endingTimes,
+      ...base, players: roomSeats.length + bots, bots, difficulties, ending: this.state.get().ending, endingTimes: this.state.get().endingTimes, miles: this.state.get().miles, minutes: this.state.get().minutes,
       names: [...people.map(p => p.name), ...Array.from({ length: bots }, (_, k) => this.deps.botNames?.()[k] ?? '')],
       gold: people.map(p => !!p.gold && !p.guest),
     };
@@ -602,7 +607,9 @@ export class OnlineSession {
     }
     if (data.k === 'lobby') {
       const ending = ([1, 2, 3, 4, 5, 6] as const).find(n => n === data.ending) ?? this.state.get().ending;
-      this.set({ players: data.players, bots: data.bots, ending, endingTimes: data.endingTimes === 2 ? 2 : 1 });
+      const st = this.state.get();
+      this.set({ players: data.players, bots: data.bots, ending, endingTimes: data.endingTimes === 2 ? 2 : 1,
+        miles: typeof data.miles === 'number' ? data.miles : st.miles, minutes: typeof data.minutes === 'number' ? data.minutes : st.minutes });
       return;
     }
     if (data.k === 'snap' && this.showing !== this.client) {
@@ -634,14 +641,15 @@ export class OnlineSession {
     if (this.room.role !== 'host') return;
     const players = this.seatList();
     this.set({ players });
-    const { bots, ending, endingTimes } = this.state.get();
-    if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots, ending, endingTimes } satisfies ToPlayer);
+    const { bots, ending, endingTimes, miles, minutes } = this.state.get();
+    if (!this.running) this.room.broadcastData({ k: 'lobby', players, bots, ending, endingTimes, miles, minutes } satisfies ToPlayer);
   }
 
   /** How games end from Settings (the Play menu's More options), as a starting point the host can change in the lobby. */
-  private startingEnding(): Pick<OnlineState, 'ending' | 'endingTimes'> {
+  private startingEnding(): Pick<OnlineState, 'ending' | 'endingTimes' | 'miles' | 'minutes'> {
     const base = this.deps.baseSettings();
-    return { ending: ([1, 2, 3, 4, 5, 6] as const).find(n => n === base.ending) ?? 1, endingTimes: base.endingTimes === 2 ? 2 : 1 };
+    return { ending: ([1, 2, 3, 4, 5, 6] as const).find(n => n === base.ending) ?? 1, endingTimes: base.endingTimes === 2 ? 2 : 1,
+      miles: base.miles ?? MILES_TO_WIN, minutes: base.minutes ?? DEFAULT_MINUTES };
   }
 
   /** The bots' difficulties from Settings, as a starting point the host can change in the lobby. */

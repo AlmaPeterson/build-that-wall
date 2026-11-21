@@ -290,8 +290,8 @@ Press **Name the bots** (under the bot levels) to give each bot a name of your o
 Under the bot settings is a blue link **More options**, followed in grey by how the game ends now, for example "(game ends: 3 Sets of 3 Walls)".
 
 1. Press **More options**. A row **The game ends with** appears with a drop-down menu.
-2. Choose one of the six endings: **3 Sets of 3 Walls**, **Exhaust Deck**, **Whatever Happens First**, **Whatever Happens Last**, **First to 50 Miles** or **Timed Game**.
-3. For Exhaust Deck, Whatever Happens First and Whatever Happens Last, a second row **The deck runs out** appears: choose **Once** or **Twice**. For Timed Game, a row **How long?** appears: choose 10 to 60 minutes.
+2. Choose one of the six endings: **3 Sets of 3 Walls**, **Exhaust Deck**, **Whatever Happens First**, **Whatever Happens Last**, **First to __ Miles** or **Ends in __ Minutes**.
+3. For Exhaust Deck, Whatever Happens First and Whatever Happens Last, a second row **The deck runs out** appears: choose **Once** or **Twice**. For First to __ Miles, a row **First to [box] miles** appears; for Ends in __ Minutes, a row **Ends in [box] minutes**. Type any number in the box (miles: 5 to 999; minutes: 1 to 600). It is kept when you leave the box or press Enter, and remembered for next time.
 
 ![More options open](guide/08-play-bots-more.png)
 
@@ -576,8 +576,8 @@ The choice is remembered for next time, in both places.
 | **Exhaust Deck** | the draw pile runs out (once or twice) | Fixed, medium | Ends the game |
 | **Whatever Happens First** | 3 sets OR the deck runs out, whichever is first | Shortest | Can end the game |
 | **Whatever Happens Last** | 3 sets AND the deck has run out, both | Longest | Ends it only once 3 sets are also done |
-| **First to 50 Miles** | a player has 50 miles of wall or more | Medium | Never ends the game |
-| **Timed Game** | the chosen time (10 to 60 minutes) has been played | You choose | Never ends the game |
+| **First to __ Miles** | a player has the miles you typed (50 to start with) or more | You choose | Never ends the game |
+| **Ends in __ Minutes** | the minutes you typed (20 to start with) have been played | You choose | Never ends the game |
 
 ### 8.3 3 Sets of 3 Walls
 
@@ -616,23 +616,23 @@ The end is reached only once both have happened: a player has completed 3 sets, 
 
 **Why play it:** the longest game, and the most forgiving. Players who fall behind have the most time to catch up.
 
-### 8.7 First to 50 Miles
+### 8.7 First to __ Miles
 
-The end is reached when any player has **50 miles** of wall or more at the end of a move. A **FINAL ROUND!** notice says who reached 50 miles, and everyone else gets one final turn. The draw pile never ends this game.
+Type the number of miles in the box after **First to** (5 to 999; it starts at 50). The end is reached when any player has that many miles of wall or more at the end of a move. A **FINAL ROUND!** notice says who reached it, for example "Ann reached 50 miles.", and everyone else gets one final turn. The draw pile never ends this game.
 
 **Why play it:** a race with a clear finish line. Every wall counts, not only sets, so it plays faster than 3 Sets of 3 Walls.
 
-**Watch out for:** anyone in the 40s. One more pair or set takes them over the line, and Debt can pull them back below it.
+**Watch out for:** anyone close to the number. One more pair or set takes them over the line, and Debt can pull them back below it.
 
-### 8.8 Timed Game
+### 8.8 Ends in __ Minutes
 
-Choose **How long?** (10, 15, 20, 30, 45 or 60 minutes) under the ending. The clock counts only time spent playing: if you close the page and carry on later, the time away doesn't count. The board shows the time left next to the actions, for example "3 actions left · 12 min left" (it is updated at the start of each turn).
+Type the number of minutes in the box after **Ends in** (1 to 600; it starts at 20). The clock counts only time spent playing: if you close the page and carry on later, the time away doesn't count. The board shows the time left next to the actions, for example "3 actions left · 12 min left" (it is updated at the start of each turn).
 
 When the time is up, at the start of the next turn the game says "Time's up! Everyone gets one last turn." That player and everyone else take one last turn, and then the most miles wins. The draw pile never ends this game.
 
 **Why play it:** you know when the game will finish, so it fits a lunch break or a bedtime.
 
-**In an online room** the host's time setting is used, and the room shows it, for example "Timed Game (20 minutes)".
+**In an online room** the host types the number in Your room, and everyone sees it, for example "Ends in 20 Minutes" or "First to 75 Miles".
 
 ### 8.9 The final round
 

@@ -65,3 +65,16 @@ describe('tutorial tips say why', () => {
     expect(whyText({ type: 'endTurn' }, { ...(state as object), actionsLeft: 0 } as never, 0)).toMatch(/used all your actions/);
   });
 });
+
+describe('typed numbers for the endings', () => {
+  it('are kept in range, and the endings are named with them', async () => {
+    const { clampNumber, endingName, MILES_RANGE } = await import('./menus/prefs');
+    expect(clampNumber('75', MILES_RANGE, 50)).toBe(75);
+    expect(clampNumber('2', MILES_RANGE, 50)).toBe(5);
+    expect(clampNumber('', MILES_RANGE, 50)).toBe(50);
+    expect(clampNumber('abc', MILES_RANGE, 50)).toBe(50);
+    expect(endingName(5, { miles: 75 })).toBe('First to 75 Miles');
+    expect(endingName(6, { minutes: 1 })).toBe('Ends in 1 Minute');
+    expect(endingName(1, {})).toBe('3 Sets of 3 Walls');
+  });
+});

@@ -47,3 +47,7 @@ button { font: inherit; }
 
 /* Gold members: a star by their name (board, lobby, win screen) */
 .btw-gold-star { color: #e0b100; text-shadow: 0 0 1px #7a5c0a; }
+/* A number you type, with its unit after it (First to __ miles, Ends in __ minutes) */
+.numberbox { display: inline-flex; align-items: center; gap: 8px; }
+.numberbox input { width: 5.5em; min-height: 44px; padding: 6px 10px; font: inherit; font-weight: bold; text-align: center; border: 2px solid #7a1a16; border-radius: 10px; background: #fff; }
+.numberbox__unit { font-weight: bold; color: #7a1a16; }
