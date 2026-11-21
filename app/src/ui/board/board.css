@@ -279,3 +279,9 @@ button.board__log { cursor: pointer; font-family: inherit; }
 }
 @keyframes rotate-hint { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
 @media (prefers-reduced-motion: reduce) { .rotate-hint__phone { animation: none; transform: rotate(-90deg); } }
+
+/* Gold replay controls, along the bottom of the board */
+.replay-bar { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 60; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;
+  max-width: calc(100vw - 32px); padding: 8px 12px; border-radius: 14px; background: rgba(16, 20, 74, .92); color: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.replay-bar__title { color: #ffd84d; letter-spacing: .08em; }
+.replay-bar__at { min-width: 8em; text-align: center; font-weight: bold; }

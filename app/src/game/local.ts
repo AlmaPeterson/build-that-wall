@@ -24,6 +24,8 @@ export interface LocalGameOptions {
   beforeBotAction?(seat: Seat): Promise<void>;
   afterSkip?(seat: Seat): Promise<void>;
   strictCards?: boolean;
+  /** The clock for Timed Games. */
+  now?: () => number;
 }
 
 export function createLocalGame(o: LocalGameOptions): Game {
@@ -48,6 +50,7 @@ export function createLocalGame(o: LocalGameOptions): Game {
     beforeBotAction: o.beforeBotAction,
     afterSkip: o.afterSkip,
     strictCards: o.strictCards,
+    now: o.now,
   });
 }
 

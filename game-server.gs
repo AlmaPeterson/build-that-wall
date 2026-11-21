@@ -323,7 +323,7 @@ function testFilter() {
 
 const ACCOUNT_COLS = ['Google ID', 'Email', 'Name', 'Data', 'Gold', 'Packs', 'Trial used', 'Codes', 'Stats', 'Created', 'Updated'];
 const C = { sub: 1, email: 2, name: 3, data: 4, gold: 5, packs: 6, trial: 7, codes: 8, stats: 9, created: 10, updated: 11 };
-const SAVE_KEYS = /^(name|back|color|starc|namebg|tutor|prefs|lb|stat_[a-z]+)$/;
+const SAVE_KEYS = /^(name|back|color|starc|namebg|tutor|prefs|lb|myroom|stat_[a-z]+)$/;
 const DAY = 86400;
 
 function json_(obj) {

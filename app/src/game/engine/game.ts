@@ -11,6 +11,7 @@ import type {
 import * as board from './board';
 import { cardName } from './board';
 import { CardLedger, CardLedgerInvariantError } from './card-ledger';
+import { DEFAULT_MINUTES, MILES_TO_WIN } from '../types';
 
 export interface GameOptions {
   rules: CardRules;
@@ -27,6 +28,8 @@ export interface GameOptions {
   afterSkip?(seat: Seat): Promise<void>;
   /** Tests: a card that appears or vanishes is an error, instead of starting the card tracking over. */
   strictCards?: boolean;
+  /** The clock for Timed Games (milliseconds); tests pass their own. */
+  now?: () => number;
 }
 
 const MAN_HOUR = 14, SELF_DEFENSE = 20, TRUMP_TRAIN = 25, QUARANTINE = 17;
@@ -40,9 +43,12 @@ export class Game implements GameApi {
   /** Setup/test code may establish a custom position before the first event. */
   private ledgerLive = false;
   private pendingMoves: CardMove[] = [];
+  /** Timed Game: when the play time was last added up. */
+  private lastTick: number;
 
   constructor(public readonly state: GameState, private readonly opts: GameOptions) {
     this.state.resolving ??= [];
+    this.lastTick = this.now();
     this.ledger = new CardLedger(this.state);
     this.emitFn = opts.emit ?? (() => {});
   }
@@ -75,6 +81,9 @@ export class Game implements GameApi {
    * now and a game made from a copy of it carries on from here exactly.
    */
   get resting(): boolean { return !this.busy && !this.pendingPlay && !this.deferred.length; }
+
+  /** The bot whose turn it is plays the rest of it, then the game goes on (the Insane bot's practice games). */
+  async carryOn(): Promise<void> { await this.carryOnAsBot(this.state.turn); }
 
   /** Start the current seat's turn without dealing, for hands set up some other way (tests, tutorials, a saved game). */
   async beginTurn(): Promise<void> {
@@ -229,6 +238,7 @@ export class Game implements GameApi {
     s.actionsLeft = s.settings.actionsPerTurn;
     s.turnCount++;
     this.emit({ type: 'turnStart', seat, text: "It's " + this.name(seat) + "'s turn." });
+    this.checkClock();
     // Jail release
     if (s.jail.length > 0 && s.turnCount >= s.jailRelease) {
       const freed = s.jail.splice(0);
@@ -299,7 +309,7 @@ export class Game implements GameApi {
     for (let i = 0; i < BOT_ACTION_LIMIT && !s.over && s.turn === seat && s.actionsLeft >= 1; i++) {
       if (this.opts.beforeBotAction) await this.opts.beforeBotAction(seat);
       if (s.over || s.turn !== seat || !s.seats[seat]!.bot) break;
-      const action = this.opts.bot.nextAction(this, seat);
+      const action = await this.opts.bot.nextAction(this, seat);
       if (action.type === 'endTurn') break;
       const r = await this.perform(seat, action);
       if (!r.ok) break;
@@ -410,6 +420,21 @@ export class Game implements GameApi {
     }
   }
 
+  private now(): number { return (this.opts.now ?? Date.now)(); }
+
+  /** Timed Game: add up the time played; when it's up, everyone (this player first) gets one last turn. */
+  private checkClock(): void {
+    const s = this.state;
+    if (s.settings.ending !== 6 || s.over) return;
+    const now = this.now();
+    s.timeUsed = (s.timeUsed ?? 0) + Math.max(0, now - this.lastTick);
+    this.lastTick = now;
+    if (!s.final && s.timeUsed >= (s.settings.minutes ?? DEFAULT_MINUTES) * 60000) {
+      s.final = { kind: 'sets', stop: s.turn, reason: "Time's up!" };
+      this.emit({ type: 'finalRound', seat: s.turn, text: "Time's up! Everyone gets one last turn." });
+    }
+  }
+
   /** `check exhaust`: count each time the draw pile ran out; with endings 2-4 that can start the deck final round. */
   private checkExhaust(): void {
     const s = this.state, set = s.settings;
@@ -421,7 +446,7 @@ export class Game implements GameApi {
     while (s.exhaustPending >= 1 && !s.over) {
       s.exhaustPending--;
       s.exhaustCount++;
-      if (set.ending !== 1 && !s.deckDone && !s.final) {
+      if (set.ending >= 2 && set.ending <= 4 && !s.deckDone && !s.final) {
         if (s.exhaustCount >= set.endingTimes) {
           s.final = { kind: 'deck', stop: s.turn, reason: '' };
           this.emit({ type: 'finalRound', seat: s.turn, text: 'The last card was drawn! Everyone else gets one final turn.' });
@@ -446,6 +471,13 @@ export class Game implements GameApi {
     }
     if ((ending === 2 || ending === 3) && s.deckDone) { end = true; reason = 'The deck ran out and the final turns are done.'; }
     if (ending === 4 && s.deckDone && maxSets >= 3) { end = true; reason = 'Both the deck and 3 sets are done.'; }
+    if (ending === 5) {
+      const there = s.seats.flatMap((_, i) => (!s.seats[i]!.left && board.miles(s, i) >= MILES_TO_WIN ? [i] : []));
+      if (there.length) {
+        end = true;
+        reason = this.name(there.includes(s.turn) ? s.turn : there[0]!) + ' reached ' + MILES_TO_WIN + ' miles.';
+      }
+    }
     if (finalDone) {
       const final = s.final;
       s.final = null;

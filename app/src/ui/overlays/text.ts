@@ -159,6 +159,61 @@ export function bestMoveText(action: Action, state: Pick<GameState, 'seats'>, se
   return 'Play ' + cardName(card) + '.';
 }
 
+/** Miles a seat has now: per wall kind 1 → 3, 2 → 8, 3 → 16. */
+function milesNow(state: Pick<GameState, 'seats'>, seat: Seat): number {
+  const counts = new Map<CardId, number>();
+  for (const w of state.seats[seat]?.walls ?? []) counts.set(w, (counts.get(w) ?? 0) + 1);
+  let m = 0;
+  for (const n of counts.values()) m += n >= 3 ? 16 : n === 2 ? 8 : 3;
+  return m;
+}
+
+/** The opponent with the most miles, if anyone has more than nothing. */
+function leaderOf(state: Pick<GameState, 'seats'>, seat: Seat): { seat: Seat; miles: number } | null {
+  let best: { seat: Seat; miles: number } | null = null;
+  state.seats.forEach((s, i) => {
+    if (i === seat || s.left) return;
+    const m = milesNow(state, i);
+    if (!best || m > best.miles) best = { seat: i, miles: m };
+  });
+  return best;
+}
+
+/** Why the tutorial's best move is best, in one or two short sentences. */
+export function whyText(action: Action, state: Pick<GameState, 'seats' | 'actionsLeft'>, seat: Seat): string {
+  const me = state.seats[seat];
+  if (!me) return '';
+  const card = action.type === 'endTurn' ? undefined : me.hand[action.slot];
+  if (action.type === 'endTurn' || card === undefined) {
+    return state.actionsLeft < 1 ? 'You have used all your actions this turn.'
+      : "Nothing in your hand helps right now. Keep your cards: you'll draw 3 more next turn.";
+  }
+  const lead = leaderOf(state, seat);
+  const leader = lead && lead.miles > 0 ? seatName(state, lead.seat) : '';
+  const ahead = lead && lead.miles >= milesNow(state, seat) && leader ? leader + ' is ahead with ' + lead.miles + ' miles' : '';
+  if (action.type === 'build') {
+    const have = me.walls.filter(w => w === card).length;
+    const pay = action.pay !== 'free' && 'walls' in action.pay ? " You have no Man Hour, so 2 other walls pay for it." : '';
+    if (have === 2) return 'It finishes a set of 3: that kind goes from 8 to 16 miles, and a set can never be taken.' + pay;
+    if (have === 1) return 'It makes a pair: 8 miles instead of 3. One more of the same kind makes a safe set.' + pay;
+    return 'A new wall is 3 miles straight away, and you can add matching walls to it later.' + pay;
+  }
+  switch (card) {
+    case 7: return 'Debt takes a wall from someone else and gives it to you' + (ahead ? ': ' + ahead + '.' : '.');
+    case 25: return "Trump Train guards one of your pairs, so Debt and other attacks can't take it.";
+    case 3: return 'Assassin builds up to 2 walls without paying and without using an action.';
+    case 13: case 28: return 'It builds walls for free: more miles for 1 action than building one at a time.';
+    case 23: return 'Toilet Paper builds every matching wall of one kind in your hand at once.';
+    case 26: return 'Trump draws 3 more cards, so you have more walls and Man Hours to use this turn.';
+    case 11: case 22: case 27: return 'It lets you pick the cards you need from the piles instead of hoping to draw them.';
+    case 9: case 16: return ahead ? 'It limits ' + leader + ' to 1 action next turn, because ' + ahead + '.' : 'It limits another player to 1 action next turn.';
+    case 17: return ahead ? 'Quarantine makes ' + leader + ' skip their next turn, because ' + ahead + '.' : 'Quarantine makes another player skip their next turn.';
+    case 6: case 21: return 'It takes cards from another player: fewer for them, more choices for you.';
+    case 5: return 'Spy Balloon can take a card from someone or remove a Trump Train guard.';
+    default: return "It's the most useful card you can play right now.";
+  }
+}
+
 /** Situational tips for the tutorial box (section 12, `make tips`). */
 export function tipsFor(state: GameState, seat: Seat, actionsLeft: number): string[] {
   const me = state.seats[seat];

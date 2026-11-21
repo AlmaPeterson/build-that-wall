@@ -94,8 +94,8 @@ describe('AccountService', () => {
     await Promise.resolve();
     const data = calls[0]!.body!.data as Record<string, string>;
     expect(data.name).toBe('Sam');
-    expect(Object.keys(data)).toEqual(['name', 'back', 'color', 'starc', 'namebg', 'tutor', 'prefs', 'lb',
-      'stat_games', 'stat_wins', 'stat_best', 'stat_walls']);
+    expect(Object.keys(data)).toEqual(['name', 'back', 'color', 'starc', 'namebg', 'tutor', 'prefs', 'lb', 'myroom',
+      'stat_games', 'stat_wins', 'stat_best', 'stat_walls', 'stat_log']);
   });
 
   it('delete removes the server account, the stash and the sign-in', async () => {

@@ -38,7 +38,7 @@ export const INSTRUCTION_PAGES: InstructionPage[] = [
   {
     title: 'Winning & Key Cards',
     points: [
-      'You pick how the game ends under More options after pressing Play: 3 Sets of 3 Walls (a player completes 3 wall sets), Exhaust Deck (the Draw pile runs out, once or twice), Whatever Happens First, or Whatever Happens Last.',
+      'You pick how the game ends under More options after pressing Play: 3 Sets of 3 Walls (a player completes 3 wall sets), Exhaust Deck (the Draw pile runs out, once or twice), Whatever Happens First, Whatever Happens Last, First to 50 Miles, or Timed Game (10 to 60 minutes of play).',
       'When the end is reached, everyone else gets one final turn. Most miles wins!',
       'Debt: take a built section from an opponent. They can block it with Savings.',
       'Self-Defense: stops a bad effect aimed at you.',

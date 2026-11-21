@@ -154,7 +154,7 @@ export function payableWalls(hand: readonly CardId[], slot: number): number[] {
 export function displayName(state: GameState, seat: Seat): string {
   const s = state.seats[seat]!;
   const name = s.standIn ? s.name + ' (bot)' : s.bot ? 'BOT ' + s.name.replace(/^Bot /, '') : s.name;
-  return name + (s.left ? ' (left)' : '');
+  return (s.gold ? '★ ' : '') + name + (s.left ? ' (left)' : '');
 }
 
 /** The viewer only watches (a bot-only game): not a person whose seat a bot is playing for a while. */

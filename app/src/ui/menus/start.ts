@@ -5,7 +5,10 @@ import { getUser } from '../../services/account/user';
 import { browserStorage, SaveStore } from '../../services/storage';
 import { screen, settings, startLocalGame } from '../app-state';
 import { createStore } from '../store';
-import { MAX_PLAYERS } from './prefs';
+import { services } from '../services';
+import { BOT_NAME_MAX, MAX_PLAYERS } from './prefs';
+import { cleanName } from '../../services/online';
+import { polite } from '../../services/feedback/filter';
 
 /** A choice to act on as the Online screen opens (quick match, host a room, join with a code). */
 export type OnlineIntent = 'quick' | 'host' | 'join';
@@ -16,13 +19,24 @@ export function gameSettingsFor(players: number, bots: number, base: GameSetting
   const names = base.names.slice(0, players);
   // Player 1 is you: with no name typed for them, use your name (home page / Account & Store) as it is now
   if (bots < players && !(names[0] ?? '').trim()) names[0] = playerOneName();
+  // Bots: the names you gave them, or their usual ones
+  for (let k = 0; k < bots; k++) names[players - bots + k] = botName(settings.get().botNames[k] ?? '');
   return {
     ...base,
     players,
     bots,
-    difficulties: base.difficulties.slice(0, MAX_PLAYERS).slice(0, bots),
+    // Insane bots are for Gold members: without Gold they play as Hard
+    difficulties: base.difficulties.slice(0, MAX_PLAYERS).slice(0, bots).map(d => (d === 'insane' && !services.player.get().gold ? 'hard' : d)),
     names,
+    // Your seat shows your Gold star
+    gold: bots < players && services.player.get().gold ? [true] : [],
   };
+}
+
+/** "Bot <name>" for a name you gave a bot (rude words starred out); '' keeps its usual name. */
+export function botName(typed: string): string {
+  const name = polite(cleanName(typed)).replace(/^bot\s+/i, '').trim().slice(0, BOT_NAME_MAX);
+  return name ? 'Bot ' + name : '';
 }
 
 /** The name you chose (or your Google name), read fresh each time; '' = none, so the seat is "Player 1". */

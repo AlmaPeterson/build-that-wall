@@ -169,3 +169,5 @@
 
 /* The full guide link beside the Illustrated guide button */
 .instructions__guide { display: inline-block; text-decoration: none; white-space: nowrap; }
+.settings__steps button:disabled { opacity: .45; cursor: not-allowed; }
+.settings__steps button { white-space: nowrap; }

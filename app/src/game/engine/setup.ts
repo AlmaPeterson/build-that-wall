@@ -48,6 +48,7 @@ export function createGame(settingsIn: GameSettings, seed: number): GameState {
     state.seats.push({
       name: custom || (bot ? 'Bot ' + BOT_NAMES[seat] : 'Player ' + (seat + 1)),
       bot,
+      ...(settings.gold?.[seat] && !bot ? { gold: true } : {}),
       hand: [],
       walls: [],
       skipNext: false,

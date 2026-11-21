@@ -3,12 +3,15 @@ import { myName } from '../../services/account';
 import { KEYS } from '../../services/storage';
 import { controller, screen, settings } from '../app-state';
 import { services } from '../services';
+import { botName } from '../menus/start';
 import { installBackGuard } from './back-guard';
 import { OnlineSession } from './session';
 
 export const online = new OnlineSession({
   connect: services.connect,
   name: () => myName(services.store),
+  gold: () => services.player.get().gold,
+  botNames: () => settings.get().botNames.map(botName),
   baseSettings: () => settings.get().game,
   memory: services.botMemory,
   show: c => { controller.set(c); screen.set('game'); },

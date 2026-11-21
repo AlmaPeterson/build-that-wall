@@ -9,6 +9,7 @@ import { buyMessage, codeMessage, nameMessage, paymentsOffText, trialMessage, ty
 import { Button } from '../components/Button';
 import { BACKS, HOLIDAY_NAMES, holidayOn } from '../card-back';
 import { services, type GoldItem } from '../services';
+import { StatsCard } from '../account/Stats';
 import { useStore } from '../store';
 
 const money = (n: number, cur: string) => n.toFixed(2) + ' ' + cur;
@@ -65,6 +66,8 @@ export function AccountScreen() {
         </div>
         <Message text={said.gold?.text ?? ''} ok={!!said.gold?.ok} />
       </section>
+
+      <StatsCard gold={player.gold} />
 
       <section class="btw-card" aria-labelledby="packs-h">
         <h2 id="packs-h">Expansion packs <span class="btw-soon">Coming soon</span></h2>

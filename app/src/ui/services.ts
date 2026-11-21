@@ -2,7 +2,8 @@
 // Guest play: everything works signed out. Signing in (Google) is only needed for Gold, purchases,
 // saves that follow you to other devices, and putting your scores on the world leaderboard.
 import { createBotMemory } from '../game/bots';
-import type { BotMemory, GameState } from '../game';
+import type { BotMemory, GameEvent, GameState } from '../game';
+import { addLine, lineFor, type GameMode } from '../services/stats/stats';
 import { AccountService, GoogleSignIn, OtherSignIn, ServerApi, githubReturn, withoutGithubQuery, getUser, isSignedIn, markSignInExpired, maskedEmail, myName, signInExpired, verifiedUser, type FetchLike } from '../services/account';
 import { DEFAULT_SETTINGS, loadSettings, type GameSettings as Config } from '../services/config';
 import { Entitlements, GoldService, TrialWatcher } from '../services/gold';
@@ -177,7 +178,7 @@ export function createServices(deps: ServiceDeps) {
    * After a game: this device's leaderboard and stats, the game server's score, and (signed in only)
    * the world leaderboard. `seats`: the human seats played on this device.
    */
-  function recordGame(state: Readonly<GameState>, seats: number[]): void {
+  function recordGame(state: Readonly<GameState>, seats: number[], events: readonly GameEvent[] = [], mode?: GameMode): void {
     const over = state.over;
     if (!over) return;
     const me = myName(store);
@@ -186,13 +187,16 @@ export function createServices(deps: ServiceDeps) {
       const seat = state.seats[i];
       if (!seat || seat.bot) continue;
       const won = over.winners.includes(i), miles = over.miles[i] ?? 0, walls = seat.walls.length;
-      leaderboard.recordLocal(seat.name, won, miles, walls);
+      leaderboard.recordLocal(seat.name, won, miles, walls, !!seat.gold);
       names.push(seat.name);
       if (seat.name === me || seats.length === 1) {
         store.statAdd('games', 1);
         if (won) store.statAdd('wins', 1);
         store.set('stat_best', Math.max(+store.get('stat_best') || 0, miles));
         store.statAdd('walls', walls);
+        // Detailed stats (Gold members see them): one line per game
+        const line = lineFor(state, i, mode ?? (seats.length > 1 ? 'pass' : 'bots'), events);
+        if (line) addLine(store, line);
         account.postScore(server(), { miles, won, walls, name: seat.name });
       }
     }
@@ -201,18 +205,18 @@ export function createServices(deps: ServiceDeps) {
   }
 
   /** Record every game shown on this device once it's over. */
-  function watchGames(controllerStore: Store<GameController | null>, localSeats: (c: GameController) => number[]): () => void {
+  function watchGames(controllerStore: Store<GameController | null>, localSeats: (c: GameController) => number[], modeOf?: (c: GameController) => GameMode): () => void {
     let unsubGame: (() => void) | null = null;
     const watch = (c: GameController | null) => {
       unsubGame?.(); unsubGame = null;
       gameRunning = () => false;
-      if (!c) return;
+      if (!c || c.replay) return;              // a replay of a game that was already counted
       let recorded = false;
       gameRunning = () => !!c.snapshot.get().view && !c.snapshot.get().view!.over;
       unsubGame = c.snapshot.subscribe(snap => {
         if (recorded || !snap.view?.over) return;
         recorded = true;
-        recordGame(c.state ?? snap.view, localSeats(c));
+        recordGame(c.state ?? snap.view, localSeats(c), c.allEvents, modeOf?.(c));
         refresh();
       });
     };
@@ -255,6 +259,14 @@ export const services: AppServices = createServices({
 gameOptions.memory = services.botMemory;
 
 
+/** How a game is being played, for the stats. */
+export function modeOf(c: GameController): GameMode {
+  if (c instanceof HostController || c instanceof OnlineClientController) return 'online';
+  const seats = c.state?.seats ?? [];
+  const people = seats.filter(s => !s.bot).length;
+  return people === 0 ? 'watch' : people > 1 ? 'pass' : 'bots';
+}
+
 /** The human seats played on this device: online, this device's player and their guests; Pass'n'Play, every human. */
 export function localSeats(c: GameController): number[] {
   if (c instanceof HostController) return c.hostSeats;
@@ -264,5 +276,5 @@ export function localSeats(c: GameController): number[] {
 
 if (typeof window !== 'undefined') {
   void services.init();
-  services.watchGames(currentGame, localSeats);
+  services.watchGames(currentGame, localSeats, modeOf);
 }

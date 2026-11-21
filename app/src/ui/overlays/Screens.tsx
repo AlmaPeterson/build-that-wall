@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { GameResult, GameState } from '../../game';
 import { CardImage } from '../components/CardImage';
+import { playFanfare } from '../audio';
+import { settings } from '../app-state';
 import { seatName, type RecapLine } from './text';
 
 /** Focus the first button when shown; Enter (and Escape where allowed) presses it. */
@@ -128,7 +130,28 @@ export function BigNotice({ head, title, sub, onClose }: { head: string; title: 
 }
 
 /** Game over: winners, miles per seat, play again or back to the menu (`winScreen`). */
-export function WinScreen({ result, view, onAgain, onMenu, onLog }: { result: GameResult; view: Pick<GameState, 'seats'>; onAgain: () => void; onMenu: () => void; onLog?: () => void }) {
+/** Confetti falling over the win screen (CSS only; none with reduced motion or animations off). */
+export function Confetti({ pieces = 80 }: { pieces?: number }) {
+  const colors = ['#d8332d', '#1f22f5', '#ffd84d', '#2e9e44', '#ffffff', '#e08a2b'];
+  return (
+    <div class="btw-confetti" aria-hidden="true">
+      {Array.from({ length: pieces }, (_, i) => (
+        <i key={i} style={{ left: ((i * 37) % 100) + '%', background: colors[i % colors.length], animationDelay: ((i * 53) % 30) / 10 + 's',
+          animationDuration: 2.6 + ((i * 17) % 20) / 10 + 's', transform: 'rotate(' + (i * 47) % 360 + 'deg)' }} />
+      ))}
+    </div>
+  );
+}
+
+export function WinScreen({ result, view, onAgain, onMenu, onLog, onReplay, celebrate, againLabel = 'Play again' }: {
+  result: GameResult; view: Pick<GameState, 'seats'>; onAgain?: () => void; onMenu: () => void; onLog?: () => void;
+  /** Someone playing on this device won: confetti and a fanfare. */
+  celebrate?: boolean;
+  againLabel?: string;
+  /** Gold: watch this game again. */
+  onReplay?: () => void;
+}) {
+  useEffect(() => { if (celebrate) playFanfare(); }, [celebrate]);
   const ref = useKeys(onMenu, false);
   const names = result.winners.map(s => seatName(view, s));
   const title = names.length > 1 ? "It's a tie: " + names.join(' & ') : names[0] + ' wins!';
@@ -137,21 +160,25 @@ export function WinScreen({ result, view, onAgain, onMenu, onLog }: { result: Ga
   return (
     <div class="btw-ov-full btw-win" ref={ref} role="dialog" aria-modal="true" aria-label={title}>
       <div class="btw-win-body">
-        <div><span class="btw-win-ribbon">WALL COMPLETE</span></div>
+        {celebrate && settings.get().animSpeed !== 'off' && <Confetti />}
+        <div><span class="btw-win-ribbon">{celebrate ? 'YOU WIN!' : 'WALL COMPLETE'}</span></div>
         <div class="btw-win-title">{title}</div>
         <div class="btw-win-reason">{result.reason}</div>
         <div class="btw-win-board">
           {rows.map((r, i) => (
             <div key={r.seat} class={'btw-win-score' + (result.winners.includes(r.seat) ? ' top' : '')}>
               <span class="btw-win-rank">{i + 1}</span>
-              <span class="btw-win-who">{seatName(view, r.seat)}</span>
+              <span class="btw-win-who">{view.seats[r.seat]?.gold && <b class="btw-gold-star" title="Gold member">★ </b>}{seatName(view, r.seat)}</span>
               <span class="btw-win-bar"><i style={{ width: (100 * r.miles / best) + '%' }} /></span>
               <span class="btw-win-miles">{r.miles}{r.miles === 1 ? ' mile' : ' miles'}</span>
             </div>
           ))}
         </div>
         <div class="btw-ov-choices">
-          <button type="button" class="btw-ov-btn btw-ov-btn--gold" onClick={onAgain}>Play again</button>
+          {onAgain
+            ? <button type="button" class="btw-ov-btn btw-ov-btn--gold" onClick={onAgain}>{againLabel}</button>
+            : <span class="btw-win-wait">The host can start a rematch.</span>}
+          {onReplay && <button type="button" class="btw-ov-btn" onClick={onReplay}>Watch replay ★</button>}
           <button type="button" class="btw-ov-btn" onClick={onLog}>Game log</button>
           <button type="button" class="btw-ov-btn" onClick={onMenu}>Back to menu</button>
         </div>
@@ -174,11 +201,12 @@ export function Toasts({ toasts }: { toasts: Toast[] }) {
 }
 
 /** The TUTORIAL TIP box: the best move and a few tips for the player whose turn it is (section 12). */
-export function TutorialTip({ best, tips, onHide }: { best: string; tips: string[]; onHide: () => void }) {
+export function TutorialTip({ best, why, tips, onHide }: { best: string; why?: string; tips: string[]; onHide: () => void }) {
   return (
     <aside class="btw-tip" aria-label="Tutorial tip">
       <div class="btw-tip-head">TUTORIAL TIP <button type="button" class="btw-tip-x" aria-label="Hide tip" onClick={onHide}>×</button></div>
       <div class="btw-tip-best"><b>BEST MOVE:</b> {best}</div>
+      {why && <div class="btw-tip-why"><b>WHY:</b> {why}</div>}
       <ul>{tips.slice(0, 3).map((t, i) => <li key={i}>{t}</li>)}</ul>
     </aside>
   );

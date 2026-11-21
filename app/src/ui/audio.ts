@@ -53,6 +53,29 @@ export function playDing(): void {
   } catch { /* no audio here */ }
 }
 
+/** A short fanfare when you win: a rising major arpeggio and a held chord, made with Web Audio (no file). */
+export function playFanfare(): void {
+  if (!settings.get().sound) return;
+  try {
+    const Ctx = (globalThis as { AudioContext?: typeof AudioContext }).AudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const notes: [number, number, number][] = [[523.25, 0, 0.16], [659.25, 0.16, 0.16], [783.99, 0.32, 0.16], [1046.5, 0.48, 0.9],
+      [659.25, 0.48, 0.9], [783.99, 0.48, 0.9]];
+    for (const [hz, at, len] of notes) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = hz;
+      g.gain.setValueAtTime(0.0001, now + at);
+      g.gain.exponentialRampToValueAtTime(0.22, now + at + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + at + len);
+      o.connect(g).connect(ctx.destination);
+      o.start(now + at); o.stop(now + at + len + 0.05);
+    }
+    setTimeout(() => void ctx.close().catch(() => {}), 2000);
+  } catch { /* no audio here */ }
+}
+
 // ---- background music
 
 export type Track =

@@ -25,6 +25,7 @@ export interface UiSettings {
   tutorial: boolean;
   animSpeed: AnimSpeed;
   textSizes: Record<TextArea, number>;   // 1 = normal
+  botNames: string[];                 // names you gave the bots (bot 1 first); '' = the usual name
 }
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
@@ -33,6 +34,7 @@ export const DEFAULT_UI_SETTINGS: UiSettings = {
   autoJoin: false, tutorial: false,
   animSpeed: reducedMotion() ? 'off' : 'normal',
   textSizes: { menu: 1, board: 1, cards: 1, popups: 1 },
+  botNames: [],
 };
 
 function reducedMotion(): boolean {

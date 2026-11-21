@@ -59,3 +59,9 @@ export function hasUnguardedPair(state: Readonly<GameState>, seat: Seat): boolea
 }
 
 export const level = (state: Readonly<GameState>, seat: Seat): Difficulty => state.seats[seat]?.bot ?? 'hard';
+
+/** Answering questions, an Insane bot thinks like a Hard one. */
+export const answerLevel = (state: Readonly<GameState>, seat: Seat): Exclude<Difficulty, 'insane'> => {
+  const l = level(state, seat);
+  return l === 'insane' ? 'hard' : l;
+};

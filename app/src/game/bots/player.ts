@@ -2,7 +2,7 @@
 // The engine calls nextAction again after every action until the bot says endTurn.
 // The bot only picks WHAT to do; targets and other questions come later through its Decider.
 import { isWall } from '../cardinfo';
-import type { BotMemory, BotPlayer, GameApi } from '../contracts';
+import type { BotMemory, GameApi } from '../contracts';
 import type { Action, BuildPayment, CardId, Difficulty, Seat } from '../types';
 import { buildGain, hasUnguardedPair, level, roll, sizeUp, wallCount } from './shared';
 
@@ -16,17 +16,14 @@ export const HARD_PRIORITY: readonly CardId[] = [25, 3, 13, 28, 23, 21, 6, 5, 16
 
 const END: Action = { type: 'endTurn' };
 
-export function createBotPlayer(memory: BotMemory): BotPlayer {
-  return { nextAction: (api, seat) => think(api, seat, memory) };
-}
-
 /**
  * One `ai think` step. `as` overrides the difficulty (the tutorial's tips think like a Hard bot).
  * Randomness comes from the game's seeded generator, so a game replays exactly.
  */
 export function think(api: GameApi, seat: Seat, memory: BotMemory, as?: Difficulty): Action {
   const state = api.state;
-  const lvl = as ?? level(state, seat);
+  // Insane bots play their own way (insane.ts); asked to think here, they think like Hard
+  const lvl = (as ?? level(state, seat)) === 'insane' ? 'hard' : (as ?? level(state, seat));
   const hand = state.seats[seat]?.hand ?? [];
   if (state.actionsLeft < 1) return END;
 

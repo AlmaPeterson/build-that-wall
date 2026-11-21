@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { App } from './ui/app';
 import './ui/theme.css';
+import './ui/replay';                 // records games for Gold replays (before a saved game is brought back)
 import { clearSavedGame, resumeSavedGame } from './ui/saved-game';
 import { controller, screen } from './ui/app-state';
 import { githubReturn } from './services/account';

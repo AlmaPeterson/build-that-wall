@@ -10,11 +10,15 @@ import { animatorFor } from '../anim';
 import { useStore } from '../store';
 import { PromptView } from './Prompt';
 import { BigNotice, PassScreen, Recap, TurnBanner, TutorialTip, Toasts, WinScreen, type Toast } from './Screens';
-import { bestMoveText, passWhy, recapFor, seatName, tipsFor, toastFor, waitingText, wallToastFor, type RecapLine } from './text';
+import { bestMoveText, whyText, passWhy, recapFor, seatName, tipsFor, toastFor, waitingText, wallToastFor, type RecapLine } from './text';
 import { amazonUrl } from '../links';
 import { services } from '../services';
 import { ads } from './ads';
 import { VideoAd } from './VideoAd';
+import { HostController } from '../online/host';
+import { OnlineClientController } from '../online/client';
+import { online } from '../online';
+import { hasReplay, startReplay } from '../replay';
 import './overlays.css';
 
 const TOAST_MS = 3200;
@@ -24,6 +28,7 @@ export function Overlays({ controller }: { controller: GameController }) {
   // What the board shows now: prompts and notices wait until the cards before them have moved
   const { snap } = useStore(animatorFor(controller).state);
   const { tutorial } = useStore(settings);
+  const replayReady = useStore(hasReplay);
   const { view, viewer, events, prompt, passTo, openHands } = snap;
 
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -80,7 +85,8 @@ export function Overlays({ controller }: { controller: GameController }) {
     if (!tutorial || tipHidden || !api || !state || state.over || prompt || passTo !== null) return null;
     if (state.turn !== viewer || state.seats[viewer]?.bot) return null;
     try {
-      return { best: bestMoveText(think(api, viewer, tutorMemory, 'hard'), state, viewer), tips: tipsFor(state, viewer, state.actionsLeft) };
+      const move = think(api, viewer, tutorMemory, 'hard');
+      return { best: bestMoveText(move, state, viewer), why: whyText(move, state, viewer), tips: tipsFor(state, viewer, state.actionsLeft) };
     } catch {
       return null;                                                    // the board is mid-update; try again next render
     }
@@ -97,7 +103,16 @@ export function Overlays({ controller }: { controller: GameController }) {
 
   if (!view) return null;
 
-  const playAgain = () => { const s = controller.state?.settings; if (s) startLocalGame(s); };
+  // Online: the host starts a rematch in the same room; the other players wait for it
+  const host = controller instanceof HostController, player = controller instanceof OnlineClientController;
+  const gold = services.player.get().gold;
+  const playAgain = () => {
+    if (host) { void online.rematch(); return; }
+    const s = controller.state?.settings; if (s) startLocalGame(s);
+  };
+  // Someone playing on this device won: you, or (sharing the device) any person here
+  const here = (seat: number) => !view.seats[seat]?.bot && (seat === viewer || (!host && !player));
+  const celebrate = !!view.over && view.over.winners.some(here);
   const toMenu = () => { currentController.set(null); screen.set('menu'); };
   /** Leaving the win screen: players without Gold see the video ad first (once per game). */
   const afterAd = (then: () => void) => () => {
@@ -113,8 +128,10 @@ export function Overlays({ controller }: { controller: GameController }) {
     modal = <PassScreen name={seatName(view, passTo)} why={passWhy(events, passTo, view)} onReady={() => controller.ready()} />;
   } else if (prompt) {
     modal = <PromptView prompt={prompt} view={view} />;
-  } else if (view.over && !winClosed) {
-    modal = <WinScreen result={view.over} view={view} onAgain={afterAd(playAgain)} onLog={afterAd(() => setWinClosed(true))}
+  } else if (view.over && !winClosed && !controller.replay) {
+    modal = <WinScreen result={view.over} view={view} celebrate={celebrate} againLabel={host ? 'Rematch' : 'Play again'}
+      onAgain={player ? undefined : afterAd(playAgain)} onLog={afterAd(() => setWinClosed(true))}
+      onReplay={gold && replayReady ? afterAd(() => { startReplay(); }) : undefined}
       onMenu={afterAd(() => { setWinClosed(true); toMenu(); })} />;
   } else if (notices.length) {
     const n = notices[0]!;
@@ -147,7 +164,7 @@ export function Overlays({ controller }: { controller: GameController }) {
         </div>
       )}
       {!view.over && <StandIn controller={controller} />}
-      {tip && !modal && <TutorialTip best={tip.best} tips={tip.tips} onHide={() => setTipHidden(true)} />}
+      {tip && !modal && <TutorialTip best={tip.best} why={tip.why} tips={tip.tips} onHide={() => setTipHidden(true)} />}
     </div>
   );
 }

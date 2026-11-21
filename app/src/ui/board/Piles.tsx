@@ -1,9 +1,17 @@
 // Draw and discard piles, actions left and the jail (Walls Display › define draw board).
-import type { GameState } from '../../game';
+import { DEFAULT_MINUTES, type GameState } from '../../game';
 import { cardImage } from '../assets';
 import { cardBackImage } from '../card-back';
 import { cardById } from '../../data/cards';
 import { zoomProps } from '../components/zoom';
+
+/** Timed Game: the time left, as counted at the start of this turn. */
+export function timeLeft(state: Pick<GameState, 'settings' | 'timeUsed' | 'final'>): string {
+  if (state.final) return 'last turns';
+  const ms = Math.max(0, (state.settings.minutes ?? DEFAULT_MINUTES) * 60000 - (state.timeUsed ?? 0));
+  const min = Math.ceil(ms / 60000);
+  return min <= 1 ? 'under 1 min left' : min + ' min left';
+}
 
 export function Piles({ state }: { state: GameState }) {
   // Freedom of the Press is stored in jail as a marker, but the player-facing count is the cards it jailed.
@@ -14,6 +22,7 @@ export function Piles({ state }: { state: GameState }) {
       {state.turn >= 0 && !state.over && (
         <div class="at board__actions" aria-live="polite">
           {state.actionsLeft} {state.actionsLeft === 1 ? 'action left' : 'actions left'}
+          {state.settings.ending === 6 && <span class="board__clock"> · {timeLeft(state)}</span>}
         </div>
       )}
       {state.jail.length > 0 && (

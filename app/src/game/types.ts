@@ -6,10 +6,19 @@ import type { CardId } from '../data/cards';
 
 export type { CardId };
 export type Seat = number;
-export type Difficulty = 'easy' | 'medium' | 'hard';
+/** 'insane' is the Gold level: a Hard bot that plans its turns better (bots/player.ts). */
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'insane';
 
-/** 1 "3 Sets of 3 Walls", 2 "Exhaust Deck", 3 "Whatever Happens First", 4 "Whatever Happens Last" (section 10). */
-export type Ending = 1 | 2 | 3 | 4;
+/**
+ * 1 "3 Sets of 3 Walls", 2 "Exhaust Deck", 3 "Whatever Happens First", 4 "Whatever Happens Last" (section 10),
+ * 5 "First to 50 Miles", 6 "Timed Game" (`minutes` of play, then everyone gets one last turn).
+ */
+export type Ending = 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Miles that end a "First to 50 Miles" game. */
+export const MILES_TO_WIN = 50;
+/** How long a Timed Game lasts unless the settings say otherwise. */
+export const DEFAULT_MINUTES = 20;
 
 /** What a game is started with (section 2). */
 export interface GameSettings {
@@ -17,8 +26,10 @@ export interface GameSettings {
   bots: number;                  // bots take the last seats; bots = players is watch mode
   difficulties: (Difficulty | 'random')[];   // per bot: difficulties[k] is bot k (seat players - bots + k)
   names: string[];               // per seat; '' = default ("Player k" / bot name)
+  gold?: boolean[];              // per seat: a Gold member (their name gets a gold star)
   ending: Ending;
   endingTimes: 1 | 2;            // how many times the draw pile must run out (endings 2-4)
+  minutes?: number;              // Timed Game (ending 6): minutes of play
   actionsPerTurn: number;        // 3
   cardsPerTurn: number;          // 3
   packCards: CardId[];           // extra cards from active expansion packs (none yet)
@@ -59,6 +70,8 @@ export interface GameState {
   final: { kind: FinalKind; stop: Seat; reason: string } | null;   // a final round in progress
   deckDone: boolean;
   over: GameResult | null;
+  /** Timed Game: milliseconds played so far (time with the page closed doesn't count). */
+  timeUsed?: number;
 }
 
 export interface SeatState {
@@ -74,6 +87,8 @@ export interface SeatState {
   left: boolean;                 // an online player who left the game
   /** Online: a person's seat that a bot is playing for now (they left, or the host handed it over). */
   standIn?: boolean;
+  /** A Gold member: a ★ by their name. */
+  gold?: boolean;
 }
 
 export interface GameResult {

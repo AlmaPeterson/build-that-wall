@@ -7,16 +7,22 @@ import { screen, settings, type UiSettings } from '../app-state';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { useStore } from '../store';
+import { services } from '../services';
 import { Choice, Row, Stepper } from './controls';
 import { PlayerNames } from './PlayerNames';
-import { ENDING_NAMES, MAX_PLAYERS, MIN_PLAYERS, updateSettings, type BotLevel } from './prefs';
+import { BOT_NAME_MAX, ENDINGS, ENDING_NAMES, MINUTE_CHOICES, usesDeck, MAX_PLAYERS, MIN_PLAYERS, updateSettings, type BotLevel } from './prefs';
 import { startPassNPlay, startVsBots, startWatch } from './start';
 
 type Step = 'mode' | 'bots' | 'watch' | 'pass' | 'names';
 
 const LEVELS: { value: BotLevel; name: string }[] = [
-  { value: 'easy', name: 'Easy' }, { value: 'medium', name: 'Medium' }, { value: 'hard', name: 'Hard' }, { value: 'random', name: 'Random' },
+  { value: 'easy', name: 'Easy' }, { value: 'medium', name: 'Medium' }, { value: 'hard', name: 'Hard' }, { value: 'insane', name: 'Insane ★' }, { value: 'random', name: 'Random' },
 ];
+
+/** The levels, with Insane only for Gold members. */
+function levels(gold: boolean) {
+  return LEVELS.map(l => (l.value === 'insane' && !gold ? { ...l, disabled: true, title: 'Insane bots are for Gold members' } : l));
+}
 
 const setGame = (patch: Partial<UiSettings['game']>) => updateSettings(s => ({ ...s, game: { ...s.game, ...patch } }));
 
@@ -28,6 +34,7 @@ export function sharedLevel(levels: BotLevel[], bots: number): BotLevel | null {
 
 /** How hard the bots are: one choice for all of them, or each one separately. */
 function BotLevels({ g }: { g: UiSettings['game'] }) {
+  const gold = useStore(services.player).gold;
   const shared = sharedLevel(g.difficulties, g.bots);
   const [each, setEach] = useState(shared === null);
   if (g.bots === 0) return null;
@@ -36,7 +43,7 @@ function BotLevels({ g }: { g: UiSettings['game'] }) {
       {!each || g.bots === 1 ? (
         <>
           <div class="play__label">{g.bots === 1 ? 'How hard is the bot?' : 'How hard are the bots?'}</div>
-          <Choice label="Bot difficulty" value={shared} options={LEVELS}
+          <Choice label="Bot difficulty" value={shared} options={levels(gold)}
             onChange={level => setGame({ difficulties: Array.from({ length: MAX_PLAYERS }, () => level) })} />
           {g.bots > 1 && <button type="button" class="play__link" onClick={() => setEach(true)}>Set each bot separately</button>}
         </>
@@ -46,7 +53,7 @@ function BotLevels({ g }: { g: UiSettings['game'] }) {
             <Row key={k} label={`Bot ${k + 1}`} id={`play-ai${k + 1}`}>
               <select id={`play-ai${k + 1}`} value={g.difficulties[k] ?? 'easy'}
                 onChange={e => setGame({ difficulties: g.difficulties.map((d, j) => (j === k ? e.currentTarget.value as BotLevel : d)) })}>
-                {LEVELS.map(l => <option key={l.value} value={l.value}>{l.name}</option>)}
+                {levels(gold).map(l => <option key={l.value} value={l.value} disabled={'disabled' in l && l.disabled}>{l.name}</option>)}
               </select>
             </Row>
           ))}
@@ -57,6 +64,27 @@ function BotLevels({ g }: { g: UiSettings['game'] }) {
           }}>Same for every bot</button>
         </>
       )}
+    </div>
+  );
+}
+
+/** Give the bots names of your own ("Bot " goes in front). Empty boxes keep the usual names. */
+export function BotNames({ bots }: { bots: number }) {
+  const names = useStore(settings).botNames;
+  const [open, setOpen] = useState(() => names.slice(0, bots).some(n => n.trim()));
+  if (bots === 0) return null;
+  if (!open) return <button type="button" class="play__link" onClick={() => setOpen(true)}>Name the bots</button>;
+  const setName = (k: number, v: string) => updateSettings(s => ({ ...s, botNames: Array.from({ length: MAX_PLAYERS }, (_, j) => (j === k ? v : s.botNames[j] ?? '')) }));
+  return (
+    <div class="play__botnames">
+      <div class="play__label">Bot names <span class="btw-muted">(empty = the usual name)</span></div>
+      {Array.from({ length: bots }, (_, k) => (
+        <label class="names__row" key={k}>
+          <span class="names__label">Bot {k + 1}</span>
+          <input type="text" maxLength={BOT_NAME_MAX} value={names[k] ?? ''} placeholder={'Bot ' + (k + 1) + "'s name"} autoComplete="off"
+            onInput={e => setName(k, e.currentTarget.value)} />
+        </label>
+      ))}
     </div>
   );
 }
@@ -75,10 +103,17 @@ function MoreOptions({ g }: { g: UiSettings['game'] }) {
     <div class="play__options">
       <Row label="The game ends with" id="play-ending">
         <select id="play-ending" value={String(g.ending)} onChange={e => setGame({ ending: Number(e.currentTarget.value) as Ending })}>
-          {([1, 2, 3, 4] as Ending[]).map(n => <option key={n} value={String(n)}>{ENDING_NAMES[n]}</option>)}
+          {ENDINGS.map(n => <option key={n} value={String(n)}>{ENDING_NAMES[n]}</option>)}
         </select>
       </Row>
-      {g.ending !== 1 && (
+      {g.ending === 6 && (
+        <Row label="How long?" id="play-minutes">
+          <select id="play-minutes" value={String(g.minutes ?? 20)} onChange={e => setGame({ minutes: Number(e.currentTarget.value) })}>
+            {MINUTE_CHOICES.map(m => <option key={m} value={String(m)}>{m} minutes</option>)}
+          </select>
+        </Row>
+      )}
+      {usesDeck(g.ending) && (
         <Row label="The deck runs out" id="play-times">
           <select id="play-times" value={String(g.endingTimes)} onChange={e => setGame({ endingTimes: e.currentTarget.value === '2' ? 2 : 1 })}>
             <option value="1">Once</option>
@@ -139,6 +174,7 @@ export function PlayMenu({ onClose }: { onClose: () => void }) {
             <Stepper label="Bots" value={g.bots} min={1} max={MAX_PLAYERS - 1} onChange={bots => setGame({ players: bots + 1, bots })} />
           </Row>
           <BotLevels g={g} />
+          <BotNames bots={g.bots} />
           <MoreOptions g={g} />
           <div class="play__buttons">
             <Button color="plain" onClick={() => setStep('mode')}>Back</Button>
@@ -157,6 +193,7 @@ export function PlayMenu({ onClose }: { onClose: () => void }) {
             <Stepper label="Bots" value={g.bots} min={MIN_PLAYERS} max={MAX_PLAYERS} onChange={bots => setGame({ players: bots, bots })} />
           </Row>
           <BotLevels g={g} />
+          <BotNames bots={g.bots} />
           <MoreOptions g={g} />
           <div class="play__buttons">
             <Button color="plain" onClick={() => setStep('mode')}>Back</Button>
@@ -180,6 +217,7 @@ export function PlayMenu({ onClose }: { onClose: () => void }) {
           <Stepper label="Bots" value={g.bots} min={0} max={MAX_PLAYERS - people} onChange={bots => setGame({ players: people + bots, bots })} />
         </Row>
         <BotLevels g={g} />
+        <BotNames bots={g.bots} />
         <MoreOptions g={g} />
         <div class="play__buttons">
           <Button color="plain" onClick={() => setStep('mode')}>Back</Button>

@@ -41,3 +41,22 @@ textarea.btw-input { width: 100%; min-height: 90px; font-family: monospace; font
 .online-guests h3 { margin: 0 0 4px; font-size: 1em; color: #7a1a16; }
 .online-guests li { align-items: center; }
 .online-guests .btw-input { flex: 1 1 160px; min-width: 0; }
+
+/* Your stats */
+.stats__tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0; }
+.stats__tiles div { background: #faf7f2; border-radius: 8px; padding: 8px 4px; text-align: center; }
+.stats__tiles b { display: block; font-size: 1.4em; color: #222; }
+.stats__tiles span { font-size: .85em; color: #666; }
+.stats__chart { margin: 10px 0; }
+.stats__chart figcaption { font-weight: bold; margin-bottom: 4px; }
+.stats__chart svg { width: 100%; max-width: 520px; height: auto; display: block; }
+.stats__bar path { fill: #1f22f5; }
+.stats__bar:hover path { fill: #0d0f9e; }
+.stats__axis { stroke: #ccc; stroke-width: 1; }
+.stats__tick { font: 9px Arial; fill: #666; }
+.stats__star { font: 9px Arial; fill: #222; }
+.stats__table { border-collapse: collapse; margin: 8px 0; }
+.stats__table caption { text-align: left; font-weight: bold; }
+.stats__table th, .stats__table td { text-align: left; padding: 3px 12px 3px 0; font-weight: normal; }
+.stats__table td:nth-child(2) { font-weight: bold; }
+.stats__facts { margin: 8px 0; padding-left: 20px; }

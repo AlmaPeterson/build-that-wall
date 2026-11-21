@@ -2,7 +2,7 @@ import { isError, isServerUrl, type ServerApi } from '../account/api';
 import { myName } from '../account/user';
 import type { SaveStore } from '../storage';
 
-export interface PlayerStats { games: number; wins: number; best: number; walls: number; spent?: number; at?: number }
+export interface PlayerStats { games: number; wins: number; best: number; walls: number; spent?: number; at?: number; gold?: boolean }
 export type Board = Record<string, PlayerStats>;
 export interface BoardRow extends PlayerStats { name: string }
 
@@ -27,7 +27,8 @@ export function mergeWorldBoard(board: Board, update: Board, now = Date.now()): 
   for (const [name, r] of Object.entries(update)) {
     const o: Partial<PlayerStats> = out[name] || {};
     out[name] = { games: Math.max(o.games || 0, r.games || 0), wins: Math.max(o.wins || 0, r.wins || 0), best: Math.max(o.best || 0, r.best || 0),
-      walls: Math.max(o.walls || 0, r.walls || 0), spent: Math.max(o.spent || 0, r.spent || 0), at: now };
+      walls: Math.max(o.walls || 0, r.walls || 0), spent: Math.max(o.spent || 0, r.spent || 0), at: now,
+      ...((r.gold ?? o.gold) ? { gold: true } : {}) };
   }
   const names = Object.keys(out).sort((x, y) => (out[y]!.at || 0) - (out[x]!.at || 0)).slice(0, WORLD_BOARD_MAX);
   const trimmed: Board = {};
@@ -51,7 +52,7 @@ export function topTen(rows: BoardRow[], kind: string): string[] {
   const val = VALUE[k];
   // NOTE: an unknown kind sorted by miles but had no formatter before (crashed); it now formats as miles too
   const fmt = FORMAT[k];
-  return rows.filter(r => val(r) > 0).sort((x, y) => val(y) - val(x)).slice(0, 10).map((r, i) => (i + 1) + '.  ' + r.name + '   ' + fmt(r));
+  return rows.filter(r => val(r) > 0).sort((x, y) => val(y) - val(x)).slice(0, 10).map((r, i) => (i + 1) + '.  ' + (r.gold ? '★ ' : '') + r.name + '   ' + fmt(r));
 }
 
 export class Leaderboard {
@@ -64,10 +65,11 @@ export class Leaderboard {
   local(): Board { return this.store.getJson<Board>('lb', {}); }
 
   // After a game: this device's board has every player who played here
-  recordLocal(nameIn: string, won: boolean, miles: number, walls: number): void {
+  recordLocal(nameIn: string, won: boolean, miles: number, walls: number, gold?: boolean): void {
     const name = String(nameIn || '').trim(); if (!name) return;
     const lb = this.local(); const r = lb[name] || blank();
-    r.games++; if (won) r.wins++; r.best = Math.max(r.best, +miles || 0); r.walls += +walls || 0;
+    r.games++; if (won) r.wins++;
+    if (gold !== undefined) { if (gold) r.gold = true; else delete r.gold; } r.best = Math.max(r.best, +miles || 0); r.walls += +walls || 0;
     lb[name] = r; this.store.setJson('lb', lb);
   }
 

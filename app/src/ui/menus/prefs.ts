@@ -1,6 +1,6 @@
 // Settings are saved in "btw:prefs" with the old game's names and values, so players who move to the
 // new version keep their settings (docs/game-rules.md section 2, Panels › when green flag clicked).
-import type { Difficulty, Ending } from '../../game';
+import { DEFAULT_MINUTES, type Difficulty, type Ending } from '../../game';
 import { browserStorage, SaveStore } from '../../services/storage';
 import { settings, type TextArea, type UiSettings } from '../app-state';
 
@@ -8,16 +8,27 @@ export type BotLevel = Difficulty | 'random';
 
 export const MAX_PLAYERS = 6;
 export const MIN_PLAYERS = 2;
+/** The longest name a bot can have ("Bot " goes in front). */
+export const BOT_NAME_MAX = 16;
 
 export const ENDING_NAMES: Record<Ending, string> = {
   1: '3 Sets of 3 Walls',
   2: 'Exhaust Deck',
   3: 'Whatever Happens First',
   4: 'Whatever Happens Last',
+  5: 'First to 50 Miles',
+  6: 'Timed Game',
 };
 
-const LEVEL_TO_OLD: Record<BotLevel, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard', random: 'Random' };
-const OLD_TO_LEVEL: Record<string, BotLevel> = { Easy: 'easy', Medium: 'medium', Hard: 'hard', Random: 'random' };
+/** Every ending, in menu order. */
+export const ENDINGS: Ending[] = [1, 2, 3, 4, 5, 6];
+/** How long a Timed Game can be. */
+export const MINUTE_CHOICES = [10, 15, 20, 30, 45, 60];
+/** The deck running out only matters for endings 2-4. */
+export const usesDeck = (e: Ending): boolean => e >= 2 && e <= 4;
+
+const LEVEL_TO_OLD: Record<BotLevel, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard', insane: 'Insane', random: 'Random' };
+const OLD_TO_LEVEL: Record<string, BotLevel> = { Easy: 'easy', Medium: 'medium', Hard: 'hard', Insane: 'insane', Random: 'random' };
 
 /** Text size areas and the old game's pref keys ("ts_<key>"). Popups, cards in hand and the board match
  *  old categories one to one; "menu" uses the old "Windows and guides" size. */
@@ -42,7 +53,8 @@ export function clampSettings(s: UiSettings): UiSettings {
   const players = Number.isFinite(g.players) && g.players >= MIN_PLAYERS && g.players <= MAX_PLAYERS ? Math.round(g.players) : MAX_PLAYERS;
   const bots = clampInt(Number.isFinite(g.bots) ? g.bots : 0, 0, players);
   const levels = Array.from({ length: MAX_PLAYERS }, (_, k) => g.difficulties[k] ?? DEFAULT_LEVELS[k]!);
-  const ending = ([1, 2, 3, 4] as const).includes(g.ending) ? g.ending : 1;
+  const ending = ENDINGS.includes(g.ending) ? g.ending : 1;
+  const minutes = MINUTE_CHOICES.includes(Number(g.minutes)) ? Number(g.minutes) : DEFAULT_MINUTES;
   const endingTimes = g.endingTimes === 2 ? 2 : 1;
   const names = Array.from({ length: MAX_PLAYERS }, (_, k) => String(g.names[k] ?? '').slice(0, 20));
   const textSizes = { ...s.textSizes };
@@ -52,7 +64,8 @@ export function clampSettings(s: UiSettings): UiSettings {
   }
   const musicVolume = Number.isFinite(s.musicVolume) ? clampInt(s.musicVolume, 0, 100) : 50;
   const musicLinks = (Array.isArray(s.musicLinks) ? s.musicLinks : []).map(l => String(l).trim().slice(0, 500)).filter(Boolean).slice(0, 50);
-  return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, names }, textSizes, musicVolume, musicLinks,
+  const botNames = Array.from({ length: MAX_PLAYERS }, (_, k) => String((Array.isArray(s.botNames) ? s.botNames : [])[k] ?? '').slice(0, BOT_NAME_MAX));
+  return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, minutes, names }, textSizes, musicVolume, musicLinks, botNames,
     musicSource: s.musicSource === 'mine' ? 'mine' : 'default' };
 }
 
@@ -77,6 +90,7 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
       bots: num('ai', g.bots),
       ending: num('ending', g.ending) as Ending,
       endingTimes: num('times', g.endingTimes) as 1 | 2,
+      minutes: num('minutes', g.minutes ?? DEFAULT_MINUTES),
       difficulties: levels,
       names,
     },
@@ -87,6 +101,7 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
     musicVolume: num('musicvol', base.musicVolume),
     musicSource: get('musicsrc') === 'mine' ? 'mine' : get('musicsrc') === 'default' ? 'default' : base.musicSource,
     musicLinks: links(get('musiclinks'), base.musicLinks),
+    botNames: links(get('botnames'), base.botNames),
     autoJoin: get('autojoin') === '' ? base.autoJoin : get('autojoin') === '1',
     tutorial: get('tutor') === '' ? base.tutorial : get('tutor') === '1',
     animSpeed: (['slow', 'normal', 'fast', 'off'] as const).find(a => a === get('anim')) ?? base.animSpeed,
@@ -102,6 +117,7 @@ export function saveUiSettings(store: SaveStore, s: UiSettings): void {
   put('ai', String(g.bots));
   put('ending', String(g.ending));
   put('times', String(g.endingTimes));
+  put('minutes', String(g.minutes ?? DEFAULT_MINUTES));
   put('sound', s.sound ? '1' : '0');
   put('mode', s.gameMode === 'multiplayer' ? 'Multiplayer' : "Pass'n'Play");
   put('music', s.musicMode === 'one' ? 'Play One' : 'Cycle All');
@@ -109,6 +125,7 @@ export function saveUiSettings(store: SaveStore, s: UiSettings): void {
   put('musicvol', String(s.musicVolume));
   put('musicsrc', s.musicSource);
   put('musiclinks', JSON.stringify(s.musicLinks));
+  put('botnames', JSON.stringify(s.botNames));
   put('autojoin', s.autoJoin ? '1' : '0');
   g.difficulties.slice(0, MAX_PLAYERS).forEach((d, k) => put('ai' + (k + 1), LEVEL_TO_OLD[d]));
   put('tutor', s.tutorial ? '1' : '0');

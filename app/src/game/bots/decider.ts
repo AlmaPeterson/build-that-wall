@@ -4,7 +4,7 @@
 import { cardValue, isWall } from '../cardinfo';
 import type { BotMemory } from '../contracts';
 import type { Answer, CardId, Decider, Decision, GameState, Seat, WallRef } from '../types';
-import { buildGain, level, milesOf, roll, sizeUp, wallCount } from './shared';
+import { buildGain, answerLevel as level, milesOf, roll, sizeUp, wallCount } from './shared';
 
 const TARGET_LEADER: readonly CardId[] = [9, 16, 17];     // Democrat Border, Puppeteer, Quarantine
 const TARGET_CARDS: readonly CardId[] = [6, 21, 49];      // Controlled Opposition, Stimulus Check, Hand Swap

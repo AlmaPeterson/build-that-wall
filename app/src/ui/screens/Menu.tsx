@@ -14,7 +14,10 @@ import { initSettingsPersistence } from '../menus/prefs';
 import { startTutorialGame } from '../menus/start';
 import { services } from '../services';
 import { useStore } from '../store';
+import { Modal } from '../components/Modal';
+import { deleteParked, loadParked, parkedGames, parkedTitle, resumeParked } from '../saved-game';
 import '../menus/menus.css';
+import '../account/pages.css';
 
 export { AMAZON_URL, amazonUrl } from '../links';
 import { amazonUrl } from '../links';
@@ -32,7 +35,7 @@ function MyName() {
     return (
       <button type="button" class={'menu__name' + (named ? '' : ' menu__name--unset')} onClick={() => { setTyped(named ? player.name : ''); setError(''); setEditing(true); }}>
         {named
-          ? <>Playing as <b>{player.name}</b> <span class="menu__name-edit" aria-hidden="true">✎</span></>
+          ? <>Playing as {player.gold && <b class="btw-gold-star" title="Gold member">★ </b>}<b>{player.name}</b> <span class="menu__name-edit" aria-hidden="true">✎</span></>
           // Not required, but easy to spot: without it other players see "Player 2" online and on the leaderboard
           : <><span class="menu__name-ask">✎ Set your name</span><span class="menu__name-why">So other players know who you are. You're <b>{player.name}</b> for now.</span></>}
       </button>
@@ -58,10 +61,38 @@ function MyName() {
   );
 }
 
+/** Gold: the games put aside when another one started. Carry one on, or throw it away. */
+function SavedGames({ onClose }: { onClose: () => void }) {
+  const list = useStore(parkedGames);
+  return (
+    <Modal title="Saved games" onClose={onClose}>
+      <div class="saved-games">
+        <p class="btw-muted">Gold keeps up to 5 games going. Starting a new game puts the one you were playing here.</p>
+        {list.length === 0 && <p>No saved games.</p>}
+        <ul class="btw-list">
+          {list.map(g => (
+            <li key={g.id}>
+              <span>{parkedTitle(g)}</span>
+              <span class="btw-row">
+                <Button onClick={() => { onClose(); resumeParked(g.id); }}>Continue</Button>
+                <Button color="plain" aria-label={'Delete ' + parkedTitle(g)} onClick={() => deleteParked(g.id)}>Delete</Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div class="play__buttons"><Button color="plain" onClick={onClose}>Close</Button></div>
+      </div>
+    </Modal>
+  );
+}
+
 export function MenuScreen() {
   initSettingsPersistence();
   const [play, setPlay] = useState(false);
   const [guide, setGuide] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const parked = useStore(parkedGames);
+  useEffect(() => { parkedGames.set(loadParked()); }, []);
   const [tag, setTag] = useState('');
   useEffect(() => {
     let live = true;
@@ -77,6 +108,7 @@ export function MenuScreen() {
       <main class="menu__main">
         <MyName />
         <Button class="menu__big" onClick={() => setPlay(true)}>Play</Button>
+        {parked.length > 0 && <Button class="menu__big" color="gold" onClick={() => setSaved(true)}>Saved games ({parked.length})</Button>}
         <Button class="menu__big" onClick={() => screen.set('settings')}>Settings</Button>
         <Button class="menu__big" onClick={() => screen.set('account')}>Account &amp; Store</Button>
         <Button class="menu__big" onClick={() => setGuide(true)}>Tutorial</Button>
@@ -90,6 +122,7 @@ export function MenuScreen() {
         <small class="menu__tm">™ &amp; ® 2024 Beacon Political</small>
       </footer>
       {play && <PlayMenu onClose={() => setPlay(false)} />}
+      {saved && <SavedGames onClose={() => setSaved(false)} />}
       {guide && <Guide onClose={() => setGuide(false)} finishLabel="Start a tutorial game" onFinish={startTutorialGame} />}
     </div>
   );

@@ -5,7 +5,7 @@ import type { Device } from '../../services/online';
 import type { SavedGame, Waiting } from '../controller';
 
 export type ToHost =
-  | { k: 'name'; name: string; guests?: string[] }                // a player's name, sent after joining, and the people playing on their device too
+  | { k: 'name'; name: string; guests?: string[]; gold?: boolean }                // a player's name, sent after joining, and the people playing on their device too
   | { k: 'act'; id: number; action: Action; seat?: Seat }         // an action on the turn of a seat played on this device
   | { k: 'resync' }                                               // missed a snapshot: send everything again
   | { k: 'playAgain' };                                           // a bot has been playing for this player: they're back
@@ -15,7 +15,8 @@ export type ToPlayer =
   | { k: 'snap'; seat: Seat; view: GameState; events: GameEvent[]; from: number; total: number; waiting?: Waiting | null }
   | { k: 'result'; id: number; result: ActionResult }
   | Backup                                                        // to the heir: the game, to carry on if the host leaves
-  | { k: 'nobackup' };                                            // to a former heir: someone else is the heir now
+  | { k: 'nobackup' }                                            // to a former heir: someone else is the heir now
+  | { k: 'rematch' };                                             // the host is starting a new game with the same players
 
 /**
  * The host keeps one other device (the heir) up to date with the whole game, so it can take over hosting
@@ -34,7 +35,7 @@ export interface Backup {
 }
 
 /** Room seat (1 = host). A guest plays on the same device as the room seat's player (Pass'n'Play inside an online game). */
-export interface LobbyPlayer { seat: number; name: string; guest?: boolean }
+export interface LobbyPlayer { seat: number; name: string; guest?: boolean; gold?: boolean }
 
 /** The most people in one game, on all devices together (bots fill the rest). */
 export const MAX_SEATS = 6;
@@ -49,7 +50,7 @@ export function isToHost(d: unknown): d is ToHost {
 }
 
 export function isToPlayer(d: unknown): d is ToPlayer {
-  return !!d && typeof d === 'object' && ['lobby', 'snap', 'result', 'backup', 'nobackup'].includes((d as { k?: string }).k ?? '');
+  return !!d && typeof d === 'object' && ['lobby', 'snap', 'result', 'backup', 'nobackup', 'rematch'].includes((d as { k?: string }).k ?? '');
 }
 
 /**

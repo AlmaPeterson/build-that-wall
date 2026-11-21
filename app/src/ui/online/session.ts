@@ -15,7 +15,7 @@ import { ASK_MODE, MAX_SEATS, TURN_OK, isToHost, isToPlayer, type Backup, type L
 
 export type Phase = 'idle' | 'connecting' | 'lobby' | 'playing' | 'ended';
 export type BotLevel = Difficulty | 'random';
-const LEVELS: readonly BotLevel[] = ['easy', 'medium', 'hard', 'random'];
+const LEVELS: readonly BotLevel[] = ['easy', 'medium', 'hard', 'insane', 'random'];
 
 export interface OnlineState {
   phase: Phase;
@@ -47,6 +47,10 @@ export interface SessionDeps {
   connect: Connect;
   /** This player's name. */
   name: () => string;
+  /** This player is a Gold member (a ★ by their name). */
+  gold?: () => boolean;
+  /** Names given to the bots, bot 1 first ("Bot Sam"; '' = the usual name). */
+  botNames?: () => string[];
   /** Game settings to start from (ending, difficulties...). */
   baseSettings: () => GameSettings;
   memory?: BotMemory;
@@ -91,6 +95,8 @@ export class OnlineSession {
   private host: HostController | null = null;
   private client: OnlineClientController | null = null;
   private names = new Map<number, string>();
+  /** Host: the devices whose player is a Gold member. */
+  private golds = new Set<number>();
   /** Host: the guests on each device (room seat); the host's own are in state.guests. */
   private guestsBy = new Map<number, string[]>();
   private running = false;
@@ -153,11 +159,13 @@ export class OnlineSession {
 
   // ---- getting into a room
 
-  async hostRoom(max = 6): Promise<boolean> {
+  /** Open a private room. `code`: a Gold member's own room, with the same code every time. */
+  async hostRoom(max = 6, code?: string): Promise<boolean> {
     this.forget();                                    // a different game now
     this.reset('Opening a room...');
-    const code = await this.room.host({ max });
-    if (!code) return this.failed();
+    const opened = await this.room.host({ max, code });
+    if (!opened) return this.failed();
+    code = opened;
     this.names.set(1, cleanName(this.deps.name()) || 'Player 1');
     this.originCid = this.room.clientId;
     this.set({ phase: 'lobby', role: 'host', code, seat: 1, status: '', difficulties: this.startingLevels(), ...this.startingEnding() });
@@ -203,7 +211,7 @@ export class OnlineSession {
   /** Tell the host this device's player's name, and who else plays on it. */
   private sendName(): void {
     const seat = this.state.get().seat;
-    this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat, guests: this.state.get().guests });
+    this.room.sendData(1, { k: 'name', name: cleanName(this.deps.name()) || 'Player ' + seat, guests: this.state.get().guests, gold: !!this.deps.gold?.() });
   }
 
   // ---- more people on this device
@@ -314,7 +322,7 @@ export class OnlineSession {
   leave(): void {
     this.room.leave();
     this.running = false;
-    this.host = null; this.client = null; this.names.clear(); this.guestsBy.clear();
+    this.host = null; this.client = null; this.names.clear(); this.golds.clear(); this.guestsBy.clear();
     this.showing = null; this.lastSave = null; this.heirCid = ''; this.originCid = ''; this.backup = null;
     this.clearStill();
     this.stopWatchingEnd?.(); this.stopWatchingEnd = null;
@@ -369,7 +377,10 @@ export class OnlineSession {
   private seatList(): LobbyPlayer[] {
     const list: LobbyPlayer[] = [];
     const devices = [1, ...this.room.connectedSeats()];
-    for (const seat of devices) list.push({ seat, name: this.names.get(seat) ?? 'Player ' + seat });
+    for (const seat of devices) {
+      const gold = seat === 1 ? !!this.deps.gold?.() : this.golds.has(seat);
+      list.push({ seat, name: this.names.get(seat) ?? 'Player ' + seat, ...(gold ? { gold: true } : {}) });
+    }
     for (const seat of devices) {
       const guests = seat === 1 ? this.state.get().guests : this.guestsBy.get(seat) ?? [];
       for (const name of guests) if (list.length < MAX_SEATS) list.push({ seat, name, guest: true });
@@ -380,7 +391,7 @@ export class OnlineSession {
 
   /** Host: how the game ends, and how many times the deck must run out (endings 2-4). Everyone in the room sees it. */
   setEnding(ending: Ending, endingTimes: 1 | 2 = this.state.get().endingTimes): void {
-    if (this.room.role !== 'host' || this.running || ![1, 2, 3, 4].includes(ending)) return;
+    if (this.room.role !== 'host' || this.running || ![1, 2, 3, 4, 5, 6].includes(ending)) return;
     this.set({ ending, endingTimes: endingTimes === 2 ? 2 : 1 });
     this.lobby();
   }
@@ -402,16 +413,32 @@ export class OnlineSession {
     if (roomSeats.length + bots < 2) { this.set({ error: 'Wait for another player, or add a bot.' }); return null; }
     const base = this.deps.baseSettings();
     const chosen = this.state.get().difficulties;
-    const difficulties: BotLevel[] = Array.from({ length: bots }, (_, i) => chosen[i] ?? 'medium');
+    // Insane bots are for a Gold host
+    const difficulties: BotLevel[] = Array.from({ length: bots }, (_, i) => chosen[i] ?? 'medium').map(d => (d === 'insane' && !this.deps.gold?.() ? 'hard' : d));
     const settings: GameSettings = {
       ...base, players: roomSeats.length + bots, bots, difficulties, ending: this.state.get().ending, endingTimes: this.state.get().endingTimes,
-      names: people.map(p => p.name),
+      names: [...people.map(p => p.name), ...Array.from({ length: bots }, (_, k) => this.deps.botNames?.()[k] ?? '')],
+      gold: people.map(p => !!p.gold && !p.guest),
     };
     this.host = this.newHost(roomSeats);
     this.running = true;
     this.set({ phase: 'playing', status: '', error: '' });
     this.display(this.host);
     return this.host.start(settings, seed);
+  }
+
+  /** Host: the game is over and everyone can play again in the same room. */
+  canRematch(): boolean {
+    const st = this.state.get();
+    return this.room.role === 'host' && !this.running && st.phase === 'ended' && !st.error;
+  }
+
+  /** Host: a new game with everyone still in the room, the same bots and the same ending. */
+  rematch(seed?: number): Promise<void> | null {
+    if (!this.canRematch()) return null;
+    this.room.broadcastData({ k: 'rematch' } satisfies ToPlayer);
+    this.showing = null; this.lastSave = null; this.backup = null;
+    return this.start(seed);
   }
 
   /** Show a controller on the board (once). */
@@ -551,6 +578,7 @@ export class OnlineSession {
       if (!isToHost(data)) return;
       if (data.k === 'name') {
         this.names.set(from, cleanName(data.name) || 'Player ' + from);
+        if (data.gold === true) this.golds.add(from); else this.golds.delete(from);
         if (!this.running) {
           const guests = Array.isArray(data.guests) ? data.guests.slice(0, MAX_SEATS - 1).map((g, i) => cleanName(String(g)) || 'Guest ' + (i + 1)) : [];
           this.guestsBy.set(from, guests);
@@ -565,8 +593,15 @@ export class OnlineSession {
     if (!isToPlayer(data) || !this.client) return;
     if (data.k === 'backup') { if (data.takeover) void this.takeOver(data); else this.backup = data; return; }
     if (data.k === 'nobackup') { this.backup = null; return; }
+    if (data.k === 'rematch') {
+      // A new game in the same room: a fresh board, shown when its first snapshot arrives
+      this.client = new OnlineClientController(msg => this.room.sendData(1, msg));
+      this.showing = null; this.backup = null;
+      this.set({ phase: 'lobby', status: 'The host started a rematch...', error: '' });
+      return;
+    }
     if (data.k === 'lobby') {
-      const ending = ([1, 2, 3, 4] as const).find(n => n === data.ending) ?? this.state.get().ending;
+      const ending = ([1, 2, 3, 4, 5, 6] as const).find(n => n === data.ending) ?? this.state.get().ending;
       this.set({ players: data.players, bots: data.bots, ending, endingTimes: data.endingTimes === 2 ? 2 : 1 });
       return;
     }
@@ -606,7 +641,7 @@ export class OnlineSession {
   /** How games end from Settings (the Play menu's More options), as a starting point the host can change in the lobby. */
   private startingEnding(): Pick<OnlineState, 'ending' | 'endingTimes'> {
     const base = this.deps.baseSettings();
-    return { ending: ([1, 2, 3, 4] as const).find(n => n === base.ending) ?? 1, endingTimes: base.endingTimes === 2 ? 2 : 1 };
+    return { ending: ([1, 2, 3, 4, 5, 6] as const).find(n => n === base.ending) ?? 1, endingTimes: base.endingTimes === 2 ? 2 : 1 };
   }
 
   /** The bots' difficulties from Settings, as a starting point the host can change in the lobby. */
@@ -618,7 +653,7 @@ export class OnlineSession {
   private reset(status: string): void {
     this.room.leave();
     this.running = false;
-    this.host = null; this.client = null; this.names.clear(); this.guestsBy.clear();
+    this.host = null; this.client = null; this.names.clear(); this.golds.clear(); this.guestsBy.clear();
     this.showing = null; this.lastSave = null; this.heirCid = ''; this.originCid = ''; this.backup = null;
     this.clearStill();
     this.stopWatchingEnd?.(); this.stopWatchingEnd = null;

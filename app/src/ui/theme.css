@@ -44,3 +44,6 @@ button { font: inherit; }
 }
 /* 1 stage unit = 1/640 of the stage width, so layouts can use the old game's coordinates */
 .stage { --u: calc(100cqw / 640); }
+
+/* Gold members: a star by their name (board, lobby, win screen) */
+.btw-gold-star { color: #e0b100; text-shadow: 0 0 1px #7a5c0a; }

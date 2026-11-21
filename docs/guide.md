@@ -33,7 +33,7 @@ Playing is free: every game mode, every card, the tutorial and the instructions 
 The guide follows the order you meet things on the website. Read it front to back to learn everything, or jump to the section you need:
 
 - **Sections 2 to 3:** the home page and setting your name.
-- **Sections 4 to 8:** starting a game, the three ways to play, and the four ways a game can end.
+- **Sections 4 to 8:** starting a game, the three ways to play, and the six ways a game can end.
 - **Sections 9 to 14:** playing a game: the screen, your turn, building walls, every card, blocking, and the messages you see.
 - **Section 15:** watching card videos while you wait for your turn.
 - **Sections 16 to 18:** Settings, Account & Store, and the built-in Tutorial and Instructions.
@@ -251,14 +251,15 @@ The **−** button is greyed out at 1 bot and the **+** button at 5 bots, becaus
 
 ### 5.3 How hard are the bots?
 
-The four buttons set every bot to the same level.
+The buttons set every bot to the same level. **Insane** is greyed out without Gold; if a game is started with Insane bots after Gold has ended, they play as Hard.
 
 | Level | How the bot plays | Good for |
 | --- | --- | --- |
 | **Easy** | Only builds walls, and makes careless choices: half the time it doesn't pick the best wall, and sometimes it skips building altogether. It never plays Debt or other action cards. It blocks your attacks only about half the time. | Your first few games, young players, a relaxed game. |
 | **Medium** | Builds sensibly, plays Debt on your walls, and plays its other cards when it can. Now and then it makes a less-than-best choice. | Most players, most of the time. |
 | **Hard** | Plays to win. It watches who is leading and aims its Debt at the leader. It finishes pairs into sets first, protects its pairs with Trump Train when you have been attacking, and plays its strongest cards in the best order. | A real challenge, once you know the cards. |
-| **Random** | Each bot gets Easy, Medium or Hard at random when the game starts, so you don't know which is which. | Variety and surprise. |
+| **Insane ★** | Gold members only. Before every move it tries each move it could make in quick practice games and picks the one that works out best. It plays fair: in practice it shuffles the cards it can't see, so it never knows your hand. It thinks for a moment before each move. | Strong players who find Hard too easy. |
+| **Random** | Each bot gets Easy, Medium or Hard at random when the game starts, so you don't know which is which. (Random never picks Insane.) | Variety and surprise. |
 
 All bots, whatever their level, must play Play Immediately cards when they draw them, and all of them can block your attacks with Self-Defense and Savings.
 
@@ -268,7 +269,7 @@ Bots remember how each player plays on your device, by name. Over several games 
 
 ### 5.4 Set each bot separately
 
-With 2 or more bots, a blue link **Set each bot separately** appears under the four level buttons.
+With 2 or more bots, a blue link **Set each bot separately** appears under the level buttons.
 
 1. Press **Set each bot separately**. The four buttons are replaced by one row per bot: **Bot 1**, **Bot 2**, and so on, each with a drop-down menu.
 2. Open each drop-down and choose **Easy**, **Medium**, **Hard** or **Random** for that bot.
@@ -280,13 +281,17 @@ With 2 or more bots, a blue link **Set each bot separately** appears under the f
 
 Mixing levels makes a good teaching game: for example one Hard bot to show strong play and one Easy bot so a new player isn't always last.
 
+#### Naming the bots
+
+Press **Name the bots** (under the bot levels) to give each bot a name of your own, up to 16 characters. The game shows it as "Bot" and your name, for example **Bot Rex**. Leave a box empty for the bot's usual name (Bot Freedom, Bot Maverick, and so on). Rude words are swapped for polite ones. Your bot names are remembered for next time, and they are used in Pass'n'Play, in Just watch bots play and for the bots in online rooms you host.
+
 ### 5.5 More options: how the game ends
 
 Under the bot settings is a blue link **More options**, followed in grey by how the game ends now, for example "(game ends: 3 Sets of 3 Walls)".
 
 1. Press **More options**. A row **The game ends with** appears with a drop-down menu.
-2. Choose one of the four endings: **3 Sets of 3 Walls**, **Exhaust Deck**, **Whatever Happens First** or **Whatever Happens Last**.
-3. If you chose anything except 3 Sets of 3 Walls, a second row **The deck runs out** appears. Choose **Once** or **Twice**.
+2. Choose one of the six endings: **3 Sets of 3 Walls**, **Exhaust Deck**, **Whatever Happens First**, **Whatever Happens Last**, **First to 50 Miles** or **Timed Game**.
+3. For Exhaust Deck, Whatever Happens First and Whatever Happens Last, a second row **The deck runs out** appears: choose **Once** or **Twice**. For Timed Game, a row **How long?** appears: choose 10 to 60 minutes.
 
 ![More options open](guide/08-play-bots-more.png)
 
@@ -438,15 +443,19 @@ Quick match games have no code to share: other players find them with their own 
 4. Wait for your friends to join. Each one appears in the **Players** list as they arrive.
 5. Choose bots and the ending (section 7.4), then press **Start game**.
 
+#### Your own room (Gold)
+
+Gold members also see **Your own room ★** on the Play online page. Its code starts with G (for example **GKX7RD**) and stays the same every time you press **Open my room**, so your friends can keep it and join every week without being told a new code. Press **New code** to get a different one. The code is saved with your account, so it is the same on all your devices. If the room is already open on another device, it says "That room is already open on another device."
+
 ### 7.4 Your room (the host's view)
 
 As the host you see **Your room** with these parts, top to bottom:
 
 - **Room code:** the code to share (private rooms only).
-- **Players (n):** everyone in the room, with "host (you)" beside your name. With bots, the count shows them too, for example "Players (2 + 1 bot)".
+- **Players (n):** everyone in the room, with "host (you)" beside your name. Gold members have a gold ★ before their name. With bots, the count shows them too, for example "Players (2 + 1 bot)".
 - **More people on this device?:** add people who will share your device (section 7.6).
-- **Bots:** with **-** and **+** buttons. Each bot you add gets its own row, **Bot 1:**, **Bot 2:** and so on, with a drop-down to choose **Easy**, **Medium**, **Hard** or **Random**. Bots fill seats up to 6 players in all.
-- **The game ends with:** a drop-down with the four endings, and **The deck runs out: Once / Twice** for every ending except 3 Sets of 3 Walls (section 8). Everyone in the room sees what you pick. It starts from the ending you last chose under More options, and your choice is remembered.
+- **Bots:** with **-** and **+** buttons. Each bot you add gets its own row, **Bot 1:**, **Bot 2:** and so on, with a drop-down to choose **Easy**, **Medium**, **Hard**, **Insane ★** (only when the host has Gold) or **Random**. Bots get the names you gave them under Name the bots (section 5.4). Bots fill seats up to 6 players in all.
+- **The game ends with:** a drop-down with the six endings, and **The deck runs out: Once / Twice** for the endings that use the deck (section 8). Everyone in the room sees what you pick. It starts from the ending you last chose under More options, and your choice is remembered.
 - **Start game:** starts the game for everyone. It is greyed out until there are at least 2 players (people or bots).
 - **Close room:** closes the room and sends everyone back.
 
@@ -508,6 +517,10 @@ An online game plays like any other, with a few extras:
 - **Watch videos while you wait** (section 15).
 - **Only the current player can act.** If you try to act out of turn, the game says "It isn't your turn."
 
+
+#### Rematch
+
+When an online game is over, the host's win screen has **Rematch** instead of Play again. It starts a new game in the same room straight away, with everyone still there, the same bots and the same ending; everyone else's board switches to the new game. The host can also press **Rematch** on the Play online page, which says "The online game ended." with **Rematch** and **Leave the room**.
 ### 7.8 When someone stops playing
 
 - **Someone hasn't moved for 30 seconds:** the host sees "*Name* hasn't moved for a while." with a **Let a bot play for *Name*** button. Pressing it lets a bot play their cards so the game can go on.
@@ -546,7 +559,7 @@ When you rejoin, you get the same seat, the same cards and the same walls, and t
 
 ## 8. How the game ends
 
-You choose one of four endings before the game starts. Whichever you pick, once the end is reached everyone else gets one final turn, and then the player with the most miles of wall wins.
+You choose one of six endings before the game starts. Whichever you pick, once the end is reached everyone else gets one final turn, and then the player with the most miles of wall wins.
 
 ### 8.1 Where to choose the ending
 
@@ -555,7 +568,7 @@ You choose one of four endings before the game starts. Whichever you pick, once 
 
 The choice is remembered for next time, in both places.
 
-### 8.2 The four endings at a glance
+### 8.2 The six endings at a glance
 
 | Ending | The end is reached when… | Game length | Draw pile running out |
 | --- | --- | --- | --- |
@@ -563,6 +576,8 @@ The choice is remembered for next time, in both places.
 | **Exhaust Deck** | the draw pile runs out (once or twice) | Fixed, medium | Ends the game |
 | **Whatever Happens First** | 3 sets OR the deck runs out, whichever is first | Shortest | Can end the game |
 | **Whatever Happens Last** | 3 sets AND the deck has run out, both | Longest | Ends it only once 3 sets are also done |
+| **First to 50 Miles** | a player has 50 miles of wall or more | Medium | Never ends the game |
+| **Timed Game** | the chosen time (10 to 60 minutes) has been played | You choose | Never ends the game |
 
 ### 8.3 3 Sets of 3 Walls
 
@@ -601,7 +616,25 @@ The end is reached only once both have happened: a player has completed 3 sets, 
 
 **Why play it:** the longest game, and the most forgiving. Players who fall behind have the most time to catch up.
 
-### 8.7 The final round
+### 8.7 First to 50 Miles
+
+The end is reached when any player has **50 miles** of wall or more at the end of a move. A **FINAL ROUND!** notice says who reached 50 miles, and everyone else gets one final turn. The draw pile never ends this game.
+
+**Why play it:** a race with a clear finish line. Every wall counts, not only sets, so it plays faster than 3 Sets of 3 Walls.
+
+**Watch out for:** anyone in the 40s. One more pair or set takes them over the line, and Debt can pull them back below it.
+
+### 8.8 Timed Game
+
+Choose **How long?** (10, 15, 20, 30, 45 or 60 minutes) under the ending. The clock counts only time spent playing: if you close the page and carry on later, the time away doesn't count. The board shows the time left next to the actions, for example "3 actions left · 12 min left" (it is updated at the start of each turn).
+
+When the time is up, at the start of the next turn the game says "Time's up! Everyone gets one last turn." That player and everyone else take one last turn, and then the most miles wins. The draw pile never ends this game.
+
+**Why play it:** you know when the game will finish, so it fits a lunch break or a bedtime.
+
+**In an online room** the host's time setting is used, and the room shows it, for example "Timed Game (20 minutes)".
+
+### 8.9 The final round
 
 When the end is reached, the game doesn't stop straight away. A big notice appears:
 
@@ -612,7 +645,7 @@ Press the notice's button to close it. Then every other player takes one more tu
 
 **Use your final turn well:** build everything you can. Attacks still work, so a last Debt on the leader can change the result.
 
-### 8.8 Who wins
+### 8.10 Who wins
 
 The player with the most miles of wall wins. Section 11 explains how miles are counted.
 
@@ -623,21 +656,22 @@ A game can also end early:
 - **Everyone else left** an online game: "Everyone else left the game."
 - **End Game** pressed on the game screen (section 9.6): the game stops without a winner.
 
-### 8.9 The win screen
+### 8.11 The win screen
 
 When the game is over, a red screen shows:
 
-- **WALL COMPLETE** on a ribbon at the top.
+- **WALL COMPLETE** on a ribbon at the top, or **YOU WIN!** when someone playing on this device won. Then confetti falls and a short fanfare plays (no confetti when Card animations are off or your device asks for less motion; no fanfare when Sound is off).
 - **The winner:** "*Name* wins!" or "It's a tie: …".
 - **Why the game ended,** for example "Someone built 3 sets of 3 walls.", "The deck ran out and the final turns are done." or "Both the deck and 3 sets are done."
 - **The final scores:** every player from most miles to fewest, each with a bar showing their miles.
 - A wall of bricks building itself along the bottom.
 
-Three buttons:
+The buttons:
 
 | Button | What it does |
 | --- | --- |
-| **Play again** | Starts a new game with the same players and settings. |
+| **Play again** | Starts a new game with the same players and settings. In an online game the host's button says **Rematch** instead (section 7.7), and the other players see "The host can start a rematch." |
+| **Watch replay ★** | Gold members: watch this game again, turn by turn (section 17.2). |
 | **Game log** | Closes the win screen so you can look over the finished board and read the game log (section 14.5). |
 | **Back to menu** | Returns to the home page. |
 
@@ -1178,11 +1212,11 @@ Big tilted headlines mark important moments. Press the button on them to carry o
 
 | Notice | When |
 | --- | --- |
-| **FINAL ROUND!** | A player reached the end with 3 sets: everyone else gets one more turn (section 8.7). |
+| **FINAL ROUND!** | A player reached the end with 3 sets: everyone else gets one more turn (section 8.9). |
 | **LAST CARD!** | The draw pile ran out and the game is ending: everyone else gets one more turn. |
 | **QUARANTINE / TURN SKIPPED** | A player on this device was quarantined: they drew their cards but skip the rest of the turn. |
 | **WHILE YOU WERE AWAY** | At the start of your turn: what happened to you since your last turn (section 6.6). |
-| **WALL COMPLETE** | The game is over: the win screen (section 8.9). |
+| **WALL COMPLETE** | The game is over: the win screen (section 8.11). |
 
 ### 14.3 Play Immediately cards and blocks
 
@@ -1463,6 +1497,12 @@ Gold Membership is an optional extra that supports the game. It doesn't change t
 
 | Gold gives you | Where |
 | --- | --- |
+| A gold ★ by your name: on the home page, the board, the win screen, online rooms and the leaderboards | Below |
+| Insane bots | Section 5.3 |
+| Up to 5 games going at once (Saved games) | Below |
+| Detailed stats | Below |
+| Game replays | Below |
+| Your own room code that never changes | Section 7.3 (Your own room) |
 | The holiday special card back | Section 17.3 |
 | The leaderboards | Section 17.4 |
 | No video advert after games | Section 14.7 |
@@ -1480,6 +1520,26 @@ The card shows your Gold status: "Gold unlocks every extra and supports the game
 ![Gold Membership](guide/33-gold.png)
 
 *The Gold Membership card, with payments turned off.*
+
+#### Saved games (Gold)
+
+Without Gold, the game keeps one game going: starting a new game replaces it. With Gold, starting a new game (or going online) puts the game you were playing aside instead. A gold **Saved games (n)** button appears on the home page under Play. It lists each game, for example "You and 2 bots · turn 12 · 3 h ago", with **Continue** and **Delete**. Continuing a saved game puts the one you were playing aside in its place. You can keep up to 5 games going: the one you're playing and 4 saved. Saved games stay on this device for 30 days.
+
+#### Your stats
+
+**Your stats** on Account & Store shows everyone their games, wins, win percentage and best miles. Gold members also see:
+
+- **A chart of your last 20 games:** one bar per game showing its miles, with a ★ above the games you won. Point at a bar for its date, miles and how it was played.
+- **Win rate** by how you played (against bots, Pass'n'Play, online, watching bots) and by the hardest bot in the game (Easy, Medium, Hard, Insane).
+- **Best game, Average** miles, **Favourite card** (the card you have played most) and **Wins in a row** (now, and your best).
+
+Stats are kept for your last 80 games, and they follow you to other devices when you're signed in. Games played before Gold are counted too, so they show as soon as you get Gold.
+
+#### Game replays (Gold)
+
+Every game is recorded as it is played: a picture of the board at the start of each turn. The last finished game can be watched again with **Watch replay ★** on the win screen, or **Watch your last game again** under Your stats.
+
+The replay shows the board turn by turn, with the cards moving as they did. A bar along the bottom has **⏮** (first turn), **◀** (back one turn), **▶ Play** / **❚❚ Pause** (play on its own, a turn every couple of seconds), **▶** (next turn), **⏭** (the end), the turn number, and **Exit replay**. The game log shows what happened up to that turn. Watching a replay doesn't count as a game in your stats.
 
 ### 17.3 Card back
 
@@ -1591,7 +1651,7 @@ The rules are four short pages. On the home page they are pages 2 to 5 of the **
 | 1 | Goal & Setup | The goal, the number of players, setup, who goes first, Play Immediately cards. |
 | 2 | Taking Your Turn | Drawing 3 cards, taking up to 3 actions, what costs an action, ending your turn. |
 | 3 | Building Walls | How to build and pay, how matching sections score, cards that build for free. |
-| 4 | Winning & Key Cards | The four endings, the final turn, Debt, Self-Defense, Trump and Trump Train, zooming in on cards. |
+| 4 | Winning & Key Cards | The six endings, the final turn, Debt, Self-Defense, Trump and Trump Train, zooming in on cards. |
 
 ![Instructions page 1](guide/40-instructions-1.png)
 
@@ -1662,6 +1722,7 @@ Tutorial tips can be switched on in any game, two ways:
 When it is your turn and nothing else is on screen, a yellow **TUTORIAL TIP** box appears at the bottom of the board:
 
 - **BEST MOVE:** the move a Hard bot would make in your place, in plain words, for example building a wall that makes a pair (8 miles instead of 3)
+- **WHY:** the reason it is the best move, for example "It finishes a set of 3: that kind goes from 8 to 16 miles, and a set can never be taken." or "Debt takes a wall from someone else and gives it to you: Bo is ahead with 19 miles."
 - **Up to 3 tips** about your situation, such as which walls match, who is leading, or a defence card worth keeping.
 
 ![A tutorial tip](guide/52-tutorial-tip.png)

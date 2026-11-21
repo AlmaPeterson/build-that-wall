@@ -31,13 +31,13 @@ export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boo
 
 /** One of a few choices, as a row of buttons (the one picked is filled in). `value` null: none picked. */
 export function Choice<T extends string>({ value, options, onChange, label }: {
-  value: T | null; options: { value: T; name: string }[]; onChange: (v: T) => void; label: string;
+  value: T | null; options: { value: T; name: string; disabled?: boolean; title?: string }[]; onChange: (v: T) => void; label: string;
 }) {
   return (
     <div class="settings__steps" role="radiogroup" aria-label={label}>
       {options.map(o => (
         <button type="button" role="radio" key={o.value} aria-checked={value === o.value} class={value === o.value ? 'is-current' : ''}
-          onClick={() => onChange(o.value)}>{o.name}</button>
+          disabled={o.disabled} title={o.title} onClick={() => onChange(o.value)}>{o.name}</button>
       ))}
     </div>
   );

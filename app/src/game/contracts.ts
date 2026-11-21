@@ -96,7 +96,8 @@ export interface GameApi {
 
 /** Decides a bot's next action on its own turn (section 11, `ai think`). 'endTurn' = stop. */
 export interface BotPlayer {
-  nextAction(api: GameApi, seat: Seat): Action;
+  /** Insane bots think it over first, so the answer may come later. */
+  nextAction(api: GameApi, seat: Seat): Action | Promise<Action>;
 }
 
 /** Remembers how humans play, for Hard bots (section 11, learning). */

@@ -80,6 +80,8 @@ export interface HostOptions {
   spectators?: boolean;
   /** Listed for quick match */
   world?: boolean;
+  /** Gold: open the room with this code (the same one every time) instead of a random one */
+  code?: string;
 }
 
 export interface AskQuestion {
@@ -124,7 +126,7 @@ const ERRORS: Record<string, string> = {
   network: 'Could not reach the online service (check your internet).',
   'server-error': 'The online service is busy. Try again.',
   'socket-error': 'The online service is busy. Try again.',
-  'unavailable-id': 'That room code is already in use.',
+  'unavailable-id': 'That room is already open on another device.',
   'browser-incompatible': 'This browser cannot play online.',
   timeout: 'The other player did not answer in time.',
   found: 'Found a game but could not connect (your network may block online play).',
@@ -218,7 +220,14 @@ export class OnlineRoom {
     // always ignored it and made a random one. Kept that way.
     this.leave();
     if (!(await this.connect())) return '';
-    this.openAsHost(randomCode(this.random), opts.max, !!opts.spectators, !!opts.world);
+    const wanted = String(opts.code ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (wanted) {
+      // Someone else (another device) has this room open right now
+      this._code = wanted;                     // so the room's info is heard
+      const info = await this.peekRoom(wanted);
+      if (info?.open && info.host !== this.cid && roomAlive(info, Date.now(), ROOM_STALE_MS)) { this._err = 'unavailable-id'; return ''; }
+    }
+    this.openAsHost(wanted || randomCode(this.random), opts.max, !!opts.spectators, !!opts.world);
     await this.sub(topics(this._code).up);
     this.roomInfo();
     this.startTimers();

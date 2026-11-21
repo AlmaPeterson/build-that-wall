@@ -93,6 +93,8 @@ const createdHooks: ((c: GameController) => void)[] = [];
 export function onControllerCreated(fn: (c: GameController) => void): void { createdHooks.push(fn); }
 
 export class GameController {
+  /** A replay of a finished game (not counted in the stats again). */
+  replay = false;
   readonly snapshot: Store<GameSnapshot> = createStore<GameSnapshot>({ view: null, viewer: 0, events: [], prompt: null, passTo: null });
   private game: Game | null = null;
   private events: GameEvent[] = [];
