@@ -32,6 +32,27 @@ export function playSfx(name: string): void {
   } catch { /* no audio here */ }
 }
 
+/** A bright two-note ding (made by the browser, no file): it's your move. Follows the Sound Effects setting. */
+export function playDing(): void {
+  if (!settings.get().sound) return;
+  try {
+    const Ctx = (globalThis as { AudioContext?: typeof AudioContext }).AudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    [[1046.5, 0], [1568, 0.12]].forEach(([hz, at]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = hz!;
+      g.gain.setValueAtTime(0.0001, now + at!);
+      g.gain.exponentialRampToValueAtTime(0.35, now + at! + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + at! + 0.9);
+      o.connect(g).connect(ctx.destination);
+      o.start(now + at!); o.stop(now + at! + 0.95);
+    });
+    setTimeout(() => void ctx.close().catch(() => {}), 1500);
+  } catch { /* no audio here */ }
+}
+
 // ---- background music
 
 export type Track =

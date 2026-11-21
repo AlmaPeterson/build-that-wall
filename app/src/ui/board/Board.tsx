@@ -17,6 +17,7 @@ import { ConfirmEnd } from './BoardModal';
 import { online } from '../online';
 import { ActionLog } from './ActionLog';
 import { CardPopup } from './CardPopup';
+import { WatchVideosButton } from './CardVideos';
 import { cardImage } from '../assets';
 import { Hand, HiddenHand } from './Hand';
 import { Piles } from './Piles';
@@ -173,6 +174,7 @@ export function Board({ controller }: { controller: GameController }) {
 
       <div class="at side side--top">
         <Button class={live && view.actionsLeft < 1 ? 'btw-ready' : ''} disabled={!live} onClick={() => void act({ type: 'endTurn' }, 'click')}>End Turn</Button>
+        <WatchVideosButton controller={controller} />
       </div>
       <div class="at side side--bottom">
         <Button onClick={() => screen.set('settings')}>Settings</Button>
