@@ -10,6 +10,8 @@ import { Button } from '../components/Button';
 import { BACKS, HOLIDAY_NAMES, holidayOn } from '../card-back';
 import { services, type GoldItem } from '../services';
 import { StatsCard } from '../account/Stats';
+import { saleNow } from '../notifications';
+import { saleEnds, salePrice } from '../../services/notices/sales';
 import { useStore } from '../store';
 
 const money = (n: number, cur: string) => n.toFixed(2) + ' ' + cur;
@@ -17,6 +19,7 @@ const money = (n: number, cur: string) => n.toFixed(2) + ' ' + cur;
 export function AccountScreen() {
   const player = useStore(services.player);
   const config = useStore(services.config);
+  const sale = saleNow();
   const [said, setSaid] = useState<Record<string, Said | null>>({});
   const [busy, setBusy] = useState(false);
   const say = (area: string, s: Said | null) => setSaid(o => ({ ...o, [area]: s }));
@@ -32,13 +35,16 @@ export function AccountScreen() {
         <h2 id="gold-h">Gold Membership</h2>
         <p>{player.gold ? <span class="btw-gold">{player.goldInfo || 'Gold is active'}</span> : 'Gold unlocks every extra and supports the game.'}</p>
         {(!player.signedIn || player.expired) && <p class="btw-muted">Sign in {player.expired ? 'again' : 'first'}: Gold belongs to your account, so it follows you to every device.</p>}
+        {sale && <p class="btw-sale"><b>{sale.sale.name} sale:</b> {sale.percent}% off Gold, {saleEnds(sale.sale)}.</p>}
         {services.paymentsOff && <p class="btw-muted" role="note">{paymentsOffText(services.paymentsOff)}</p>}
         <div class="btw-row">
           {(['year', 'month'] as GoldItem[]).map(item => (
             <Button key={item} color="gold" disabled={busy || !player.signedIn || player.expired || !!services.paymentsOff} onClick={() => run(async () => {
               say('gold', buyMessage(await services.buyGold(item), 'gold'));
             })}>
-              {item === 'year' ? '1 year' : '30 days'}: {money(item === 'year' ? config.goldPriceYear : config.goldPriceMonth, config.currency)}
+              {item === 'year' ? '1 year' : '30 days'}: {sale
+                ? <><s>{money(item === 'year' ? config.goldPriceYear : config.goldPriceMonth, config.currency)}</s> {money(salePrice(item === 'year' ? config.goldPriceYear : config.goldPriceMonth, sale.percent), config.currency)}</>
+                : money(item === 'year' ? config.goldPriceYear : config.goldPriceMonth, config.currency)}
             </Button>
           ))}
         </div>

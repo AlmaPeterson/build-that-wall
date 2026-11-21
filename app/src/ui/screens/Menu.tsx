@@ -8,6 +8,7 @@ import { saveMyName } from '../account/my-name';
 import { nameMessage } from '../account/results';
 import { Button } from '../components/Button';
 import { Guide } from '../menus/Guide';
+import { Bell, VersionBadge } from '../menus/Corners';
 import logo from '../menus/logo.png';
 import { PlayMenu } from '../menus/PlayMenu';
 import { initSettingsPersistence } from '../menus/prefs';
@@ -103,6 +104,8 @@ export function MenuScreen() {
   return (
     <div class="menu">
       <header class="menu__head">
+        <VersionBadge />
+        <Bell />
         <h1 class="menu__title"><img class="menu__logo" src={logo} alt="Build That Wall: Trump's political card-game" /></h1>
       </header>
       <main class="menu__main">

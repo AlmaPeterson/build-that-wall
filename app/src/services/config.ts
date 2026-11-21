@@ -10,6 +10,10 @@ export interface GameSettings {
   paypalClientId: string;
   paypalPlanMonth: string;
   paypalPlanYear: string;
+  /** Holiday sales: PayPal plans priced salePercent below the normal ones. Without them the sales can't be bought. */
+  paypalPlanMonthSale: string;
+  paypalPlanYearSale: string;
+  salePercent: number;
   goldPriceYear: number;
   goldPriceMonth: number;
   currency: string;
@@ -20,6 +24,7 @@ export interface GameSettings {
 
 export const DEFAULT_SETTINGS: GameSettings = {
   serverUrl: '', googleClientId: '', appleClientId: '', githubClientId: '', feedbackUrl: '', paypalClientId: '', paypalPlanMonth: '', paypalPlanYear: '',
+  paypalPlanMonthSale: '', paypalPlanYearSale: '', salePercent: 25,
   goldPriceYear: 19.99, goldPriceMonth: 2.99, currency: 'USD',
   amazonTag: '', merchUrl: '', freeOnlinePlayers: 4,
 };
@@ -29,6 +34,7 @@ const FILE_KEYS: Record<string, keyof GameSettings> = {
   'Server URL': 'serverUrl', 'Google Client ID': 'googleClientId', 'Apple Client ID': 'appleClientId', 'GitHub Client ID': 'githubClientId',
   'Feedback URL': 'feedbackUrl',
   'PayPal Client ID': 'paypalClientId', 'PayPal Plan Month': 'paypalPlanMonth', 'PayPal Plan Year': 'paypalPlanYear',
+  'PayPal Plan Month Sale': 'paypalPlanMonthSale', 'PayPal Plan Year Sale': 'paypalPlanYearSale', 'Sale Percent': 'salePercent',
   'Gold Price Year': 'goldPriceYear', 'Gold Price Month': 'goldPriceMonth',
   'Currency': 'currency', 'Amazon Tag': 'amazonTag', 'Merch URL': 'merchUrl', 'Free Online Players': 'freeOnlinePlayers',
 };

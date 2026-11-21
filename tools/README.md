@@ -1,5 +1,7 @@
 # Tools
 
+`changelog.mjs` makes the version history (`app/src/data/changelog.json`) from the git history; `npm run build` runs it.
+
 `build-guide.mjs` builds the player's guide web page, `app/public/guide.html`, from `docs/guide.md`
 (screenshots in `app/public/guide/`). Edit the Markdown, then run `node tools/build-guide.mjs`.
 

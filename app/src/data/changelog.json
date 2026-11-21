@@ -1,0 +1,205 @@
+[
+ {
+  "version": "1.12",
+  "date": "2026-11-21",
+  "changes": [
+   "Type the miles and minutes for the two newer endings",
+   "Gold extras and new options for everyone",
+   "Tutorial holds the rules; Instructions button leaves the home page",
+   "Guide: remove the experimental expansion card list"
+  ]
+ },
+ {
+  "version": "1.11",
+  "date": "2026-11-20",
+  "changes": [
+   "Guide pictures show wherever the page is opened",
+   "Add the full player's guide web page (guide.html)",
+   "Watch card videos while you wait, with a buzz and ding when it's your move",
+   "Turn payments off for now: Not Ready For Payments Yet"
+  ]
+ },
+ {
+  "version": "1.10",
+  "date": "2026-11-17",
+  "changes": [
+   "Online games carry on when the host leaves",
+   "Pass'n'Play: no pass screen before a bot's turn",
+   "Stop the screen jiggling while cards move",
+   "The host picks how an online game ends",
+   "Online games can have more than one person on a device",
+   "Bring the instructions up to date",
+   "Music: the game's own song, links, songs from your computer, on/off and volume",
+   "Give the bots-only game tests more time",
+   "Text size settings are sliders",
+   "Sign in with Apple, GitHub, or a username and password",
+   "Leaderboards are for Gold members",
+   "Add the Easter card back",
+   "Holiday card backs for Gold members, and April Fools' Day"
+  ]
+ },
+ {
+  "version": "1.9",
+  "date": "2026-11-16",
+  "changes": [
+   "Stop selling Lifetime Gold; players who bought it keep it",
+   "Watch bots play: choose how many bots and how hard before it starts",
+   "Home page: make setting your name easy to spot (still optional)",
+   "Online: a bot plays for anyone who leaves, and they can rejoin"
+  ]
+ },
+ {
+  "version": "1.8",
+  "date": "2026-11-08",
+  "changes": [
+   "Fill in the last-updated dates on the privacy and terms pages",
+   "End Turn top right, other buttons bottom right; expired sign-ins are honest",
+   "Turn banner waits for OK before the cards are drawn; green buttons when you're done",
+   "Play asks how you want to play; your name on the home page; Settings only has app options",
+   "Pinch a card picture with two fingers to zoom",
+   "Phones and hand: sorted, stacked hand; player names; saved games",
+   "Tap a card to see it big; scroll over the picture to zoom"
+  ]
+ },
+ {
+  "version": "1.7",
+  "date": "2026-11-03",
+  "changes": [
+   "Bring back the video ads after each game",
+   "Remove the old game; better search results",
+   "Game log: no doubled Trump draw line; name who built 3 sets",
+   "Remove the unused middle-pause path; fix type check",
+   "Other players' cards no longer stop in the middle",
+   "No \"While you were away\" box when playing alone against bots",
+   "Hide cards passed between other players; split Freedom of the Press picks by pile; no pause on landed cards",
+   "Fix card animations: no face-down public cards, jumps, or sliding hands"
+  ]
+ },
+ {
+  "version": "1.6",
+  "date": "2026-10-30",
+  "changes": [
+   "Stage walls before build payments",
+   "Revert \"Fix card flight layering\"",
+   "Revert \"Preserve deal flight timing\"",
+   "Revert \"Reveal result flights on their motion clock\"",
+   "Reveal result flights on their motion clock",
+   "Preserve deal flight timing",
+   "Fix card flight layering",
+   "Avoid duplicating immediate cards on blocks",
+   "Track physical card identities in animations",
+   "Keep direct card flights continuous",
+   "Refine card animation flow",
+   "Sequence animation costs before results",
+   "Polish bot watch animations and controls",
+   "Link legal pages from game menu",
+   "Add search discovery metadata",
+   "Fix online sessions, game log, and card animations"
+  ]
+ },
+ {
+  "version": "1.5",
+  "date": "2026-10-29",
+  "changes": [
+   "Copy Google verification file to site directory",
+   "Added google verification file for google search"
+  ]
+ },
+ {
+  "version": "1.4",
+  "date": "2026-10-28",
+  "changes": [
+   "Online: hosts stay findable, ghost rooms are skipped, \"waiting for\" banner, \"Still here?\" before dropping",
+   "Double-click or right-click a card to see it full size, with Zoom In and Scan QR Code",
+   "Online: pick each bot's difficulty in the lobby; don't drop players who switch windows",
+   "Your hand shows on other players' turns; a changed name shows in the next game",
+   "Leaderboard: no Supporters board; Win rate says to play 5 or more games",
+   "Buttons fit their text; Game history; Auto Join only online; expansion packs coming soon",
+   "Other players' cards just fly across; one Spy Balloon, not two",
+   "Free-build cards: pick all the walls at once; Debt says which wall it takes",
+   "A random player goes first (the Tutorial still starts with you)",
+   "While you were away: only for the player whose turn it is, after the device is passed",
+   "Quarantine: the OK notice really shows, so the game doesn't stop",
+   "Fix online play: really connect to the relay; Host and Quick match start straight away",
+   "Use the game's own Google Client ID",
+   "Sign out also clears the classic game's pop-up sign-in",
+   "Connect the game server and Google sign-in",
+   "Card action popups can be dragged aside and resized",
+   "End Game works while cards are moving",
+   "Send server requests as ?path=..., fix Afghanistan Pull Out, wait for OK after Quarantine",
+   "Show every hand face up when only bots are playing",
+   "Remove the duplicate Donate and Gold Membership buttons from the main menu",
+   "Add the tab icon (the same one the old game used)",
+   "Go live: publish the new game with GitHub Actions; old game at /classic/",
+   "Vote Recount goes straight to the discard pile; picked cards fly to the hand",
+   "Fix wall-building cards offering the wrong cards to build",
+   "Fix played cards jumping around: keep them in place until announced",
+   "Drag a card to the discard pile to play it, or to your walls to build it",
+   "Drag cards in your hand to arrange them",
+   "Make Play Immediately cards readable: sharp card, Continue for your own",
+   "Show \"Player 1's turn\" before each solo turn; scroll the hand with the mouse wheel",
+   "Settings: save every change straight away and say so; Back becomes Done",
+   "Animate the deal and blocks; tap any face-up card to see it full size",
+   "Fix building with the second Man Hour: every wall can be picked",
+   "Animate every card move so turns are easy to follow",
+   "Plan Phase 2b: animate every card move so turns are easy to follow",
+   "Integrate the screens: device hand-off, bot pacing, stopping games",
+   "Add the Account & Store, Leaderboard and Online screens",
+   "Return to the running game from Settings and Instructions",
+   "Add the in-game board screen",
+   "Add the board overlays: prompts, pass screen, recap, win screen, tips",
+   "Add online play (host runs the game, players get only their own view) and audio",
+   "Add the main menu, Settings, Instructions and the illustrated guide",
+   "Wire the app services; add online data channel and world board transport"
+  ]
+ },
+ {
+  "version": "1.3",
+  "date": "2026-10-27",
+  "changes": [
+   "Add placeholders for overlays, audio and app services",
+   "Add the UI foundation: Preact app shell, game controller, components",
+   "Wire the game core together and test whole bots-only games",
+   "Add every card effect: CardRules for the game core",
+   "Add the game engine: setup, dealing, turns, building, playing, endings",
+   "Add bots: ai think, bot decisions and learning memory",
+   "Add the game core's shared types and contracts",
+   "Let the game server take PayPal payments after checking the price",
+   "Record the owner's decisions on rules, bots, guest play and payments",
+   "Mark Phase 0 done and list decisions needed before Phase 1",
+   "Port the feedback system to TypeScript",
+   "Add the card catalogue: tools/export-cards.py, cards.json and typed cards.ts",
+   "Add tools/export-assets.py and export the game's assets with readable names",
+   "Add docs/game-rules.md: the game's rules as a porting spec",
+   "Port account, Gold, payments and leaderboard services to TypeScript",
+   "Port online play to TypeScript (MQTT rooms)",
+   "Add tools/dump-project.py and a readable dump of the Scratch blocks",
+   "Scaffold TypeScript app: Vite, strict TypeScript, Vitest",
+   "Add refactor plan: TypeScript rewrite",
+   "Fix error toasts showing as gold success messages",
+   "Fix Lifetime Gold purchases being charged but never unlocked"
+  ]
+ },
+ {
+  "version": "1.2",
+  "date": "2026-10-21",
+  "changes": [
+   "Say who pulled which card and what to do on pass screens",
+   "Add text size settings"
+  ]
+ },
+ {
+  "version": "1.1",
+  "date": "2026-10-20",
+  "changes": [
+   "Improve gameplay, menus, touch support, feedback and accounts"
+  ]
+ },
+ {
+  "version": "1.0",
+  "date": "2026-10-19",
+  "changes": [
+   "Initial commit: Build That Wall game"
+  ]
+ }
+]

@@ -1,0 +1,42 @@
+/* The home page's top corners: version badge (left) and notification bell (right) */
+.corner { position: absolute; top: 12px; z-index: 30; }
+.corner--left { left: 12px; }
+.corner--right { right: 12px; }
+
+.bell, .version {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; justify-content: center;
+  border: 2px solid rgba(255, 255, 255, .8); border-radius: 22px; background: rgba(90, 18, 16, .35); color: #fff;
+  font: bold 15px var(--font-body, Arial); cursor: pointer; padding: 0 10px; position: relative;
+}
+.bell:hover, .version:hover { background: rgba(90, 18, 16, .6); }
+.bell svg, .version svg { width: 22px; height: 22px; fill: currentColor; }
+.bell__count {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  background: #ffd84d; color: #5a1210; font-size: 12px; line-height: 20px; border: 2px solid #fff;
+}
+
+.bell__panel {
+  position: absolute; right: 0; top: 52px; width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); overflow: auto;
+  background: #fff; color: #222; border: 3px solid #5a1210; border-radius: 14px; box-shadow: 0 10px 36px rgba(0, 0, 0, .35); text-align: left;
+}
+.bell__head { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border-bottom: 2px solid #f3e7e5; }
+.bell__list { list-style: none; margin: 0; padding: 0; }
+.bell__item { display: flex; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #f3e7e5; }
+.bell__item--new { background: #fff8e1; }
+.bell__icon { font-size: 20px; line-height: 1.2; }
+.bell__body { flex: 1; min-width: 0; }
+.bell__title { font-weight: bold; color: #7a1a16; }
+.bell__dot { display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: #d8332d; vertical-align: middle; }
+.bell__text { margin-top: 2px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.bell__lines { margin: 4px 0 0; padding-left: 18px; font-size: .92em; }
+.bell__meta { display: flex; gap: 12px; align-items: center; margin-top: 4px; font-size: .85em; color: #666; }
+.bell__more { border: 0; background: none; color: #1f22f5; font: inherit; font-weight: bold; cursor: pointer; padding: 4px 0; }
+.bell__device { white-space: pre-wrap; font-size: .8em; background: #f6f0ee; padding: 6px; border-radius: 6px; }
+.bell__empty, .bell__note { padding: 10px 14px; margin: 0; color: #666; font-size: .9em; }
+
+.history__list { list-style: none; padding: 0; margin: 8px 0; max-height: 60vh; overflow: auto; text-align: left; }
+.history__list > li { padding: 8px 0; border-bottom: 2px solid #f3e7e5; }
+.history__list ul { margin: 4px 0 0; padding-left: 20px; }
+.history__head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.menu__head { position: relative; }
+@media (max-width: 480px) { .corner { top: 8px; } .corner--left { left: 8px; } .corner--right { right: 8px; } .version { font-size: 13px; padding: 0 8px; } }

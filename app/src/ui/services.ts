@@ -4,6 +4,7 @@
 import { createBotMemory } from '../game/bots';
 import type { BotMemory, GameEvent, GameState } from '../game';
 import { addLine, lineFor, type GameMode } from '../services/stats/stats';
+import { saleOn, salePrice } from '../services/notices/sales';
 import { AccountService, GoogleSignIn, OtherSignIn, ServerApi, githubReturn, withoutGithubQuery, getUser, isSignedIn, markSignInExpired, maskedEmail, myName, signInExpired, verifiedUser, type FetchLike } from '../services/account';
 import { DEFAULT_SETTINGS, loadSettings, type GameSettings as Config } from '../services/config';
 import { Entitlements, GoldService, TrialWatcher } from '../services/gold';
@@ -147,9 +148,16 @@ export function createServices(deps: ServiceDeps) {
     refresh();
   }
 
+  /** A holiday sale's PayPal plan for Gold, if one is on today and the owner set up its plan. */
+  function salePlan(item: GoldItem, now = new Date()): string {
+    const c = config.get();
+    return saleOn(now) ? (item === 'year' ? c.paypalPlanYearSale : c.paypalPlanMonthSale) : '';
+  }
+
   function price(item: GoldItem | 'donate', amount?: number): PriceInfo {
     const c = config.get();
-    const p = item === 'year' ? c.goldPriceYear : item === 'month' ? c.goldPriceMonth : (amount ?? 5);
+    let p = item === 'year' ? c.goldPriceYear : item === 'month' ? c.goldPriceMonth : (amount ?? 5);
+    if (item !== 'donate' && salePlan(item)) p = salePrice(p, c.salePercent);
     return { price: p, currency: c.currency, clientId: c.paypalClientId, server: c.serverUrl };
   }
 
@@ -161,7 +169,7 @@ export function createServices(deps: ServiceDeps) {
     if (paymentsOff) return 'paused';
     if (signInExpired(store)) return 'server-login';         // before PayPal: the server couldn't record the payment
     const c = config.get();
-    const r = await purchases.paySub(item, item === 'year' ? c.paypalPlanYear : c.paypalPlanMonth, price(item));
+    const r = await purchases.paySub(item, salePlan(item) || (item === 'year' ? c.paypalPlanYear : c.paypalPlanMonth), price(item));
     refresh();
     return r;
   }
@@ -228,7 +236,7 @@ export function createServices(deps: ServiceDeps) {
   return {
     store, config, api, ent, gold, account, google, leaderboard, purchases, botMemory, player,
     connect: deps.connect, toast,
-    init, refresh, signIn, signOut, buyGold, donate, paymentsOff, recordGame, watchGames, server,
+    init, refresh, signIn, signOut, buyGold, donate, paymentsOff, recordGame, watchGames, server, price, salePlan,
   };
 }
 

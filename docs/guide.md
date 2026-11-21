@@ -65,7 +65,27 @@ Tip: bookmark the page, or on a phone use your browser's **Add to Home Screen** 
 
 ### 2.1 The red header
 
-The top of the page is a red band with the Build That Wall logo: "BUILD THAT WALL, Trump's Political Card-Game". It is only a title; tapping it does nothing.
+The top of the page is a red band with the Build That Wall logo: "BUILD THAT WALL, Trump's Political Card-Game". The logo is only a title; tapping it does nothing. In its two top corners are the version badge (left) and the notification bell (right).
+
+#### The version badge and version history
+
+The badge in the top left shows the game's version, for example **v1.12**, next to a clock-arrow sign. Press it to open **Version history**: every update since the game was first published, newest first. Each day the game was updated is one version (1.0 was the first day), with the date and a list of what changed. Press **Close** to go back.
+
+#### The notification bell
+
+The bell in the top right tells you about:
+
+| Notification | When it comes |
+| --- | --- |
+| ✨ **New in version …** | A new version of the game is published. It lists what changed. |
+| 🃏 **New expansion pack: …** | An expansion pack comes out. |
+| 🏷️ **… sale: …% off Gold** | On the sale days: Easter (Good Friday to Easter Monday), Independence Day (1 to 4 July), Thanksgiving, Black Friday, Silver Saturday (the last Saturday before Christmas) and Christmas (24 to 26 December). It gives the sale prices and when the sale ends. |
+
+A yellow number on the bell shows how many notifications are new. Press the bell to see them: new ones have a light yellow background and a red dot. Close the list (press the bell again, tap anywhere else or press Escape) and they count as read. On your first visit only the latest version shows, not every old one.
+
+During a sale the Gold Membership card on Account & Store shows it too, with the normal prices crossed out. Payments are turned off right now, so the sale notification says it can't be used yet.
+
+**For the game's owner:** signed in with the owner's account, the bell also shows ✉️ players' feedback, instead of it being emailed. Press **More** for the device details and any attached files, **Reply** to answer by email, and **Mark feedback read** when you've read it (that counts on every device). Feedback that suggests a player may be in danger is still emailed as well.
 
 ### 2.2 Your name
 

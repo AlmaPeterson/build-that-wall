@@ -22,7 +22,10 @@
  *     origins" add the address of your game (for example https://yourname.github.io). Copy the Client ID.
  *  3. Project Settings > Script properties > add:
  *       GOOGLE_CLIENT_ID  = the Client ID from step 2 (needed for accounts to sync between devices)
- *       OWNER_EMAIL       = your email: feedback goes here, and this account can use the owner tools
+ *       OWNER_EMAIL       = your Google account's email: signed in to the game with it, you see players' feedback
+ *                           under the notification bell, and you can use the owner tools
+ *       FEEDBACK_EMAIL    = on   (optional: also email feedback to OWNER_EMAIL. Without it feedback only goes to the
+ *                           bell, except messages from a player who may be in danger, which are always emailed too)
  *       ANTHROPIC_API_KEY = your key from https://console.anthropic.com  (optional: without it,
  *                           feedback is still emailed and translated, just not checked for repeats)
  *       PAYPAL_CLIENT_ID, PAYPAL_SECRET = from developer.paypal.com > Apps & Credentials (optional:
@@ -292,6 +295,10 @@ function readKnown_(sheet, limit) {
 }
 
 function sendEmail_(props, data, subjectLine, lines, privateLines, notes) {
+  // Feedback goes to the owner's notification bell in the game (the "Inbox" sheet), not to email
+  saveInbox_(props, data, subjectLine, lines, privateLines, notes);
+  const urgent = /^URGENT/.test(String(subjectLine || ''));
+  if (!urgent && props.getProperty('FEEDBACK_EMAIL') !== 'on') return;
   const to = props.getProperty('OWNER_EMAIL') || Session.getEffectiveUser().getEmail();
   const list = a => (a.length > 1 ? a.map(l => '- ' + l).join('\n') : (a[0] || ''));
   let body = list(lines);
@@ -308,6 +315,63 @@ function sendEmail_(props, data, subjectLine, lines, privateLines, notes) {
   };
   if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(data.replyTo || ''))) mail.replyTo = data.replyTo;
   MailApp.sendEmail(mail);
+}
+
+// The owner's feedback inbox: one row per message, read under the notification bell in the game
+const INBOX_COLS = ['ID', 'Time', 'From', 'Reply to', 'Subject', 'Message', 'Private', 'Device', 'Files', 'Read'];
+
+function inboxSheet_(props) {
+  const sh = getSheet_(props, 'Inbox');
+  if (sh.getRange(1, 1).getValue() !== 'ID' || sh.getRange(1, 2).getValue() !== 'Time') {
+    sh.clear();
+    sh.appendRow(INBOX_COLS);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function saveInbox_(props, data, subjectLine, lines, privateLines, notes) {
+  const sh = inboxSheet_(props);
+  // Attachments are kept in a Drive folder that only you can open; the bell links to them
+  const files = (data.attachments || []).map(a => {
+    const file = feedbackFolder_(props).createFile(Utilities.newBlob(Utilities.base64Decode(a.data), a.type, a.name));
+    return { name: a.name, url: file.getUrl() };
+  }).concat((data.links || []).map(l => ({ name: l.name || 'file', url: l.url })));
+  const NL = String.fromCharCode(10);
+  const list = a => a.join(NL);
+  const id = Utilities.getUuid().slice(0, 8);
+  sh.appendRow([id, new Date(), data.player || 'Player', data.replyTo || '', subjectLine || data.subject || '',
+    list(lines) + (notes.length ? NL + NL + notes.map(n => '(' + n + ')').join(NL) : ''), list(privateLines), data.device || '', JSON.stringify(files), false]);
+}
+
+function feedbackFolder_(props) {
+  const id = props.getProperty('FEEDBACK_FOLDER');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (err) { /* deleted: make another */ } }
+  const folder = DriveApp.createFolder('Build That Wall feedback files');
+  props.setProperty('FEEDBACK_FOLDER', folder.getId());
+  return folder;
+}
+
+// The newest 100 messages, for the bell
+function readInbox_(props) {
+  const sh = inboxSheet_(props);
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return [];
+  const from = Math.max(2, sh.getLastRow() - 99);
+  return sh.getRange(from, 1, sh.getLastRow() - from + 1, INBOX_COLS.length).getValues().reverse().map(r => ({
+    id: String(r[0]), at: new Date(r[1]).getTime(), from: String(r[2]), replyTo: String(r[3]) || undefined, subject: String(r[4]) || undefined,
+    text: String(r[5]) + (r[6] ? String.fromCharCode(10, 10) + 'PRIVATE (cheats, exploits and strategy tips - do not share publicly):' + String.fromCharCode(10) + r[6] : ''),
+    device: String(r[7]) || undefined, files: safeJson_(r[8]) || [], read: r[9] === true,
+  }));
+}
+
+function markInboxRead_(props, ids) {
+  const sh = inboxSheet_(props);
+  const want = new Set((ids || []).map(String));
+  const n = sh.getLastRow() - 1;
+  if (n < 1 || !want.size) return;
+  const idCol = sh.getRange(2, 1, n, 1).getValues();
+  idCol.forEach((r, i) => { if (want.has(String(r[0]))) sh.getRange(i + 2, INBOX_COLS.length).setValue(true); });
 }
 
 // Try it from the editor: Run > testFilter, then check your inbox and the sheet
@@ -393,6 +457,13 @@ function handleApi_(path, body) {
     case 'paypal/confirm': return PAYMENTS_OFF_REASON ? { error: 'paused', reason: PAYMENTS_OFF_REASON } : paypalConfirm_(sheet, row, body);
     case 'paypal/subscribed': return PAYMENTS_OFF_REASON ? { error: 'paused', reason: PAYMENTS_OFF_REASON } : paypalSubscribed_(sheet, row, body);
     case 'paypal/cancel': return paypalCancel_(sheet, row);
+    case 'admin/inbox':
+      if (!isOwner) return { error: 'owner' };
+      return { items: readInbox_(props) };
+    case 'admin/inbox-read':
+      if (!isOwner) return { error: 'owner' };
+      markInboxRead_(props, body.ids);
+      return { ok: true };
     case 'admin/search': {
       if (!isOwner) return { error: 'owner' };
       const q = String(body.q || '').toLowerCase();
