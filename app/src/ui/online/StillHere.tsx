@@ -35,7 +35,7 @@ export function StillHere({ session }: { session: OnlineSession }) {
   }
   if (confirmLeave) {
     const sub = role === 'host'
-      ? (phase === 'playing' ? "You're the host, so the game ends for everyone." : 'The room closes for everyone in it.')
+      ? (phase === 'playing' ? "Another player takes over hosting, and a bot plays your cards until you come back (Play online, then Rejoin)." : 'The room closes for everyone in it.')
       : phase === 'playing' ? "A bot will play your cards until you come back (Play online, then Rejoin)." : "You'll leave the room.";
     return (
       <div class="btw-overlays">

@@ -19,6 +19,7 @@ export function InstructionsScreen() {
         <List>{p.points.map(t => <li key={t}>{t}</li>)}</List>
         <p class="instructions__more">
           <Button color="navy" onClick={() => setGuide(true)}>Illustrated guide</Button>
+          {' '}<a class="btw-button btw-button--plain instructions__guide" href="./guide.html" target="_blank" rel="noopener">Full guide</a>
         </p>
       </main>
       <footer class="page__foot">

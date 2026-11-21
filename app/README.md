@@ -19,7 +19,9 @@ npm run build      # type-check and build to dist/
 - `src/ui/` — screens and components (HTML/CSS + SVG), sound and music (`audio.ts`, `music/`).
 - `src/data/` — the card list and other fixed data.
 - `public/` — pictures, sounds and pages served as they are, including `game-settings.json` and
-  `how-to-play.html` (it repeats the in-game Instructions; a test keeps them the same).
+  `how-to-play.html` (it repeats the in-game Instructions; a test keeps them the same), and
+  `guide.html`, the full player's guide with screenshots (built from `../docs/guide.md` by
+  `../tools/build-guide.mjs`).
 
 ## Owner settings
 

@@ -86,7 +86,7 @@ export function MenuScreen() {
         <p>Disclaimer: All scenarios and characters portrayed in the deck are purely for entertainment and comical purposes. Any likeness to persons, organizations, or events are purely coincidental.</p>
         <a href={amazonUrl(tag)} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
         <nav class="menu__legal" aria-label="Legal">
-          <a href="./how-to-play.html">About &amp; How to Play</a><span aria-hidden="true"> · </span><a href="./privacy.html">Privacy</a><span aria-hidden="true"> · </span><a href="./terms.html">Terms &amp; Conditions</a>
+          <a href="./how-to-play.html">About &amp; How to Play</a><span aria-hidden="true"> · </span><a href="./guide.html">Full Guide</a><span aria-hidden="true"> · </span><a href="./privacy.html">Privacy</a><span aria-hidden="true"> · </span><a href="./terms.html">Terms &amp; Conditions</a>
         </nav>
         <small class="menu__tm">™ &amp; ® 2024 Beacon Political</small>
       </footer>

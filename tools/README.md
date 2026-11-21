@@ -1,5 +1,10 @@
 # Tools
 
+`build-guide.mjs` builds the player's guide web page, `app/public/guide.html`, from `docs/guide.md`
+(screenshots in `app/public/guide/`). Edit the Markdown, then run `node tools/build-guide.mjs`.
+
+## Moving over from PenguinMod
+
 Python 3 scripts (standard library only) that were used to move the game over from the old
 PenguinMod project. That project has been removed, so they can't be run any more: the files they
 made (`app/public/assets/`, `app/src/data/assets.json`, `app/src/data/cards.json` and

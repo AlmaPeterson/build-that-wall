@@ -165,3 +165,6 @@
 .music__name b { color: #7a1a16; margin-right: 4px; }
 .music__now { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 0; border-bottom: 2px solid #f3e7e5; color: #555; }
 .music__now .btw-button { margin-top: 0; }
+
+/* The full guide link beside the Illustrated guide button */
+.instructions__guide { display: inline-block; text-decoration: none; white-space: nowrap; }
