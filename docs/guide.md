@@ -646,7 +646,7 @@ Type the number of miles in the box after **First to** (5 to 999; it starts at 5
 
 ### 8.8 Ends in __ Minutes
 
-Type the number of minutes in the box after **Ends in** (1 to 600; it starts at 20). The clock counts only time spent playing: if you close the page and carry on later, the time away doesn't count. The board shows the time left next to the actions, for example "3 actions left · 12 min left" (it is updated at the start of each turn).
+Type the number of minutes in the box after **Ends in** (1 to 600; it starts at 20). The clock counts only time spent playing: if you close the page and carry on later, the time away doesn't count. The time left shows in a white pill at the top right of the board, opposite the Game log, for example "⌛ 12 min left" (it is updated at the start of each turn).
 
 When the time is up, at the start of the next turn the game says "Time's up! Everyone gets one last turn." That player and everyone else take one last turn, and then the most miles wins. The draw pile never ends this game.
 
@@ -1531,7 +1531,7 @@ The card shows your Gold status: "Gold unlocks every extra and supports the game
 
 **Buying Gold:** the **1 year** and **30 days** buttons show the prices (19.99 USD a year, 2.99 USD for 30 days). Payments are turned off right now: the card says "Payments are turned off right now. Reason: Not Ready For Payments Yet" and the buttons are greyed out. Gold belongs to your account, so you must sign in first.
 
-**Try Gold free for 7 days:** signed-in players who haven't had a trial can press this to get 7 days of Gold, free. The page says "Your 7-day Gold free trial has started. Enjoy!". During the last part of the trial, a countdown appears, and a message says when it ends. Each account gets one trial: "The free trial was already used on this account."
+**Try Gold free for 7 days:** press it to get 7 days of Gold, free. No payment is needed, so it works even while payments are turned off. Signed in, the trial belongs to your account ("Your 7-day Gold free trial has started. Enjoy!"). Not signed in, it works on this device ("Your 7-day Gold free trial has started on this device. Enjoy! Sign in to keep Gold on all your devices."). During the last part of the trial, a countdown appears, and a message says when it ends. Each account, and each device, gets one trial: "The free trial was already used on this account (or on this device)."
 
 **Gold code:** if you were given a code starting with BTW1, type it in the **Gold code** box and press **Use code**. "Gold code accepted. Gold is unlocked." means it worked; "That code has expired." or "That code isn't valid. Check it and try again." means it didn't.
 

@@ -7,6 +7,9 @@ import type { Entitlements } from './entitlements';
 export type Verifier = (code: string) => Promise<GoldCode | null>;
 
 // Gold codes, the free trial and free packs
+
+/** In "btw:trials": this device already had a guest trial. */
+export const GUEST_TRIAL = 'this-device';
 export class GoldService {
   constructor(
     private readonly store: SaveStore,
@@ -57,19 +60,23 @@ export class GoldService {
   }
 
   // The 7-day free trial: on the server when signed in, otherwise once per email on this device
+  // The trial costs nothing, so a guest (not signed in) can have one too: on this device ('ok-device').
   async startTrialAny(server: string, user = ''): Promise<string> {
     if (verifiedUser(this.store) && isServerUrl(server)) {
       const r = await this.api.call<ServerEntitlements>(server, '/trial', {});
-      if (!r) return 'noserver'; if (isError(r)) return r.error;
-      this.ent.applyServer(r); return 'ok';
+      if (r && isError(r)) return r.error;
+      if (r) { this.ent.applyServer(r); return 'ok'; }
+      // The server didn't answer: start it on this device instead of failing
     }
-    const who = String(getUser(this.store)?.email || this.store.get('gemail') || user || '').trim().toLowerCase();
-    if (!who) return 'signin';
+    const email = String(getUser(this.store)?.email || this.store.get('gemail') || user || '').trim().toLowerCase();
+    const who = email || GUEST_TRIAL;
     const used = this.store.getJson<string[]>('trials', []);
     if (used.includes(who)) return 'used';
     used.push(who); this.store.setJson('trials', used);
-    this.ent.addPaid({ kind: 'gold', id: 'trial', exp: this.ent.planExp('trial'), src: 'local' });
-    return 'ok';
+    // Not signed in (or the sign-in ran out): it counts on this device anyway
+    const guest = !verifiedUser(this.store);
+    this.ent.addPaid({ kind: 'gold', id: 'trial', exp: this.ent.planExp('trial'), src: 'local', ...(guest ? { guest: true } : {}) });
+    return guest ? 'ok-device' : 'ok';
   }
 
   // Older trial flow that expected the server to send back a Gold code

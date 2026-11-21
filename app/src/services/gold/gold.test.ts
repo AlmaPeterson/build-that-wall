@@ -63,7 +63,11 @@ describe('GoldService', () => {
     expect(await gold.startTrialAny('')).toBe('ok');
     expect(ent.trialRecord()?.exp).toBe(SEC + 7 * DAY);
     expect(await gold.startTrialAny('')).toBe('used');
-    expect(await setup({}, false).gold.startTrialAny('')).toBe('signin');
+    // Not signed in: a trial on this device, once
+    const guest = setup({}, false);
+    expect(await guest.gold.startTrialAny('')).toBe('ok-device');
+    expect(guest.ent.goldActive()).toBe(true);
+    expect(await guest.gold.startTrialAny('')).toBe('used');
   });
 
   it('the old code-based trial ends "invalid" against today\'s server', async () => {

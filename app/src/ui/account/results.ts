@@ -34,7 +34,8 @@ export function buyMessage(r: BuyResult, what: 'gold' | 'donate'): Said | null {
 export function trialMessage(r: string): Said {
   switch (r) {
     case 'ok': return { text: 'Your 7-day Gold free trial has started. Enjoy!', ok: true };
-    case 'used': return { text: 'The free trial was already used on this account.', ok: false };
+    case 'ok-device': return { text: 'Your 7-day Gold free trial has started on this device. Enjoy! Sign in to keep Gold on all your devices.', ok: true };
+    case 'used': return { text: 'The free trial was already used on this account (or on this device).', ok: false };
     case 'signin': return { text: 'Sign in first to start the free trial.', ok: false };
     case 'login': return { text: SERVER_ERRORS.login!, ok: false };
     case 'noserver': return { text: "The game server didn't answer. Please try again later.", ok: false };

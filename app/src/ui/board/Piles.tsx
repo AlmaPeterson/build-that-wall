@@ -22,7 +22,15 @@ export function Piles({ state }: { state: GameState }) {
       {state.turn >= 0 && !state.over && (
         <div class="at board__actions" aria-live="polite">
           {state.actionsLeft} {state.actionsLeft === 1 ? 'action left' : 'actions left'}
-          {state.settings.ending === 6 && <span class="board__clock"> · {timeLeft(state)}</span>}
+        </div>
+      )}
+      {/* Ends in __ Minutes: the time left, in the header opposite the Game log */}
+      {state.settings.ending === 6 && state.turn >= 0 && !state.over && (
+        <div class="at board__clock" aria-live="polite" title="Time left in this game (counted at the start of each turn)">
+          <svg class="board__log-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4 1.5h8M4 14.5h8M5 1.5v2.5L8 8l-3 4v2.5M11 1.5v2.5L8 8l3 4v2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          {timeLeft(state)}
         </div>
       )}
       {state.jail.length > 0 && (

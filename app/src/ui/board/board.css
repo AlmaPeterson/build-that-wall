@@ -75,7 +75,7 @@
   left: calc(var(--u) * 196); top: calc(var(--u) * 73); width: calc(var(--u) * 110); height: calc(var(--u) * 20);
   background: #fff; border: 1px solid #ccc; border-radius: calc(var(--u) * 6);
   font-weight: bold; color: #333; font-size: calc(var(--u) * 13 * var(--tb));
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: center; white-space: nowrap;
 }
 .board__jail {
   left: calc(var(--u) * 312); top: calc(var(--u) * 76); width: calc(var(--u) * 96); height: calc(var(--u) * 14);
@@ -285,3 +285,12 @@ button.board__log { cursor: pointer; font-family: inherit; }
   max-width: calc(100vw - 32px); padding: 8px 12px; border-radius: 14px; background: rgba(16, 20, 74, .92); color: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
 .replay-bar__title { color: #ffd84d; letter-spacing: .08em; }
 .replay-bar__at { min-width: 8em; text-align: center; font-weight: bold; }
+
+/* Ends in __ Minutes: the time left, a pill in the header opposite the Game log */
+.board__clock {
+  z-index: 42; right: calc(var(--u) * 6); top: calc(var(--u) * 38); min-height: calc(var(--u) * 17);
+  background: rgba(255, 255, 255, .94); border-radius: 999px; box-shadow: 0 calc(var(--u) * 1) calc(var(--u) * 3) rgba(0, 0, 0, .25);
+  color: #7a1a16; font-weight: bold; font-size: calc(var(--u) * 9 * var(--tb)); line-height: 1.1;
+  display: inline-flex; align-items: center; gap: calc(var(--u) * 4); padding: calc(var(--u) * 2) calc(var(--u) * 9) calc(var(--u) * 2) calc(var(--u) * 6);
+  white-space: nowrap;
+}

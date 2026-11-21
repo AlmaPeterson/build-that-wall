@@ -16,6 +16,8 @@ export interface PaidRecord {
   renews?: boolean;
   cancelled?: boolean;
   free?: boolean;
+  /** A free trial started without signing in: it counts on this device, signed in or not. */
+  guest?: boolean;
 }
 
 export type Clock = () => number;   // milliseconds, like Date.now
@@ -75,8 +77,8 @@ export class Entitlements {
 
   goldActive(): boolean {
     if (this.testGold || this.isOwner) return true;
-    // NOTE: a valid Gold code or purchase only counts while signed in
-    if (!isSignedIn(this.store)) return false;
+    // NOTE: a valid Gold code or purchase only counts while signed in (a guest's free trial counts anyway)
+    if (!isSignedIn(this.store)) return this.paid().some(p => p.guest && p.id === 'trial');
     return this.live().some(p => p.kind === 'gold') || this.paid().length > 0;
   }
 
