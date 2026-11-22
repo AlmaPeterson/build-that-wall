@@ -87,24 +87,12 @@ describe('deliverFeedback', () => {
     });
   });
 
-  it('falls back to FormSubmit when the script cannot be reached; files become links', async () => {
+  it('never falls back to email when the script cannot be reached', async () => {
     const fb = filterFeedback('', 'add more cards');
-    const progress: string[] = [];
-    const { fn, calls } = fakeFetch((url) => {
-      if (url === SCRIPT) throw new Error('offline');
-      if (url.includes('tmpfiles')) return json({ data: { url: 'https://tmpfiles.org/9/s.txt' } });
-      return json({ success: 'true' });
-    });
-    const status = await deliverFeedback({ fb, files: [file('s.txt', 3)], name: '', replyTo: '', feedbackUrl: SCRIPT, page: 'p', fetch: fn, onProgress: (t) => progress.push(t) });
-    expect(status).toBe('sent');
-    // NOTE: with the script URL set, the file counts as small, so it was attached rather than linked
-    expect(calls.map((c) => c.url)).toEqual([SCRIPT, FORM]);
-    const fd = calls[1]!.init.body as FormData;
-    expect(fd.get('_subject')).toBe('btw-feedback: Add more cards.');
-    expect(fd.get('player')).toBe('Player');
-    expect(fd.get('email')).toBeNull();
-    expect(fd.get('attachment')).toBeInstanceOf(File);
-    expect(progress).toEqual(['Sending...']);
+    const { fn, calls } = fakeFetch((url) => { if (url === SCRIPT) throw new Error('offline'); return json({ success: 'true' }); });
+    const status = await deliverFeedback({ fb, files: [file('s.txt', 3)], name: '', replyTo: '', feedbackUrl: SCRIPT, page: 'p', fetch: fn });
+    expect(status).toBe('offline');
+    expect(calls.map((c) => c.url)).toEqual([SCRIPT]);
   });
 
   it('without a script URL, every file is uploaded and linked', async () => {
@@ -137,6 +125,14 @@ describe('deliverFeedback', () => {
 });
 
 describe('deliverQuickFeedback', () => {
+  it("goes to the owner's script (the bell) when it is set up, not FormSubmit", async () => {
+    const fb = filterFeedback('', 'add more cards');
+    const { fn, calls } = fakeFetch(() => new Response(null, { status: 200 }));
+    expect(await deliverQuickFeedback(fb, 'Ann', '', fn, 'p', SCRIPT)).toBe('sent');
+    expect(calls.map((c) => c.url)).toEqual([SCRIPT]);
+    expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({ message: 'Add more cards.', player: 'Ann', page: 'p' });
+  });
+
   it('posts JSON to FormSubmit', async () => {
     const fb = filterFeedback('', 'add more cards');
     const { fn, calls } = fakeFetch(() => json({ success: 'true' }));

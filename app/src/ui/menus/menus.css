@@ -17,6 +17,8 @@
 .menu__foot a:hover, .menu__foot a:focus-visible { text-decoration: underline; }
 .menu__legal { margin-top: 7px; font-size: calc(0.85rem * var(--text-menu)); }
 .menu__legal a { font-size: inherit; font-weight: normal; }
+.menu__owner-link { border: 0; background: #ffd84d; color: #5a1210; border-radius: 10px; padding: 1px 8px; font: bold 1em var(--font); cursor: pointer; }
+.menu__owner-link:hover, .menu__owner-link:focus-visible { text-decoration: underline; }
 .menu__tm { display: block; text-align: right; font-family: Georgia, serif; font-size: 0.95em; margin-top: 4px; }
 @media (max-width: 640px) {
   .menu__title { width: 100%; text-align: center; }

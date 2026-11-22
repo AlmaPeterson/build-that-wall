@@ -9,6 +9,8 @@ import { nameMessage } from '../account/results';
 import { Button } from '../components/Button';
 import { Guide } from '../menus/Guide';
 import { Bell, VersionBadge } from '../menus/Corners';
+import { FixList } from '../menus/FixList';
+import { notices } from '../notifications';
 import logo from '../menus/logo.png';
 import { PlayMenu } from '../menus/PlayMenu';
 import { initSettingsPersistence } from '../menus/prefs';
@@ -92,6 +94,9 @@ export function MenuScreen() {
   const [play, setPlay] = useState(false);
   const [guide, setGuide] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [fixList, setFixList] = useState(false);
+  // Only on the owner's account (the server said so); the list itself has no link anyone could type
+  const { owner } = useStore(notices);
   const parked = useStore(parkedGames);
   useEffect(() => { parkedGames.set(loadParked()); }, []);
   const [tag, setTag] = useState('');
@@ -121,11 +126,13 @@ export function MenuScreen() {
         <a href={amazonUrl(tag)} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
         <nav class="menu__legal" aria-label="Legal">
           <a href="./how-to-play.html">About &amp; How to Play</a><span aria-hidden="true"> · </span><a href="./guide.html">Full Guide</a><span aria-hidden="true"> · </span><a href="./privacy.html">Privacy</a><span aria-hidden="true"> · </span><a href="./terms.html">Terms &amp; Conditions</a>
+          {owner && <><span aria-hidden="true"> · </span><button type="button" class="menu__owner-link" onClick={() => setFixList(true)}>To-fix list</button></>}
         </nav>
         <small class="menu__tm">™ &amp; ® 2024 Beacon Political</small>
       </footer>
       {play && <PlayMenu onClose={() => setPlay(false)} />}
       {saved && <SavedGames onClose={() => setSaved(false)} />}
+      {fixList && owner && <FixList onClose={() => setFixList(false)} />}
       {guide && <Guide onClose={() => setGuide(false)} finishLabel="Start a tutorial game" onFinish={startTutorialGame} />}
     </div>
   );

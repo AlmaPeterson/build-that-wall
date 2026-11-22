@@ -1,0 +1,24 @@
+/* The owner's To-fix list */
+.fixes { text-align: left; }
+.fixes__head { margin: 12px 0 4px; font-size: 1.05em; color: #7a1a16; }
+.fixes__error { color: #b3261e; font-weight: bold; }
+.fixes__list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow: auto; }
+.fixes__more { margin-top: 10px; }
+.fixes__more summary { cursor: pointer; font-weight: bold; padding: 6px 0; min-height: 32px; }
+.fix { display: flex; gap: 10px; align-items: flex-start; padding: 8px 4px; border-bottom: 1px solid #f3e7e5; }
+.fix__check { width: 24px; height: 24px; margin: 2px 0 0; flex: none; accent-color: #2e7d32; cursor: pointer; }
+.fix__body { flex: 1; min-width: 0; }
+.fix__text { display: block; overflow-wrap: anywhere; cursor: pointer; }
+.fix--done .fix__text { text-decoration: line-through; color: #666; }
+.fix--skip .fix__text { color: #777; cursor: default; }
+.fix__meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 3px; font-size: .82em; color: #666; }
+.fix__tag { padding: 1px 7px; border-radius: 9px; background: #eee; color: #333; }
+.fix__tag--bug { background: #fde2e0; color: #8a1c14; }
+.fix__tag--feature { background: #e1ecfd; color: #17408b; }
+.fix__tag--private { background: #3a3a3a; color: #fff; }
+.fix__link { border: 0; background: none; padding: 4px 0; font: inherit; font-weight: bold; color: #1f22f5; cursor: pointer; }
+.fix__back { flex: none; font-size: .9em; }
+.fix__trash { flex: none; width: 40px; height: 40px; border: 0; border-radius: 8px; background: none; color: #8a1c14; cursor: pointer; display: grid; place-items: center; }
+.fix__trash:hover { background: #fde2e0; }
+.fix__trash svg { width: 22px; height: 22px; fill: currentColor; }
+.fix__device { white-space: pre-wrap; font-size: .8em; background: #f6f0ee; padding: 6px; border-radius: 6px; margin: 4px 0 0; }

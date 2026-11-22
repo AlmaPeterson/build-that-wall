@@ -85,7 +85,9 @@ A yellow number on the bell shows how many notifications are new. Press the bell
 
 During a sale the Gold Membership card on Account & Store shows it too, with the normal prices crossed out. Payments are turned off right now, so the sale notification says it can't be used yet.
 
-**For the game's owner:** signed in with the owner's account, the bell also shows ✉️ players' feedback, instead of it being emailed. Press **More** for the device details and any attached files, **Reply** to answer by email, and **Mark feedback read** when you've read it (that counts on every device). Feedback that suggests a player may be in danger is still emailed as well.
+**For the game's owner:** signed in with the owner's account, the bell also shows ✉️ players' feedback, instead of it being emailed. Press **More** for the device details and any attached files, **Reply** to answer by email, and **Mark feedback read** when you've read it (that counts on every device). Feedback is never emailed. A message that suggests a player may be in danger shows as 🚨 **URGENT** and stays at the top of the list until you mark it read.
+
+**The To-fix list (owner only):** on the owner's account a yellow **To-fix list** button appears at the end of the home page's footer. It lists every suggestion players sent, one line each, with how many players asked for it, most asked first (the game server joins repeats together). Tick the box when a fix is done (it moves to **Done**; untick it there to bring it back). Press the trash can if you won't do it (it moves to **Won't do**; press **Put back** to undo). Private reports (cheats, exploits and strategy tips) are marked **Private**. The list has no web address of its own and the server only gives it to the owner's Google account, so nobody else can open it or change it.
 
 ### 2.2 Your name
 

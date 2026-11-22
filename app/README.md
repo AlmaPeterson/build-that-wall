@@ -34,7 +34,7 @@ game still works without any of them.
 | Google Client ID | Sign in with Google. |
 | Apple Client ID | Sign in with Apple (the Services ID). Also set `APPLE_CLIENT_ID` on the server. |
 | GitHub Client ID | Sign in with GitHub. Also set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` on the server. |
-| Feedback URL | Where Send feedback goes: the same as Server URL. The server keeps it for the owner's notification bell (set `OWNER_EMAIL` on the server). Empty = emailed through FormSubmit instead. |
+| Feedback URL | Where Send feedback goes: the same as Server URL. The server keeps it for the owner's notification bell and To-fix list (set `OWNER_EMAIL` on the server); it is never emailed. Empty = sent through FormSubmit instead. |
 | PayPal Client ID, PayPal Plan Month, PayPal Plan Year | Selling Gold Membership. |
 | PayPal Plan Month Sale, PayPal Plan Year Sale, Sale Percent | Holiday sales on Gold (Easter, Independence Day, Thanksgiving, Black Friday, Silver Saturday, Christmas). Make two PayPal plans priced Sale Percent below the normal ones (25 = 25% off). Without them the sale isn't sold or announced (while payments are turned off it is announced, saying it can't be used yet). |
 | Gold Price Year, Gold Price Month, Currency | The prices shown in the store. |

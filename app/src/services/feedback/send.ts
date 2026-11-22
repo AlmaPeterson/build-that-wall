@@ -1,11 +1,12 @@
 // Getting feedback to the owner: through the owner's Google Apps Script (game-server.gs) when
-// "Feedback URL" is set, otherwise through FormSubmit. Players never see an email address.
+// "Feedback URL" is set. It goes to the owner's notification bell in the game, never to email.
+// Only a game with no Feedback URL at all uses FormSubmit. Players never see an email address.
 import { feedbackBody, type FeedbackResult } from './filter';
 
 /** Private FormSubmit code for the owner's inbox (no email address in the game). */
 export const FORM_SUBMIT_CODE = '02caa1aacbbb246db4f1305ec7be1fb4';
 const FORM_SUBMIT_URL = 'https://formsubmit.co/ajax/' + FORM_SUBMIT_CODE;
-/** The owner's script emails attachments up to this size in total; FormSubmit gets links only. */
+/** The owner's script keeps attachments up to this size in total; FormSubmit gets links only. */
 const SCRIPT_ATTACH_LIMIT = 18 * 1024 * 1024;
 const NL = '\n';
 
@@ -142,12 +143,12 @@ export async function deliverFeedback(o: DeliverOptions): Promise<SendStatus> {
   }
   const bigFiles = links.length ? NL + NL + 'Big files:' + NL + links.join(NL) : '';
   msg += bigFiles;
-  if (viaScript) {                                          // the owner's Gmail sends it, attachments included
+  if (viaScript) {                                          // to the owner's bell, attachments included
     try {
       const attachments = [];
       for (const f of small) attachments.push({ name: f.name, type: f.type || 'application/octet-stream', data: await fileBase64(f) });
       // The owner's script gets each part separately so it can file them in the right place
-      // NOTE: "no-cors" means the reply can't be read, so only a network error falls back to FormSubmit.
+      // NOTE: "no-cors" means the reply can't be read, so only a network error counts as not sent.
       await fetchFn(o.feedbackUrl, {
         method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
@@ -158,7 +159,9 @@ export async function deliverFeedback(o: DeliverOptions): Promise<SendStatus> {
         }),
       });
       return 'sent';
-    } catch { /* fall back to the form service below */ }
+    } catch {
+      return 'offline';                                     // never falls back to email
+    }
   }
   o.onProgress?.('Sending...');
   const fd = new FormData();
@@ -173,9 +176,24 @@ export async function deliverFeedback(o: DeliverOptions): Promise<SendStatus> {
   return postFormSubmit(fetchFn, { method: 'POST', headers: { Accept: 'application/json' }, body: fd });
 }
 
-/** The one-line "send feedback [MSG]" version: no subject or files, always FormSubmit. */
-export async function deliverQuickFeedback(fb: FeedbackResult, name: string, email: string, fetchFn: Fetch = fetch, page = typeof location !== 'undefined' ? location.href : ''): Promise<SendStatus> {
+/** The one-line "send feedback [MSG]" version: no subject or files. To the owner's bell when the script is set up. */
+export async function deliverQuickFeedback(fb: FeedbackResult, name: string, email: string, fetchFn: Fetch = fetch, page = typeof location !== 'undefined' ? location.href : '', feedbackUrl = ''): Promise<SendStatus> {
   const msg = feedbackBody(fb);
+  if (isScriptUrl(feedbackUrl)) {
+    try {
+      await fetchFn(feedbackUrl, {
+        method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          subject: fb.urgent ? fb.subject : 'btw-feedback: ' + (fb.subject || 'Build That Wall feedback'),
+          message: fb.message, private: fb.private, device: fb.device, urgent: fb.urgent, foreign: fb.foreign,
+          translatedFrom: fb.translatedFrom || '', injection: fb.injection, player: name || 'Player', replyTo: email, page, attachments: [],
+        }),
+      });
+      return 'sent';
+    } catch {
+      return 'offline';
+    }
+  }
   return postFormSubmit(fetchFn, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({

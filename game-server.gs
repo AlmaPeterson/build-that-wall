@@ -9,11 +9,13 @@
  *
  * The game already filters feedback in the player's browser (swearing, junk, personal details,
  * adverts, hate, politics, off-topic requests, repeats from that same player). This script adds
- * what a browser can't do: it remembers every suggestion from every player, so a fix is only
- * emailed to you once, however it is worded, and it translates feedback written in other languages.
- * Every suggestion is logged in a Google Sheet with a "Times asked" count. Cheats, exploits and
- * strategy tips go on a separate "Private" tab so they never end up on a public list.
- * Messages from a player who may be in danger are emailed to you straight away, untouched.
+ * what a browser can't do: it remembers every suggestion from every player, so a fix only reaches
+ * you once, however it is worded, and it translates feedback written in other languages.
+ * Every suggestion is logged in a Google Sheet with a "Times asked" count; signed in as the owner you
+ * tick them off on the To-fix list in the game. Cheats, exploits and strategy tips go on a separate
+ * "Private" tab so they never end up on a public list. Feedback is never emailed: it shows under the
+ * notification bell when you're signed in as the owner. Messages from a player who may be in danger are
+ * put at the top of the bell, untouched.
  *
  * Setup (once):
  *  1. Go to https://script.google.com, make a new project, and paste this whole file in.
@@ -23,11 +25,9 @@
  *  3. Project Settings > Script properties > add:
  *       GOOGLE_CLIENT_ID  = the Client ID from step 2 (needed for accounts to sync between devices)
  *       OWNER_EMAIL       = your Google account's email: signed in to the game with it, you see players' feedback
- *                           under the notification bell, and you can use the owner tools
- *       FEEDBACK_EMAIL    = on   (optional: also email feedback to OWNER_EMAIL. Without it feedback only goes to the
- *                           bell, except messages from a player who may be in danger, which are always emailed too)
+ *                           under the notification bell and the To-fix list, and you can use the owner tools
  *       ANTHROPIC_API_KEY = your key from https://console.anthropic.com  (optional: without it,
- *                           feedback is still emailed and translated, just not checked for repeats)
+ *                           feedback still reaches the bell and is translated, just not checked for repeats)
  *       PAYPAL_CLIENT_ID, PAYPAL_SECRET = from developer.paypal.com > Apps & Credentials (optional:
  *                           only needed to sell Gold and packs; PAYPAL_ENV = sandbox while testing)
  *       FREE_PACKS        = ids of expansion packs players may claim for free, comma separated (optional)
@@ -148,7 +148,7 @@ function handleFeedback_(data) {
 
   // Someone may be in danger: tell the owner right away, untouched
   if (data.urgent) {
-    sendEmail_(props, data, 'URGENT: a player may need help', [message], [], ['This message looked like the player may be in danger or thinking about hurting themselves. Please read it now.']);
+    toInbox_(props, data, 'URGENT: a player may need help', [message], [], ['This message looked like the player may be in danger or thinking about hurting themselves. Please read it now.']);
     return;
   }
 
@@ -183,12 +183,15 @@ function handleFeedback_(data) {
     // No key, or Claude was unavailable: translate if needed and don't lose the feedback
     const pub = [subject, message].filter(Boolean).map(translate_);
     notes.push('Not checked for repeats: no ANTHROPIC_API_KEY, or the check failed.');
-    sendEmail_(props, data, null, pub, privateParts.map(translate_), notes);
+    const priv = privateParts.map(translate_);
+    pub.forEach(t => addSuggestion_(sheet, t, 'other', data.device));
+    priv.forEach(t => addSuggestion_(privateSheet, t, 'other', ''));
+    toInbox_(props, data, null, pub, priv, notes);
     return;
   }
   if (result.injection) notes.push('Part of this message tried to give orders to the filter and was ignored.');
   if (result.urgent) {
-    sendEmail_(props, data, 'URGENT: a player may need help', [subject, message].filter(Boolean), privateParts,
+    toInbox_(props, data, 'URGENT: a player may need help', [subject, message].filter(Boolean), privateParts,
       ['The filter thought this player may be in danger or thinking about hurting themselves. Please read it now.']);
     return;
   }
@@ -206,11 +209,11 @@ function handleFeedback_(data) {
       target.getRange(row, 6).setValue(now);
       continue;
     }
-    target.appendRow([target.getLastRow(), text, s.type || 'other', 1, now, now, s.type === 'bug' ? String(data.device || '') : '']);
+    addSuggestion_(target, text, s.type || 'other', s.type === 'bug' ? data.device : '');
     (isPrivate ? freshPrivate : fresh).push((isPrivate ? '[' + s.type + '] ' : '') + text);
   }
   const unique = new Set(notes);
-  if (fresh.length || freshPrivate.length) sendEmail_(props, data, null, fresh, freshPrivate, [...unique]);
+  if (fresh.length || freshPrivate.length) toInbox_(props, data, null, fresh, freshPrivate, [...unique]);
 }
 
 function askClaude_(apiKey, subject, message, privateParts, known) {
@@ -278,10 +281,47 @@ function getSheet_(props, name) {
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
   if (sh.getLastRow() === 0) {
-    sh.appendRow(['ID', 'Suggestion', 'Type', 'Times asked', 'First seen', 'Last seen', 'Device (bug reports)']);
+    sh.appendRow(SUGGESTION_COLS);
     sh.setFrozenRows(1);
   }
+  if (sh.getRange(1, FIX_COL).getValue() !== 'Status') sh.getRange(1, FIX_COL).setValue('Status');   // sheets made before the To-fix list
   return sh;
+}
+
+// The To-fix list: each suggestion's Status is "" (to do), "done" (ticked) or "skip" (won't do)
+const SUGGESTION_COLS = ['ID', 'Suggestion', 'Type', 'Times asked', 'First seen', 'Last seen', 'Device (bug reports)', 'Status'];
+const FIX_COL = 8;
+const FIX_STATUS = ['', 'done', 'skip'];
+
+function addSuggestion_(sheet, text, type, device) {
+  const now = new Date();
+  sheet.appendRow([sheet.getLastRow(), String(text), type, 1, now, now, String(device || ''), '']);
+}
+
+function readFixes_(props) {
+  const out = [];
+  for (const name of ['Suggestions', 'Private']) {
+    const sh = getSheet_(props, name);
+    const n = sh.getLastRow() - 1;
+    if (n < 1) continue;
+    sh.getRange(2, 1, n, FIX_COL).getValues().forEach(r => {
+      if (!String(r[1]).trim()) return;
+      out.push({ id: Number(r[0]), list: name === 'Private' ? 'private' : 'public', text: String(r[1]), type: String(r[2] || 'other'),
+        asked: Number(r[3]) || 1, first: new Date(r[4]).getTime() || 0, last: new Date(r[5]).getTime() || 0,
+        device: String(r[6] || '') || undefined, status: FIX_STATUS.includes(String(r[7])) ? String(r[7]) : '' });
+    });
+  }
+  return out;
+}
+
+function setFix_(props, body) {
+  const status = String(body.status || '');
+  if (!FIX_STATUS.includes(status)) return { error: 'empty' };
+  const sh = getSheet_(props, body.list === 'private' ? 'Private' : 'Suggestions');
+  const row = Number(body.id) + 1;                    // ids are row numbers minus the header
+  if (!(row >= 2 && row <= sh.getLastRow()) || Number(sh.getRange(row, 1).getValue()) !== Number(body.id)) return { error: 'empty' };
+  sh.getRange(row, FIX_COL).setValue(status);
+  return { ok: true };
 }
 
 // The most recently asked suggestions, numbered by their ID column
@@ -294,27 +334,9 @@ function readKnown_(sheet, limit) {
     .slice(0, limit || KNOWN_LIMIT);
 }
 
-function sendEmail_(props, data, subjectLine, lines, privateLines, notes) {
-  // Feedback goes to the owner's notification bell in the game (the "Inbox" sheet), not to email
+// Feedback goes to the owner's notification bell in the game (the "Inbox" sheet). It is never emailed.
+function toInbox_(props, data, subjectLine, lines, privateLines, notes) {
   saveInbox_(props, data, subjectLine, lines, privateLines, notes);
-  const urgent = /^URGENT/.test(String(subjectLine || ''));
-  if (!urgent && props.getProperty('FEEDBACK_EMAIL') !== 'on') return;
-  const to = props.getProperty('OWNER_EMAIL') || Session.getEffectiveUser().getEmail();
-  const list = a => (a.length > 1 ? a.map(l => '- ' + l).join('\n') : (a[0] || ''));
-  let body = list(lines);
-  if (privateLines.length) body += (body ? '\n\n' : '') + 'PRIVATE (cheats, exploits and strategy tips - do not share publicly):\n' + list(privateLines);
-  if (data.device) body += '\n\nDevice details (added automatically for bug reports):\n' + data.device;
-  body += '\n\n---\nFrom: ' + (data.player || 'Player') + (data.replyTo ? ' (' + data.replyTo + ')' : '') + '\nPage: ' + (data.page || '');
-  if (notes.length) body += '\n' + notes.map(n => '(' + n + ')').join('\n');
-  const first = lines[0] || privateLines[0] || 'Feedback';
-  const mail = {
-    to: to,
-    subject: subjectLine || ((privateLines.length && !lines.length ? 'btw-feedback PRIVATE: ' : 'btw-feedback: ') + String(first).slice(0, 70)),
-    body: body,
-    attachments: (data.attachments || []).map(a => Utilities.newBlob(Utilities.base64Decode(a.data), a.type, a.name)),
-  };
-  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(data.replyTo || ''))) mail.replyTo = data.replyTo;
-  MailApp.sendEmail(mail);
 }
 
 // The owner's feedback inbox: one row per message, read under the notification bell in the game
@@ -374,7 +396,7 @@ function markInboxRead_(props, ids) {
   idCol.forEach((r, i) => { if (want.has(String(r[0]))) sh.getRange(i + 2, INBOX_COLS.length).setValue(true); });
 }
 
-// Try it from the editor: Run > testFilter, then check your inbox and the sheet
+// Try it from the editor: Run > testFilter, then check the bell in the game and the sheet
 function testFilter() {
   handleFeedback_({ subject: 'Bots', message: 'The bots are way too hard. Please add an easy mode for the bots!', player: 'Tester', page: 'test' });
   handleFeedback_({ subject: '', message: 'can u make an easier bot difficulty pls', player: 'Tester 2', page: 'test' });
@@ -402,7 +424,9 @@ function handleApi_(path, body) {
   const sheet = accountsSheet_();
   const row = findAccount_(sheet, user);
   const props = PropertiesService.getScriptProperties();
-  const isOwner = String(props.getProperty('OWNER_EMAIL') || '').toLowerCase() === String(user.email || '').toLowerCase();
+  // The owner: a Google sign-in whose verified email is OWNER_EMAIL (never a password, Apple or GitHub account, never with OWNER_EMAIL unset)
+  const ownerEmail = String(props.getProperty('OWNER_EMAIL') || '').trim().toLowerCase();
+  const isOwner = !!ownerEmail && user.verified === true && String(user.email || '').trim().toLowerCase() === ownerEmail;
 
   switch (path) {
     case 'load':
@@ -464,6 +488,12 @@ function handleApi_(path, body) {
       if (!isOwner) return { error: 'owner' };
       markInboxRead_(props, body.ids);
       return { ok: true };
+    case 'admin/fixes':
+      if (!isOwner) return { error: 'owner' };
+      return { items: readFixes_(props) };
+    case 'admin/fix':
+      if (!isOwner) return { error: 'owner' };
+      return setFix_(props, body);
     case 'admin/search': {
       if (!isOwner) return { error: 'owner' };
       const q = String(body.q || '').toLowerCase();
@@ -494,7 +524,7 @@ function verifyUser_(idToken) {
   const t = JSON.parse(res.getContentText());
   const clientId = PropertiesService.getScriptProperties().getProperty('GOOGLE_CLIENT_ID');
   if (!clientId || t.aud !== clientId || Number(t.exp) < now_()) return null;
-  const user = { sub: String(t.sub), email: String(t.email || ''), name: String(t.given_name || t.name || 'Player') };
+  const user = { sub: String(t.sub), email: String(t.email || ''), name: String(t.given_name || t.name || 'Player'), verified: String(t.email_verified) === 'true' };
   cache.put(key, JSON.stringify(user), Math.max(60, Math.min(3600, Number(t.exp) - now_())));
   return user;
 }

@@ -135,6 +135,8 @@ export interface QuickFeedbackOptions {
   toast: Toast;
   deviceInfo?: () => string;
   fetch?: typeof fetch;
+  /** "Feedback URL" from game-settings.json: with the owner's script, feedback goes to the owner's bell */
+  feedbackUrl?: string;
 }
 
 /** The one-line "send feedback" version: filter, send, then thank, answer or support the player. */
@@ -143,7 +145,7 @@ export async function sendQuickFeedback(o: QuickFeedbackOptions): Promise<void> 
   const fb = filterFeedback('', String(o.message || ''), { seen: memory.seen(), deviceInfo: o.deviceInfo });
   // NOTE: an idea this player already sent is dropped without a word here (the composer thanks them).
   if (!fb.parts.length && !fb.private.length) { if (fb.questions.length) await showAnswers(fb.questions); return; }
-  const status = await deliverQuickFeedback(fb, o.name, o.email, o.fetch);
+  const status = await deliverQuickFeedback(fb, o.name, o.email, o.fetch, undefined, o.feedbackUrl);
   if (status === 'offline') { o.toast('Sorry, the feedback could not be sent. Check your internet.', false); return; }
   const ok = status === 'sent';
   if (ok) memory.remember(fb.keys);

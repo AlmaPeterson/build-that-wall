@@ -57,9 +57,14 @@ export function saleNotice({ sale, percent, yearPrice, monthPrice, currency, pay
   };
 }
 
+/** A player who may be in danger: this is no longer emailed, so it stays at the top of the bell until it's read. */
+export const isUrgent = (n: Pick<Notice, 'kind' | 'title'>) => n.kind === 'feedback' && n.title.startsWith('🚨');
+
 export function feedbackNotice(f: FeedbackItem): Notice {
+  const urgent = /^URGENT/i.test(f.subject || '');
   return {
-    id: 'fb:' + f.id, kind: 'feedback', at: f.at, title: 'Feedback' + (f.subject ? ': ' + f.subject : '') + ' from ' + (f.from || 'a player'),
+    id: 'fb:' + f.id, kind: 'feedback', at: f.at,
+    title: urgent ? '🚨 URGENT: a player may need help (' + (f.from || 'a player') + ')' : 'Feedback' + (f.subject ? ': ' + f.subject : '') + ' from ' + (f.from || 'a player'),
     text: f.text, from: f.from, replyTo: f.replyTo, device: f.device, files: f.files, read: f.read,
   };
 }
@@ -71,7 +76,7 @@ export function buildNotices(o: {
   const versions = o.versions.map(versionNotice);
   const kept = versions.filter((v, i) => i === 0 || o.since === undefined || v.at >= o.since).slice(0, 10);
   return [...kept, ...o.packs.map(packNotice), ...(o.sale ? [saleNotice(o.sale)] : []), ...o.feedback.map(feedbackNotice)]
-    .sort((a, b) => b.at - a.at);
+    .sort((a, b) => Number(isUrgent(b) && !b.read) - Number(isUrgent(a) && !a.read) || b.at - a.at);
 }
 
 /** Unread: not in the read list (feedback: not read on the owner's account). */

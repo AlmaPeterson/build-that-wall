@@ -53,6 +53,18 @@ describe('the notification list', () => {
     expect(isUnread(list[1]!, new Set(['v1.2']))).toBe(false);
   });
 
+  it('an unread urgent message stays at the top', () => {
+    const list = buildNotices({
+      versions, packs: [], sale: null, since: Date.now(),
+      feedback: [
+        { id: 'u1', at: new Date(2026, 9, 1).getTime(), from: 'Kim', subject: 'URGENT: a player may need help', text: 'help', read: false },
+        { id: 'n1', at: new Date(2026, 10, 21).getTime(), from: 'Sam', text: 'Add dark mode', read: false },
+      ],
+    });
+    expect(list.map(n => n.id)).toEqual(['fb:u1', 'fb:n1', 'v1.2']);
+    expect(list[0]!.title).toBe('🚨 URGENT: a player may need help (Kim)');
+  });
+
   it('a brand-new player only sees the latest version', () => {
     const list = buildNotices({ versions, packs: [], sale: null, feedback: [], since: Date.now() });
     expect(list.map(n => n.id)).toEqual(['v1.2']);
