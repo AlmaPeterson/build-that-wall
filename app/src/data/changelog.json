@@ -3,6 +3,9 @@
   "version": "1.13",
   "date": "2026-11-22",
   "changes": [
+   "Deploy script uses clasp 3.4.1 (2.4.2 can't sign in on new Node versions)",
+   "Script to put game-server.gs on Apps Script and deploy it to the same address",
+   "Pick a song in Music settings; Copy prompt on the To-fix list; no double entries",
    "To-fix list says when the game server needs updating, instead of blaming the internet",
    "To-fix list moves to Account & Store > Feedback: everyone reads, only the owner edits",
    "Server: don't reuse sign-ins remembered before the owner check needed a verified email",

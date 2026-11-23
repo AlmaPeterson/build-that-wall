@@ -26,3 +26,8 @@ else try {
   clearSavedGame();
   render(<App />, root);
 }
+
+// Installable app (manifest.webmanifest) that also opens with no internet (public/sw.js). Only on the live site.
+if (import.meta.env.PROD && location.protocol === 'https:' && 'serviceWorker' in navigator && !githubPopup) {
+  addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => { /* still works without it */ }); });
+}

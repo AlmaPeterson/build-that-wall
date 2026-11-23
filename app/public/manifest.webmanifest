@@ -1,0 +1,24 @@
+{
+  "id": "./",
+  "name": "Build That Wall",
+  "short_name": "Build That Wall",
+  "description": "Trump's political card game. Build the longest wall while rivals hit you with Debt, Quarantine and Trump Trains. Play bots, pass one device around, or play online with friends.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#d8332d",
+  "lang": "en",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "guide/51-board-your-turn.png", "sizes": "1100x620", "type": "image/png", "form_factor": "wide", "label": "Your turn: build walls and play cards" },
+    { "src": "guide/01-home.png", "sizes": "900x760", "type": "image/png", "label": "The home page" }
+  ]
+}
