@@ -516,7 +516,7 @@ function verifyUser_(idToken) {
   if (!idToken) return null;
   if (String(idToken).indexOf('BTWS.') === 0) return verifySession_(idToken);   // Apple, GitHub or password sign-in
   const cache = CacheService.getScriptCache();
-  const key = 'tok:' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken));
+  const key = 'tok2:' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken));
   const hit = cache.get(key);
   if (hit) return JSON.parse(hit);
   const res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken), { muteHttpExceptions: true });
