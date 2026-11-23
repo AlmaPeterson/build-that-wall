@@ -463,7 +463,7 @@ Quick match games have no code to share: other players find them with their own 
 
 1. Press **Open a room**. The page says "Opening a room...", then shows **Your room**.
 2. Under **Room code:** is a 5-letter code in big blue letters, for example **QVPMQ**.
-3. Tell your friends the code: say it out loud, text it, or send it any way you like. Codes never use the letters I, L or O or the numbers 0 or 1, so they are easy to read out.
+3. Tell your friends the code: say it out loud, text it, or send it any way you like. Codes never use the letters I, L or O or the numbers 0 or 1, so they are easy to read out. Or send a **join link**: press **Copy join link** under the code ("Link copied! Paste it in a message to your friends. Opening it joins this room.") and paste it into a message. On a phone, **Share…** opens your phone's share menu to send it straight to a friend. A friend who opens the link goes straight into your room, without typing the code.
 4. Wait for your friends to join. Each one appears in the **Players** list as they arrive.
 5. Choose bots and the ending (section 7.4), then press **Start game**.
 
@@ -475,7 +475,7 @@ Gold members also see **Your own room ★** on the Play online page. Its code st
 
 As the host you see **Your room** with these parts, top to bottom:
 
-- **Room code:** the code to share (private rooms only).
+- **Room code:** the code to share (private rooms only), with **Copy join link** and, on phones, **Share…** under it (section 7.3).
 - **Players (n):** everyone in the room, with "host (you)" beside your name. Gold members have a gold ★ before their name. With bots, the count shows them too, for example "Players (2 + 1 bot)".
 - **More people on this device?:** add people who will share your device (section 7.6).
 - **Bots:** with **-** and **+** buttons. Each bot you add gets its own row, **Bot 1:**, **Bot 2:** and so on, with a drop-down to choose **Easy**, **Medium**, **Hard**, **Insane ★** (only when the host has Gold) or **Random**. Bots get the names you gave them under Name the bots (section 5.4). Bots fill seats up to 6 players in all.
@@ -491,7 +491,7 @@ If you press **Start game** with only yourself and no bots, the room says "Wait 
 
 ### 7.5 Joining: the Waiting room (other players' view)
 
-To join a friend's room:
+To join a friend's room, open the **join link** they sent you: the game opens on the Play online page and joins their room by itself ("Joining *CODE*..."). If you were in the middle of a game on this device, it stays saved for later. Or join with the code:
 
 1. Type the code into the **Room code** box. Capital or small letters both work.
 2. Press **Join**. The page says "Joining *CODE*...".

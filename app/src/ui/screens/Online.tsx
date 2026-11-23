@@ -8,6 +8,7 @@ import { NumberBox } from '../menus/controls';
 import { onlineIntent } from '../menus/start';
 import { online } from '../online';
 import { MAX_SEATS, type LobbyPlayer } from '../online/messages';
+import { pendingJoin, shareJoinLink } from '../online/join-link';
 import type { BotLevel } from '../online/session';
 import type { Ending } from '../../game';
 import { services } from '../services';
@@ -87,6 +88,26 @@ function DeviceGuests({ guests, full }: { guests: string[]; full: boolean }) {
   );
 }
 
+/** Copy the room's join link, or share it straight to a friend (phones). */
+function JoinLinkButtons({ code }: { code: string }) {
+  const [said, setSaid] = useState('');
+  const canShare = typeof navigator !== 'undefined' && !!navigator.share;
+  const go = async (share: boolean) => {
+    const r = await shareJoinLink(code, share);
+    setSaid(r === 'copied' ? 'Link copied! Paste it in a message to your friends. Opening it joins this room.'
+      : r === 'shared' ? 'Link sent!' : r === 'failed' ? "Couldn't copy the link. Tell your friends the room code instead." : '');
+  };
+  return (
+    <>
+      <div class="btw-row">
+        <Button color="navy" onClick={() => void go(false)}>Copy join link</Button>
+        {canShare && <Button color="plain" onClick={() => void go(true)}>Share…</Button>}
+      </div>
+      {said && <p class="btw-muted" role="status">{said}</p>}
+    </>
+  );
+}
+
 export function OnlineScreen() {
   const st = useStore(online.state);
   const ui = useStore(settings);
@@ -97,6 +118,10 @@ export function OnlineScreen() {
   useEffect(() => { void services.init(); }, []);
   // The menu's choice (Quick online match, Host a private room, Join with a code): do it straight away
   useEffect(() => {
+    // Opened from a join link: join that room
+    const linked = pendingJoin.get();
+    pendingJoin.set(null);
+    if (linked && online.state.get().phase === 'idle') { setCode(linked); void online.join(linked); return; }
     const intent = onlineIntent.get();
     onlineIntent.set(null);
     if (!intent || online.state.get().phase !== 'idle') return;
@@ -158,7 +183,7 @@ export function OnlineScreen() {
         <section class="btw-card" aria-labelledby="lobby-h">
           <h2 id="lobby-h">{st.role === 'host' ? 'Your room' : 'Waiting room'}</h2>
           {/* Quick-match rooms ("W" + 5) have no code to share; a private code (5 letters) may start with W too */}
-          {st.code && !(st.code.length === 6 && st.code.startsWith('W')) && <><p>Room code:</p><p class="btw-code" aria-label={'Room code ' + st.code.split('').join(' ')}>{st.code}</p></>}
+          {st.code && !(st.code.length === 6 && st.code.startsWith('W')) && <><p>Room code:</p><p class="btw-code" aria-label={'Room code ' + st.code.split('').join(' ')}>{st.code}</p><JoinLinkButtons code={st.code} /></>}
           <p>Players ({st.players.length}{st.bots ? ' + ' + st.bots + (st.bots === 1 ? ' bot' : ' bots') : ''}):</p>
           <ul class="btw-list">{st.players.map((p, i) => <li key={i}><span>{p.gold && <b class="btw-gold-star" title="Gold member">★ </b>}{p.name}</span><span class="btw-muted">{whoIs(p, st.seat, st.players)}</span></li>)}</ul>
           <DeviceGuests guests={st.guests} full={st.players.length >= MAX_SEATS} />

@@ -3,6 +3,7 @@
   "version": "1.13",
   "date": "2026-11-22",
   "changes": [
+   "Name filter: no slurs, swearing or rude words in player names",
    "Website only for now: undo the installable app",
    "Installable app: web app manifest, app icons and an offline service worker",
    "Deploy script uses clasp 3.4.1 (2.4.2 can't sign in on new Node versions)",

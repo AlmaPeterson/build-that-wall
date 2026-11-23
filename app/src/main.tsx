@@ -5,14 +5,20 @@ import './ui/replay';                 // records games for Gold replays (before 
 import { clearSavedGame, resumeSavedGame } from './ui/saved-game';
 import { controller, screen } from './ui/app-state';
 import { githubReturn } from './services/account';
+import { takeJoinLink } from './ui/online/join-link';
 
 const root = document.getElementById('app')!;
 
 // This is GitHub's sign-in pop-up coming back: it hands the code to the game and closes, so don't start a game here
 const githubPopup = githubReturn(location.search) === 'popup';
 
-// Back into a game on this device that was left part-way (reloaded, or closed by accident). Not for ?demo.
-const resumed = !githubPopup && !new URLSearchParams(location.search).has('demo') && resumeSavedGame();
+// Opened from a friend's join link (?join=CODE): straight to the Online screen, which joins that room
+const joinCode = githubPopup ? null : takeJoinLink();
+
+// Back into a game on this device that was left part-way (reloaded, or closed by accident). Not for ?demo or a join link
+// (that game stays saved for later).
+const resumed = !githubPopup && !joinCode && !new URLSearchParams(location.search).has('demo') && resumeSavedGame();
+if (joinCode) screen.set('online');
 
 if (githubPopup) root.textContent = 'Signing in…';
 else try {
