@@ -1,6 +1,6 @@
 // Talks to game-server.gs. Request and response shapes match handleApi_ there.
 
-export type ServerError = 'login' | 'server' | 'unknown' | 'used' | 'empty' | 'taken' | 'notfree' | 'owner'
+export type ServerError = 'login' | 'server' | 'unknown' | 'used' | 'empty' | 'taken' | 'notfree' | 'owner' | 'rude'
   | 'order' | 'notpaid' | 'amount' | 'nosub' | (string & {});
 
 export interface GoldGrant { plan?: string; exp: number; sub?: string; cancelled?: boolean }

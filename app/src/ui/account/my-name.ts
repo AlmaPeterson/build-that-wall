@@ -1,5 +1,6 @@
 // Your name: the one the game shows for you (Player 1 on this device, online, on the leaderboard). Changed on
 // the home page or on Account & Store; both save it the same way.
+import { nameIsOk } from '../../services/names/name-filter';
 import { cleanName } from '../../services/online';
 import { settings } from '../app-state';
 import { MAX_PLAYERS, updateSettings } from '../menus/prefs';
@@ -7,6 +8,7 @@ import { services } from '../services';
 
 /** Save your name. Returns 'ok' | 'local' | 'noserver' (saved), 'empty', 'taken' or another error (see nameMessage). */
 export async function saveMyName(typed: string): Promise<string> {
+  if (!nameIsOk(typed)) return 'rude';
   const clean = cleanName(typed);
   if (!clean) return 'empty';
   const claim = async () => services.player.get().verified ? services.account.claimName(services.server(), clean) : 'local';

@@ -57,6 +57,7 @@ export function nameMessage(r: string): Said {
     case 'ok': case 'local': return { text: 'Name saved.', ok: true };
     case 'taken': return { text: 'Someone already has that name. Try another.', ok: false };
     case 'empty': return { text: 'Type a name first.', ok: false };
+    case 'rude': return { text: "That name isn't allowed. Please pick a different one.", ok: false };
     case 'login': return { text: 'Your sign-in has expired. Sign in again to save your name.', ok: false };
     case 'noserver': return { text: "Saved here, but the game server didn't answer.", ok: false };
     default: return { text: 'The name could not be saved (' + r + ').', ok: false };

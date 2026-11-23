@@ -1,5 +1,6 @@
 // Starting games from the menu (docs/game-rules.md section 2, Cards › Start Request). No sign-in is
 // needed to play (owner decision: guest play).
+import { nameIsOk } from '../../services/names/name-filter';
 import type { GameSettings } from '../../game';
 import { getUser } from '../../services/account/user';
 import { browserStorage, SaveStore } from '../../services/storage';
@@ -16,7 +17,8 @@ export const onlineIntent = createStore<OnlineIntent | null>(null);
 
 /** The game's settings as the engine wants them: one difficulty per bot actually playing. */
 export function gameSettingsFor(players: number, bots: number, base: GameSettings = settings.get().game): GameSettings {
-  const names = base.names.slice(0, players);
+  // A rude name saved before names were checked: "Player 2" instead
+  const names = base.names.slice(0, players).map(n => (nameIsOk(n) ? n : ''));
   // Player 1 is you: with no name typed for them, use your name (home page / Account & Store) as it is now
   if (bots < players && !(names[0] ?? '').trim()) names[0] = playerOneName();
   // Bots: the names you gave them, or their usual ones
@@ -41,7 +43,8 @@ export function botName(typed: string): string {
 
 /** The name you chose (or your Google name), read fresh each time; '' = none, so the seat is "Player 1". */
 export function playerOneName(store: SaveStore = new SaveStore(browserStorage())): string {
-  return (store.get('name') || getUser(store)?.name || store.get('gname') || '').trim().slice(0, 20);
+  const name = (store.get('name') || getUser(store)?.name || store.get('gname') || '').trim().slice(0, 20);
+  return nameIsOk(name) ? name : '';
 }
 
 /** Pass'n'Play: everyone on this device, plus any bots. Bots for every seat is watch mode. */

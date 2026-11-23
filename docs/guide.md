@@ -166,6 +166,7 @@ If you are signed in (section 17.1), your name is saved to your account, so it f
 | --- | --- | --- |
 | "Name saved." | It worked. | Nothing. |
 | "Someone already has that name. Try another." | Another signed-in player already uses that name. | Pick a different name, for example add a number or your town. |
+| "That name isn't allowed. Please pick a different one." | The name has a slur, a swear word or another rude word in it, even spelled with numbers or symbols. | Pick a different name. |
 | "Your sign-in has expired. Sign in again to save your name." | Your sign-in ran out. The game opens the sign-in box for you. | Sign in again, and the name saves. |
 | "Saved here, but the game server didn't answer." | The name is saved on this device, but not yet on your account. | Nothing now. Try saving it again later so it reaches your other devices. |
 
@@ -372,6 +373,7 @@ The **Who's playing?** box says "Type each player's name. The game will use them
 - **Player 1 is you.** If you set your name on the home page, it is already filled in. Changing it here changes your home page name too.
 - **Empty boxes are fine.** A box left empty shows its placeholder name, so that person plays as "Player 2", "Player 3" and so on.
 - **Up to 20 characters each.**
+- **No rude names.** A name with a slur, a swear word or another rude word in it (even spelled with numbers or symbols, like "sh!t") isn't allowed: the box says "Player 2's name isn't allowed. Please pick a different one." and the game doesn't start until it's changed. The same goes for your own name, names online and on the leaderboard: a rude name from another player shows as "Player 2" instead, and is left off the leaderboard.
 - **On a phone,** the keyboard's **Next** key moves to the next box and the last box's **Go** key starts the game.
 - **The names are remembered.** Next time, the same names are filled in for you.
 

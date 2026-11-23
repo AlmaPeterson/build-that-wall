@@ -480,6 +480,7 @@ function handleApi_(path, body) {
     case 'name': {
       const name = String(body.name || '').trim().slice(0, 20);
       if (!name) return { error: 'empty' };
+      if (!nameOk_(name)) return { error: 'rude' };
       const names = sheet.getRange(2, C.name, Math.max(1, sheet.getLastRow() - 1), 1).getValues();
       for (let i = 0; i < names.length; i++) {
         if (i + 2 !== row && String(names[i][0]).toLowerCase() === name.toLowerCase()) return { error: 'taken' };
@@ -504,7 +505,7 @@ function handleApi_(path, body) {
       s.games++; if (body.won) s.wins++;
       s.best = Math.max(s.best, Number(body.miles) || 0); s.walls += Number(body.walls) || 0;
       writeJson_(sheet, row, C.stats, s);
-      if (body.name) sheet.getRange(row, C.name).setValue(String(body.name).slice(0, 20));
+      if (body.name && nameOk_(body.name)) sheet.getRange(row, C.name).setValue(String(body.name).slice(0, 20));
       return { ok: true };
     }
     case 'paypal/confirm': return PAYMENTS_OFF_REASON ? { error: 'paused', reason: PAYMENTS_OFF_REASON } : paypalConfirm_(sheet, row, body);
@@ -614,7 +615,27 @@ function leaderboard_() {
   if (sheet.getLastRow() < 2) return [];
   return sheet.getRange(2, 1, sheet.getLastRow() - 1, ACCOUNT_COLS.length).getValues()
     .map(r => Object.assign({ name: String(r[C.name - 1] || 'Player') }, safeJson_(r[C.stats - 1]) || {}))
-    .filter(p => p.games > 0);
+    .filter(p => p.games > 0 && nameOk_(p.name));
+}
+
+// ---- Player names others see may not be slurs, swear words or other rude words (the game checks too:
+// app/src/services/names/name-filter.ts). Catches n1gg3r, F.U.C.K, BigNigga, sh!t.
+const NAME_LEET_ = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '@': 'a', '$': 's', '!': 'i', '|': 'i', '+': 't' };
+const NAME_SLURS_ = Utilities.newBlob(Utilities.base64Decode('bmlnZ2VyIG5pZ2dhIG5pZ2dhaCBuaWdndWggY2hpbmsgZ29vayBzcGljIHNwaWNrIHdldGJhY2sga2lrZSBreWtlIGJlYW5lciByYWdoZWFkIHRvd2VsaGVhZCBzYW5kbmlnZ2VyIGNvb24gamlnYWJvbyBwb3JjaG1vbmtleSBqdW5nbGVidW5ueSBwYWtpIHdvcCBkYWdvIGNoaW5hbWFuIHppcHBlcmhlYWQgZmFnZ290IGZhZyBmYWdvdCBkeWtlIHRyYW5ueSBzaGVtYWxlIHNwYXogbW9uZ29sb2lkIGd5cHBvIGdvbGxpd29nIGRhcmtpZSByZWRza2luIHNxdWF3IGhhbGZicmVlZA==')).getDataAsString().split(' ');
+const NAME_INSIDE_ = Utilities.newBlob(Utilities.base64Decode('bmlnZyBmdWNrIGN1bnQgZmFnZ290IGZhZ290IGhpdGxlciBuYXppIHdob3JlIHJldGFyZCBwdXNzeSBwZW5pcyB2YWdpbmEgcG9ybiByYXBpc3Qga2trIGppenogd2Fua2VyIHR3YXQgYml0Y2ggc2hpdCBzbHV0IGRpbGRvIG1vbGVzdCBwZWRvcGhpbGU=')).getDataAsString().split(' ');
+const NAME_SPREAD_ = ['nigg', 'fuck', 'cunt', 'faggot', 'hitler'];
+const NAME_WORDS_ = ['ass', 'asses', 'asshole', 'arse', 'dick', 'dickhead', 'cock', 'prick', 'bastard', 'wtf', 'stfu', 'gtfo', 'fag', 'fags',
+  'sex', 'sexy', 'nude', 'boobs', 'tits', 'cum', 'anus', 'rape', 'kys', 'fck', 'fk', 'fuk'];
+
+function nameOk_(name) {
+  const raw = String(name || '');
+  if (/1488|\b88\b|heil hitler|sieg heil|white power/i.test(raw)) return false;
+  const plain = raw.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split('').map(c => NAME_LEET_[c] || c).join('').replace(/(.)\1{2,}/g, '$1$1');
+  const words = plain.split(/[^a-z]+/).filter(Boolean);
+  const slur = w => NAME_SLURS_.indexOf(w) >= 0 || NAME_SLURS_.indexOf(w.replace(/(?:e?s|z)$/, '')) >= 0;
+  if (words.some(w => slur(w) || NAME_WORDS_.indexOf(w) >= 0 || NAME_INSIDE_.some(bad => w.indexOf(bad) >= 0))) return false;
+  const joined = plain.replace(/[^a-z]+/g, '');
+  return !NAME_SPREAD_.some(bad => joined.indexOf(bad) >= 0);
 }
 
 // ---- PayPal: payments are checked with PayPal before anything is unlocked

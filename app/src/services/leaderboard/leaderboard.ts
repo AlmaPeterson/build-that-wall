@@ -1,4 +1,5 @@
 import { isError, isServerUrl, type ServerApi } from '../account/api';
+import { nameIsOk } from '../names/name-filter';
 import { myName } from '../account/user';
 import type { SaveStore } from '../storage';
 
@@ -52,7 +53,7 @@ export function topTen(rows: BoardRow[], kind: string): string[] {
   const val = VALUE[k];
   // NOTE: an unknown kind sorted by miles but had no formatter before (crashed); it now formats as miles too
   const fmt = FORMAT[k];
-  return rows.filter(r => val(r) > 0).sort((x, y) => val(y) - val(x)).slice(0, 10).map((r, i) => (i + 1) + '.  ' + (r.gold ? '★ ' : '') + r.name + '   ' + fmt(r));
+  return rows.filter(r => val(r) > 0 && nameIsOk(r.name)).sort((x, y) => val(y) - val(x)).slice(0, 10).map((r, i) => (i + 1) + '.  ' + (r.gold ? '★ ' : '') + r.name + '   ' + fmt(r));
 }
 
 export class Leaderboard {
@@ -66,7 +67,7 @@ export class Leaderboard {
 
   // After a game: this device's board has every player who played here
   recordLocal(nameIn: string, won: boolean, miles: number, walls: number, gold?: boolean): void {
-    const name = String(nameIn || '').trim(); if (!name) return;
+    const name = String(nameIn || '').trim(); if (!name || !nameIsOk(name)) return;
     const lb = this.local(); const r = lb[name] || blank();
     r.games++; if (won) r.wins++;
     if (gold !== undefined) { if (gold) r.gold = true; else delete r.gold; } r.best = Math.max(r.best, +miles || 0); r.walls += +walls || 0;
@@ -83,7 +84,7 @@ export class Leaderboard {
   // Share these players' totals with the world board (fire and forget)
   submitWorld(names: string[]): void {
     const lb = this.local(), up: Board = {};
-    for (const n of names) if (n && lb[n]) up[n] = lb[n]!;
+    for (const n of names) if (n && lb[n] && nameIsOk(n)) up[n] = lb[n]!;
     if (Object.keys(up).length && this.world) void this.world.readAndUpdate(up);
   }
 

@@ -1,6 +1,7 @@
 // ---- online play: host/join with a room code, through a public MQTT relay.
 // The host's device is the hub: players talk to the host, and the host relays to everyone.
 // Whoever's turn it is sends the whole game state whenever it changes.
+import { nameIsOk } from '../names/name-filter';
 import {
   ALL_ROOMS, codeFromTopic, parseMsg, parseRoomInfo, topics,
   type AskMsg, type DownMsg, type GameMsg, type RoomInfo,
@@ -145,9 +146,11 @@ export function seatOwner(turn: number, players: number, ai: number, leftSeats: 
 }
 
 /** A player name: control characters become spaces, at most 20 characters, trimmed. */
+/** A name tidied for showing to others; '' when it's empty or rude (slurs, swearing), so "Player 2" shows instead. */
 export function cleanName(text: string): string {
   const chars = Array.from(String(text)).map((c) => (c.charCodeAt(0) < 32 ? ' ' : c)).join('').trim();
-  return Array.from(chars).slice(0, 20).join('').trim();
+  const name = Array.from(chars).slice(0, 20).join('').trim();
+  return nameIsOk(name) ? name : '';
 }
 
 function randomCode(random: () => number, prefix = ''): string {

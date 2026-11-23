@@ -108,6 +108,7 @@
 /* ---- Who's playing? (Pass'n'Play names) */
 .names { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .names__about { margin: 0; color: #555; }
+.names__error { margin: 0; color: #b3261e; font-weight: bold; }
 .names__row { display: flex; align-items: center; gap: 10px; }
 .names__label { flex: none; width: 5.5em; font-weight: bold; color: #7a1a16; }
 .names__row input { flex: 1; min-width: 0; font: inherit; min-height: 44px; padding: 6px 10px; border: 2px solid #7a1a16; border-radius: 10px; background: #fff; }
