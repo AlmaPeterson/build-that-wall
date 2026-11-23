@@ -23,6 +23,13 @@ describe('the To-fix list', () => {
     expect(fixes.get()).toMatchObject({ owner: false, error: '', items: [{ id: 1 }] });
   });
 
+  it('says when the server is too old to have the list', async () => {
+    vi.spyOn(services, 'server').mockReturnValue('https://script.google.com/x');
+    vi.spyOn(account, 'isSignedIn').mockReturnValue(false);
+    await loadFixes((async () => new Response('Build That Wall server is running.')) as unknown as typeof fetch);
+    expect(fixes.get().error).toBe("The game server hasn't been updated for the To-fix list yet.");
+  });
+
   it('ticks and trashes on the server, and puts it back if the server says no', async () => {
     vi.spyOn(services, 'server').mockReturnValue('https://script.google.com/x');
     vi.spyOn(account, 'isSignedIn').mockReturnValue(true);

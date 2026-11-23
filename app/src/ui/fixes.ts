@@ -39,14 +39,20 @@ export async function loadFixes(fetchFn: typeof fetch = (...a) => fetch(...a)): 
     const r = await services.api.call<{ items?: Fix[] }>(server, '/admin/fixes', {});
     if (r && !isError(r) && Array.isArray(r.items)) { fixes.set({ items: r.items, loading: false, error: '', owner: true }); return; }
   }
+  let text: string;
   try {
-    const res = await fetchFn(server + (server.includes('?') ? '&' : '?') + 'path=fixes');
-    const j = (await res.json()) as { items?: Fix[] };
-    if (!Array.isArray(j.items)) throw new Error('no list');
-    fixes.set({ items: j.items, loading: false, error: '', owner: false });
+    text = await (await fetchFn(server + (server.includes('?') ? '&' : '?') + 'path=fixes')).text();
   } catch {
     fixes.set({ items: [], loading: false, error: "Couldn't load the list. Check your internet and try again.", owner: false });
+    return;
   }
+  let j: { items?: Fix[] } = {};
+  try { j = JSON.parse(text) as { items?: Fix[] }; } catch { /* an older server answers with plain text */ }
+  if (!Array.isArray(j.items)) {
+    fixes.set({ items: [], loading: false, error: "The game server hasn't been updated for the To-fix list yet.", owner: false });
+    return;
+  }
+  fixes.set({ items: j.items, loading: false, error: '', owner: false });
 }
 
 /** Tick, trash or put back a suggestion. Shown at once; put back as it was if the server says no. */
