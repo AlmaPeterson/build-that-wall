@@ -8,7 +8,7 @@
 `deploy-server.mjs` puts `game-server.gs` on the game's Google Apps Script and deploys it as a new
 version of the same web app, so the Server URL doesn't change: `node tools/deploy-server.mjs`.
 One-time setup by the script's Google account: turn on "Google Apps Script API" at
-https://script.google.com/home/usersettings, then run `npx @google/clasp@2.4.2 login` and press Allow.
+https://script.google.com/home/usersettings, then run `npx @google/clasp@3.4.1 login` and press Allow.
 The sign-in is kept in your user folder (`~/.clasprc.json`), never in this project.
 
 ## Moving over from PenguinMod
