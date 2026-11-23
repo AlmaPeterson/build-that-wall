@@ -27,7 +27,8 @@ else try {
   render(<App />, root);
 }
 
-// Installable app (manifest.webmanifest) that also opens with no internet (public/sw.js). Only on the live site.
-if (import.meta.env.PROD && location.protocol === 'https:' && 'serviceWorker' in navigator && !githubPopup) {
-  addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => { /* still works without it */ }); });
+// The game was briefly installable with an offline helper (service worker). It's a website only now: remove it.
+if ('serviceWorker' in navigator) {
+  void navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => void r.unregister())).catch(() => {});
+  if ('caches' in globalThis) void caches.keys().then(ks => ks.filter(k => k.startsWith('btw-')).forEach(k => void caches.delete(k))).catch(() => {});
 }

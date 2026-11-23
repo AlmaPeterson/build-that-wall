@@ -3,6 +3,7 @@
   "version": "1.13",
   "date": "2026-11-22",
   "changes": [
+   "Installable app: web app manifest, app icons and an offline service worker",
    "Deploy script uses clasp 3.4.1 (2.4.2 can't sign in on new Node versions)",
    "Script to put game-server.gs on Apps Script and deploy it to the same address",
    "Pick a song in Music settings; Copy prompt on the To-fix list; no double entries",
