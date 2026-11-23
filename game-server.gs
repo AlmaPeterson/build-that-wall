@@ -182,10 +182,13 @@ function handleFeedback_(data) {
   }
   if (!result) {
     // No key, or Claude was unavailable: translate if needed and don't lose the feedback
-    const pub = [subject, message].filter(Boolean).map(translate_);
+    // The game often makes the subject from the message itself: then it's said once, not twice
+    const same = (a, b) => normText_(b).indexOf(normText_(a)) >= 0;
+    const pub = [subject && !same(subject, message) ? subject : '', message].filter(Boolean).map(translate_);
     notes.push('Not checked for repeats: no ANTHROPIC_API_KEY, or the check failed.');
     const priv = privateParts.map(translate_);
-    pub.forEach(t => addSuggestion_(sheet, t, 'other', data.device));
+    // One line on the To-fix list for the message (the subject is only its title)
+    addSuggestion_(sheet, pub[pub.length - 1] || '', 'other', data.device);
     priv.forEach(t => addSuggestion_(privateSheet, t, 'other', ''));
     toInbox_(props, data, null, pub, priv, notes);
     return;
@@ -295,8 +298,26 @@ const SUGGESTION_COLS = ['ID', 'Suggestion', 'Type', 'Times asked', 'First seen'
 const FIX_COL = 8;
 const FIX_STATUS = ['', 'done', 'skip'];
 
+// Lower case, no punctuation or extra spaces: "Add dark mode!" and "add  dark mode" are the same
+function normText_(t) {
+  return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// A new line on the To-fix list, or one more "Times asked" for a line with the same words
 function addSuggestion_(sheet, text, type, device) {
+  if (!String(text || '').trim()) return;
   const now = new Date();
+  const n = sheet.getLastRow() - 1;
+  if (n >= 1 && normText_(text)) {                   // (text with no a-z or 0-9 letters is never merged)
+    const texts = sheet.getRange(2, 2, n, 1).getValues();
+    for (let i = 0; i < texts.length; i++) {
+      if (normText_(texts[i][0]) === normText_(text)) {
+        sheet.getRange(i + 2, 4).setValue(Number(sheet.getRange(i + 2, 4).getValue() || 1) + 1);
+        sheet.getRange(i + 2, 6).setValue(now);
+        return;
+      }
+    }
+  }
   sheet.appendRow([sheet.getLastRow(), String(text), type, 1, now, now, String(device || ''), '']);
 }
 

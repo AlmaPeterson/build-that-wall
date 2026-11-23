@@ -2,7 +2,7 @@
 // playlist of the game's own song, YouTube links, song links and the player's own song files (Cycle All / Play One).
 import { settings, type UiSettings } from './app-state';
 import { sound } from './assets';
-import { playDefaultSong, type SongPlayer } from './music/default-song';
+import { playDefaultSong, songById, SONGS, type SongPlayer } from './music/default-song';
 import { loadMySongs, mySongs, type MySong } from './music/my-songs';
 import { createStore } from './store';
 
@@ -79,7 +79,7 @@ export function playFanfare(): void {
 // ---- background music
 
 export type Track =
-  | { type: 'default' }                                  // the game's own song (music/default-song.ts)
+  | { type: 'default'; song?: string }                   // one of the game's own songs (music/default-song.ts)
   | { type: 'yt'; id: string }                           // a YouTube video
   | { type: 'ytlist'; list: string; id?: string }        // a YouTube playlist (starting at a video, maybe)
   | { type: 'url'; url: string }                         // a link to a song file
@@ -146,7 +146,8 @@ function playCurrent(): void {
   index = ((index % playlist.length) + playlist.length) % playlist.length;
   const track = playlist[index]!;
   const myToken = token;
-  if (track.type === 'default') { song = playDefaultSong(volume); return; }
+  // On its own a song loops for ever; with other songs after it, it plays through and the next one starts
+  if (track.type === 'default') { song = playDefaultSong(volume, track.song, playlist.length > 1 ? () => trackEnded(myToken) : undefined); return; }
   if (track.type === 'file' || track.type === 'url') {
     if (track.type === 'file') blobUrl = URL.createObjectURL(track.blob);
     audio = new Audio(track.type === 'file' ? blobUrl : track.url);
@@ -222,8 +223,12 @@ export const music = {
 };
 
 /** The tracks the settings ask for: the player's links and songs, or the game's song when there are none. */
-export function tracksFor(s: Pick<UiSettings, 'musicSource' | 'musicLinks'>, songs: MySong[]): Track[] {
-  if (s.musicSource !== 'mine') return [{ type: 'default' }];
+export function tracksFor(s: Pick<UiSettings, 'musicSource' | 'musicLinks'> & { musicSong?: string }, songs: MySong[]): Track[] {
+  if (s.musicSource !== 'mine') {
+    // "all": every song that comes with the game, one after another
+    if (s.musicSong === 'all') return SONGS.map(x => ({ type: 'default' as const, song: x.id }));
+    return [s.musicSong && s.musicSong !== SONGS[0]!.id ? { type: 'default', song: songById(s.musicSong).id } : { type: 'default' }];
+  }
   const mine: Track[] = [
     ...s.musicLinks.map(parseMusicLink).filter((t): t is Track => !!t),
     ...songs.map(x => ({ type: 'file' as const, id: x.id, blob: x.blob })),

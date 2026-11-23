@@ -7,7 +7,7 @@ import { DEFAULT_UI_SETTINGS, settings } from '../app-state';
 import { parseMusicLink, tracksFor } from '../audio';
 import { loadUiSettings, resetSettingsPersistenceForTests, saveUiSettings } from '../menus/prefs';
 import { SettingsScreen } from '../screens/Settings';
-import { SONG_STEPS, bassNotes, leadNotes } from './default-song';
+import { SONGS, SONG_STEPS, bassNotes, leadNotes } from './default-song';
 import { addMySongs, mySongs, removeMySong } from './my-songs';
 
 describe('music links', () => {
@@ -38,6 +38,12 @@ describe('what plays', () => {
       .toEqual([{ type: 'yt', id: 'dQw4w9WgXcQ' }, { type: 'file', id: 's1', blob: song.blob }]);
   });
 
+  it("plays the song picked from the game's songs, or all of them one after another", () => {
+    expect(tracksFor({ musicSource: 'default', musicLinks: [], musicSong: 'rag' }, [])).toEqual([{ type: 'default', song: 'rag' }]);
+    expect(tracksFor({ musicSource: 'default', musicLinks: [], musicSong: 'march' }, [])).toEqual([{ type: 'default' }]);
+    expect(tracksFor({ musicSource: 'default', musicLinks: [], musicSong: 'all' }, [])).toEqual(SONGS.map(x => ({ type: 'default', song: x.id })));
+  });
+
   it("falls back to the game's song when the player has no music yet", () => {
     expect(tracksFor({ musicSource: 'mine', musicLinks: [] }, [])).toEqual([{ type: 'default' }]);
   });
@@ -50,6 +56,21 @@ describe("the game's song", () => {
     expect(Math.max(...lead.map(n => n.step + n.length))).toBeLessThanOrEqual(SONG_STEPS);
     expect(Math.max(...bass.map(n => n.step + n.length))).toBe(SONG_STEPS);
     expect(lead.every(n => n.midi >= 60 && n.midi <= 79)).toBe(true);
+  });
+
+  it('every song that comes with the game has 8 steps in every bar, one chord a bar, and notes in range', () => {
+    expect(SONGS.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(SONGS.map(x => x.id)).size).toBe(SONGS.length);
+    for (const song of SONGS) {
+      const bars = song.lead.split('|').flatMap(line => line.split(/\r?\n/)).map(b => b.trim()).filter(Boolean);
+      expect(bars.every(b => b.split(/\s+/).length === 8), song.name).toBe(true);
+      expect(bars.length, song.name).toBe(song.chords.length);
+      const lead = leadNotes(song.lead);
+      expect(lead.length, song.name).toBe(song.lead.split(/\s+/).filter(t => /^[A-G]#?\d$/.test(t)).length);
+      expect(lead.every(n => n.midi >= 60 && n.midi <= 84), song.name).toBe(true);
+      expect(bassNotes(song.chords).every(n => n.midi >= 36 && n.midi <= 59), song.name).toBe(true);
+    }
+    expect(bassNotes(['A#'])[0]!.midi).toBe(46);
   });
 
   it('reads holds and rests', () => {

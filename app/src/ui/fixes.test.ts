@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fixes, loadFixes, setFix, sortFixes, type Fix } from './fixes';
+import { fixes, fixPrompt, loadFixes, setFix, sortFixes, type Fix } from './fixes';
 import { services } from './services';
 import * as account from '../services/account';
 
@@ -9,6 +9,15 @@ const fix = (id: number, asked: number, last: number, extra: Partial<Fix> = {}):
 afterEach(() => { vi.restoreAllMocks(); fixes.set({ items: [], loading: false, error: '', owner: false }); });
 
 describe('the To-fix list', () => {
+  it('copies a prompt that says what to fix and how', () => {
+    const p = fixPrompt(fix(3, 2, 1, { text: 'The Settings button does nothing.', device: 'Chrome 140' }));
+    expect(p).toContain('bug report (2 players asked for it)');
+    expect(p).toContain('"The Settings button does nothing."');
+    expect(p).toContain('Chrome 140');
+    expect(p).toContain('Please find the cause and fix it.');
+    expect(fixPrompt(fix(4, 1, 1, { type: 'feature', text: 'Add a dark mode.' }))).toMatch(/feature request:[\s\S]*Please add this to the game\./);
+  });
+
   it('puts the most asked first, then the newest', () => {
     expect(sortFixes([fix(1, 1, 5), fix(2, 3, 1), fix(3, 1, 9)]).map(f => f.id)).toEqual([2, 3, 1]);
   });

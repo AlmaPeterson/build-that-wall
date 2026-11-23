@@ -68,3 +68,20 @@ export async function setFix(f: Fix, status: FixStatus): Promise<void> {
     fixes.set({ ...fixes.get(), error: "Couldn't save that. Check your internet and try again." });
   }
 }
+
+/** A request to paste into Claude Code (or another coding assistant) to make this fix in the game's code. */
+export function fixPrompt(f: Fix): string {
+  const kind = f.type === 'bug' ? 'bug report' : f.type === 'other' ? 'request' : f.type + ' request';
+  const lines = [
+    'A player of Build That Wall sent this ' + kind + (f.asked > 1 ? ' (' + f.asked + ' players asked for it)' : '') + ':',
+    '',
+    '"' + f.text + '"',
+    '',
+  ];
+  if (f.device) lines.push('Device details from the bug report:', f.device, '');
+  lines.push(
+    f.type === 'bug' ? 'Please find the cause and fix it.' : 'Please add this to the game.',
+    'Add or update tests, run the tests and the build, update the guide (docs/guide.md) if what players see changes, then commit and push.',
+  );
+  return lines.join('\n');
+}

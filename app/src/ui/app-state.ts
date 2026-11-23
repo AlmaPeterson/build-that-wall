@@ -21,6 +21,7 @@ export interface UiSettings {
   musicVolume: number;                // 0-100
   musicSource: 'default' | 'mine';    // the game's own song, or the player's links and songs
   musicLinks: string[];               // YouTube videos or playlists, or links to song files
+  musicSong: string;                  // which of the game's songs plays (music/default-song.ts SONGS), or "all"
   autoJoin: boolean;
   tutorial: boolean;
   animSpeed: AnimSpeed;
@@ -30,7 +31,7 @@ export interface UiSettings {
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
   game: { ...DEFAULT_SETTINGS, players: 2, bots: 1, difficulties: ['medium', 'medium', 'medium', 'medium', 'medium', 'medium'] },   // one level for every bot to start with
-  gameMode: 'passnplay', sound: true, musicMode: 'cycle', music: true, musicVolume: 50, musicSource: 'default', musicLinks: [],
+  gameMode: 'passnplay', sound: true, musicMode: 'cycle', music: true, musicVolume: 50, musicSource: 'default', musicLinks: [], musicSong: 'march',
   autoJoin: false, tutorial: false,
   animSpeed: reducedMotion() ? 'off' : 'normal',
   textSizes: { menu: 1, board: 1, cards: 1, popups: 1 },

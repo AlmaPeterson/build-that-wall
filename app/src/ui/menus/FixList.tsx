@@ -2,7 +2,7 @@
 // (done) and the trash (won't do), and both can be undone further down. The server checks every change.
 import { useEffect, useState } from 'preact/hooks';
 import { Button } from '../components/Button';
-import { fixes, fixKey, loadFixes, setFix, sortFixes, type Fix } from '../fixes';
+import { fixes, fixKey, fixPrompt, loadFixes, setFix, sortFixes, type Fix } from '../fixes';
 import { useStore } from '../store';
 import './fixes.css';
 
@@ -11,6 +11,12 @@ const day = (at: number) => (at ? new Date(at).toLocaleDateString(undefined, { d
 
 function Row({ f, owner }: { f: Fix; owner: boolean }) {
   const [more, setMore] = useState(false);
+  const [copied, setCopied] = useState('');
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(fixPrompt(f)); setCopied('Copied!'); }
+    catch { setCopied("Couldn't copy"); }
+    setTimeout(() => setCopied(''), 2000);
+  };
   const done = f.status === 'done', skipped = f.status === 'skip';
   const id = 'fix-' + fixKey(f).replace(':', '-');
   return (
@@ -28,6 +34,7 @@ function Row({ f, owner }: { f: Fix; owner: boolean }) {
           {f.list === 'private' && <span class="fix__tag fix__tag--private">Private</span>}
           <span>{f.asked === 1 ? 'Asked once' : 'Asked ' + f.asked + ' times'}</span>
           <span>{day(f.last)}</span>
+          {owner && !skipped && <button type="button" class="fix__link" title="Copy a request for Claude Code to make this fix" onClick={() => void copy()}>{copied || 'Copy prompt'}</button>}
           {owner && f.device && <button type="button" class="fix__link" onClick={() => setMore(!more)}>{more ? 'Hide device' : 'Device'}</button>}
         </div>
         {more && f.device && <pre class="fix__device">{f.device}</pre>}

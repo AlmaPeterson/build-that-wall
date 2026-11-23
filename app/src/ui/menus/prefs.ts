@@ -1,5 +1,6 @@
 // Settings are saved in "btw:prefs" with the old game's names and values, so players who move to the
 // new version keep their settings (docs/game-rules.md section 2, Panels › when green flag clicked).
+import { SONGS } from '../music/default-song';
 import { DEFAULT_MINUTES, MILES_TO_WIN, type Difficulty, type Ending } from '../../game';
 import { browserStorage, SaveStore } from '../../services/storage';
 import { settings, type TextArea, type UiSettings } from '../app-state';
@@ -81,7 +82,8 @@ export function clampSettings(s: UiSettings): UiSettings {
   const musicLinks = (Array.isArray(s.musicLinks) ? s.musicLinks : []).map(l => String(l).trim().slice(0, 500)).filter(Boolean).slice(0, 50);
   const botNames = Array.from({ length: MAX_PLAYERS }, (_, k) => String((Array.isArray(s.botNames) ? s.botNames : [])[k] ?? '').slice(0, BOT_NAME_MAX));
   return { ...s, game: { ...g, players, bots, difficulties: levels, ending, endingTimes, minutes, miles, names }, textSizes, musicVolume, musicLinks, botNames,
-    musicSource: s.musicSource === 'mine' ? 'mine' : 'default' };
+    musicSource: s.musicSource === 'mine' ? 'mine' : 'default',
+    musicSong: s.musicSong === 'all' || SONGS.some(x => x.id === s.musicSong) ? s.musicSong : SONGS[0]!.id };
 }
 
 /** Read the saved settings over `base`. Missing or broken values keep `base`'s. */
@@ -117,6 +119,7 @@ export function loadUiSettings(store: SaveStore, base: UiSettings): UiSettings {
     musicVolume: num('musicvol', base.musicVolume),
     musicSource: get('musicsrc') === 'mine' ? 'mine' : get('musicsrc') === 'default' ? 'default' : base.musicSource,
     musicLinks: links(get('musiclinks'), base.musicLinks),
+    musicSong: get('musicsong') || base.musicSong,
     botNames: links(get('botnames'), base.botNames),
     autoJoin: get('autojoin') === '' ? base.autoJoin : get('autojoin') === '1',
     tutorial: get('tutor') === '' ? base.tutorial : get('tutor') === '1',
@@ -142,6 +145,7 @@ export function saveUiSettings(store: SaveStore, s: UiSettings): void {
   put('musicvol', String(s.musicVolume));
   put('musicsrc', s.musicSource);
   put('musiclinks', JSON.stringify(s.musicLinks));
+  put('musicsong', s.musicSong);
   put('botnames', JSON.stringify(s.botNames));
   put('autojoin', s.autoJoin ? '1' : '0');
   g.difficulties.slice(0, MAX_PLAYERS).forEach((d, k) => put('ai' + (k + 1), LEVEL_TO_OLD[d]));

@@ -1396,10 +1396,22 @@ The **Music** part of Settings controls background music.
 
 **What plays:** two buttons.
 
-- **The game's song:** an upbeat march made for Build That Wall, played by your browser. It loops for as long as the music is on.
+- **The game's songs:** songs made for Build That Wall, played by your browser (nothing to download).
 - **My music:** your own music: YouTube videos and playlists, links to song files, and songs from your computer (section 16.5).
 
-Under these, a line says what is playing, for example "Now playing the game's song", or "The music starts when you tap or press a key." With more than one song, it shows which one ("Now playing… (2 of 5)") and a **Next song** button.
+**Song** (with The game's songs picked): a dropdown to pick which of the game's songs plays.
+
+| Song | What it's like |
+| --- | --- |
+| **Campaign March** (the default) | An upbeat march with a drum beat. |
+| **Liberty Anthem** | A slow, proud tune with no drums. |
+| **Victory Rag** | A fast, bouncy piano-style rag. |
+| **Late Night Debate** | A moody tune in a minor key. |
+| **All of them, one after another** | Each song plays twice, then the next one starts. **Next song** skips ahead. |
+
+The song you pick loops for as long as the music is on, and changes straight away when you pick another.
+
+Under these, a line says what is playing, for example "Now playing "Campaign March"", or "The music starts when you tap or press a key." With more than one song, it shows which one ("Now playing… (2 of 5)") and a **Next song** button.
 
 ### 16.5 My music
 
@@ -1428,7 +1440,7 @@ A YouTube playlist plays through all its videos and then starts again; use **Nex
 
 Files that aren't songs are skipped. Songs from your computer are kept in this browser only, up to about 200 MB in all; they don't follow you to other devices.
 
-**Your list:** every link and song, each with a **Remove** button. If the list is empty, the game's song plays: "Add a link or a song. Until then, the game's song plays."
+**Your list:** every link and song, each with a **Remove** button. If the list is empty, the game's song you picked plays: "Add a link or a song. Until then, the game's song plays."
 
 ![My music settings](guide/22-settings-my-music.png)
 
@@ -1654,7 +1666,7 @@ Under the Send feedback button is the **To-fix list**: what players have asked f
 
 Everyone can read the list, but only the game's owner can change it. Cheats, exploits and strategy tips, and the device details sent with bug reports, are never shown on it.
 
-**For the game's owner:** signed in with the owner's Google account, each line has a checkbox and a trash can. Tick the box when a fix is done (it moves to **Done**; untick it there to bring it back). Press the trash can if you won't do it: it moves to **Won't do**, which only the owner sees, and **Put back** undoes it. Private reports show here too, marked **Private**, and bug reports have a **Device** button for the device details. Nobody else gets these controls, and the server refuses changes from any other account.
+**For the game's owner:** signed in with the owner's Google account, each line has a checkbox and a trash can. Tick the box when a fix is done (it moves to **Done**; untick it there to bring it back). Press the trash can if you won't do it: it moves to **Won't do**, which only the owner sees, and **Put back** undoes it. Private reports show here too, marked **Private**, and bug reports have a **Device** button for the device details. **Copy prompt** copies a ready-made request for Claude Code (what the player asked, how many asked, and the device details for a bug) to paste in and have the fix made. Nobody else gets these controls, and the server refuses changes from any other account.
 
 ### 17.8 Saves and deleting your account
 

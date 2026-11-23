@@ -6,6 +6,7 @@ import { music, nowPlaying, parseMusicLink, type Track } from '../audio';
 import { Button } from '../components/Button';
 import { Choice, Row, Toggle } from '../menus/controls';
 import { updateSettings } from '../menus/prefs';
+import { songById, SONGS } from '../music/default-song';
 import { addMySongs, mySongs, pickSongFiles, removeMySong } from '../music/my-songs';
 import { useStore } from '../store';
 
@@ -25,7 +26,7 @@ export function linkKind(t: Track | null): string {
 
 function playingName(t: Track | null, songs: { id: string; name: string }[]): string {
   if (!t) return '';
-  if (t.type === 'default') return "the game's song";
+  if (t.type === 'default') return '"' + songById(t.song).name + '"';
   if (t.type === 'file') return songs.find(x => x.id === t.id)?.name ?? 'your song';
   return 'a ' + linkKind(t).toLowerCase();
 }
@@ -71,8 +72,20 @@ export function MusicSettings({ s }: { s: UiSettings }) {
       <div class="settings__text">
         <div class="settings__label">What plays</div>
         <Choice label="What plays" value={s.musicSource} onChange={musicSource => set({ musicSource })}
-          options={[{ value: 'default', name: "The game's song" }, { value: 'mine', name: 'My music' }]} />
+          options={[{ value: 'default', name: "The game's songs" }, { value: 'mine', name: 'My music' }]} />
       </div>
+
+      {!mine && (
+        <div class="settings__text">
+          <Row label="Song" id="set-song">
+            <select id="set-song" value={s.musicSong} onChange={e => set({ musicSong: e.currentTarget.value })}>
+              {SONGS.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+              <option value="all">All of them, one after another</option>
+            </select>
+          </Row>
+          <div class="settings__about">Songs made for the game. The one you pick plays again and again.</div>
+        </div>
+      )}
 
       {mine && (
         <div class="settings__text music">
