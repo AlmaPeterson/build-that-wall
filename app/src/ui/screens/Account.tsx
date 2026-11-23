@@ -1,6 +1,7 @@
 // Account & Store: sign in (optional), your name, Gold, donations, backups, feedback.
 import { useEffect, useState } from 'preact/hooks';
 import { deviceInfo, openFeedbackBox } from '../../services/feedback';
+import { FixList } from '../menus/FixList';
 import { userEmail } from '../../services/account';
 import { screen } from '../app-state';
 import { Message, Page } from '../account/Page';
@@ -93,6 +94,7 @@ export function AccountScreen() {
             toast: services.toast, deviceInfo: () => deviceInfo({}),
           })}>Send feedback</Button>
         </div>
+        <FixList />
       </section>
 
       <SavesCard busy={busy} run={run} player={player} said={said.saves ?? null} say={s => say('saves', s)} />

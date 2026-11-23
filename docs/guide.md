@@ -87,7 +87,7 @@ During a sale the Gold Membership card on Account & Store shows it too, with the
 
 **For the game's owner:** signed in with the owner's account, the bell also shows ✉️ players' feedback, instead of it being emailed. Press **More** for the device details and any attached files, **Reply** to answer by email, and **Mark feedback read** when you've read it (that counts on every device). Feedback is never emailed. A message that suggests a player may be in danger shows as 🚨 **URGENT** and stays at the top of the list until you mark it read.
 
-**The To-fix list (owner only):** on the owner's account a yellow **To-fix list** button appears at the end of the home page's footer. It lists every suggestion players sent, one line each, with how many players asked for it, most asked first (the game server joins repeats together). Tick the box when a fix is done (it moves to **Done**; untick it there to bring it back). Press the trash can if you won't do it (it moves to **Won't do**; press **Put back** to undo). Private reports (cheats, exploits and strategy tips) are marked **Private**. The list has no web address of its own and the server only gives it to the owner's Google account, so nobody else can open it or change it.
+**The To-fix list:** see Account & Store > Feedback. Everyone can read it there; only the owner can tick or trash suggestions.
 
 ### 2.2 Your name
 
@@ -1643,6 +1643,18 @@ Press **Back** (top right of the box) to close it without sending.
 - **For a bug,** say what you did, what you expected, and what happened instead, and which device and browser you use.
 - **Attach a screenshot** if something looks wrong.
 - Your name is sent with the message, and your email address too if you are signed in, so the makers can reply.
+
+#### The To-fix list
+
+Under the Send feedback button is the **To-fix list**: what players have asked for, one line each, most asked first. Each line shows what kind of request it is (Bug, New idea, Change and so on), how many players asked for it, and when it was last asked. Requests asked in different words are joined together.
+
+- **To do** lists what hasn't been done yet.
+- **Done** (press it to open) lists what has been done, with a ✓.
+- Press **Refresh list** to load it again.
+
+Everyone can read the list, but only the game's owner can change it. Cheats, exploits and strategy tips, and the device details sent with bug reports, are never shown on it.
+
+**For the game's owner:** signed in with the owner's Google account, each line has a checkbox and a trash can. Tick the box when a fix is done (it moves to **Done**; untick it there to bring it back). Press the trash can if you won't do it: it moves to **Won't do**, which only the owner sees, and **Put back** undoes it. Private reports show here too, marked **Private**, and bug reports have a **Device** button for the device details. Nobody else gets these controls, and the server refuses changes from any other account.
 
 ### 17.8 Saves and deleting your account
 

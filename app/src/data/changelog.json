@@ -1,5 +1,13 @@
 [
  {
+  "version": "1.13",
+  "date": "2026-11-22",
+  "changes": [
+   "Server: don't reuse sign-ins remembered before the owner check needed a verified email",
+   "Feedback goes only to the owner's bell; owner-only To-fix list"
+  ]
+ },
+ {
   "version": "1.12",
   "date": "2026-11-21",
   "changes": [

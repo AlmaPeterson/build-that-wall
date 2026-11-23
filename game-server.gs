@@ -132,6 +132,7 @@ function doPost(e) {
 function doGet(e) {
   const path = apiPath_(e);
   if (path === 'leaderboard') return json_({ players: leaderboard_() });
+  if (path === 'fixes') return json_({ items: publicFixes_() });   // the To-fix list everyone can read
   return ContentService.createTextOutput('Build That Wall server is running.');
 }
 
@@ -288,7 +289,8 @@ function getSheet_(props, name) {
   return sh;
 }
 
-// The To-fix list: each suggestion's Status is "" (to do), "done" (ticked) or "skip" (won't do)
+// The To-fix list (Account & Store > Feedback): everyone can read it, only the owner can change it.
+// Each suggestion's Status is "" (to do), "done" (ticked) or "skip" (won't do)
 const SUGGESTION_COLS = ['ID', 'Suggestion', 'Type', 'Times asked', 'First seen', 'Last seen', 'Device (bug reports)', 'Status'];
 const FIX_COL = 8;
 const FIX_STATUS = ['', 'done', 'skip'];
@@ -312,6 +314,12 @@ function readFixes_(props) {
     });
   }
   return out;
+}
+
+// What everyone sees: public suggestions only (no cheats or exploits, no device details), without the ones trashed
+function publicFixes_() {
+  return readFixes_(PropertiesService.getScriptProperties()).filter(f => f.list === 'public' && f.status !== 'skip')
+    .map(f => ({ id: f.id, list: 'public', text: f.text, type: f.type, asked: f.asked, first: f.first, last: f.last, status: f.status }));
 }
 
 function setFix_(props, body) {

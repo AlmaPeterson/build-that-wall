@@ -1,5 +1,9 @@
 /* The owner's To-fix list */
-.fixes { text-align: left; }
+.fixes { text-align: left; margin-top: 14px; border-top: 2px solid #f3e7e5; padding-top: 8px; }
+.fixes__title { margin: 4px 0; }
+.fix__mark { flex: none; width: 24px; text-align: center; font-weight: bold; color: #999; }
+.fix__mark--done { color: #2e7d32; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .fixes__head { margin: 12px 0 4px; font-size: 1.05em; color: #7a1a16; }
 .fixes__error { color: #b3261e; font-weight: bold; }
 .fixes__list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow: auto; }

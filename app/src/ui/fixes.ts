@@ -1,7 +1,7 @@
-// The owner's To-fix list: every suggestion players sent (one line each, repeats counted), from the game
-// server's Suggestions and Private sheets. Ticking one marks it done; the trash marks it "won't do".
-// Only the owner's account gets it: the server checks OWNER_EMAIL on every call, and the page has no link
-// of its own, so typing an address can't open it.
+// The To-fix list (Account & Store > Feedback): every suggestion players sent, one line each, repeats counted.
+// Everyone can read it (public suggestions only, without device details or the ones trashed). Only the owner
+// can tick one done or trash it: the server checks OWNER_EMAIL on every change, whatever this page shows.
+import { isSignedIn } from '../services/account';
 import { isError } from '../services/account/api';
 import { services } from './services';
 import { createStore } from './store';
@@ -21,7 +21,7 @@ export interface Fix {
   status: FixStatus;
 }
 
-export const fixes = createStore<{ items: Fix[]; loading: boolean; error: string }>({ items: [], loading: false, error: '' });
+export const fixes = createStore<{ items: Fix[]; loading: boolean; error: string; owner: boolean }>({ items: [], loading: false, error: '', owner: false });
 
 export const fixKey = (f: Pick<Fix, 'list' | 'id'>) => f.list + ':' + f.id;
 
@@ -30,16 +30,23 @@ export function sortFixes(items: Fix[]): Fix[] {
   return [...items].sort((a, b) => b.asked - a.asked || b.last - a.last);
 }
 
-export async function loadFixes(): Promise<void> {
+/** The owner gets the whole list (and can change it); everyone else the public one. */
+export async function loadFixes(fetchFn: typeof fetch = (...a) => fetch(...a)): Promise<void> {
   const server = services.server();
-  if (!server) { fixes.set({ items: [], loading: false, error: 'The game server is not set up.' }); return; }
+  if (!server) { fixes.set({ items: [], loading: false, error: 'The game server is not set up.', owner: false }); return; }
   fixes.set({ ...fixes.get(), loading: true, error: '' });
-  const r = await services.api.call<{ items?: Fix[] }>(server, '/admin/fixes', {});
-  if (!r || isError(r) || !Array.isArray(r.items)) {
-    fixes.set({ items: [], loading: false, error: r && isError(r) && r.error === 'owner' ? 'Only the owner can see this list.' : "Couldn't load the list. Check your internet and try again." });
-    return;
+  if (isSignedIn(services.store)) {
+    const r = await services.api.call<{ items?: Fix[] }>(server, '/admin/fixes', {});
+    if (r && !isError(r) && Array.isArray(r.items)) { fixes.set({ items: r.items, loading: false, error: '', owner: true }); return; }
   }
-  fixes.set({ items: r.items, loading: false, error: '' });
+  try {
+    const res = await fetchFn(server + (server.includes('?') ? '&' : '?') + 'path=fixes');
+    const j = (await res.json()) as { items?: Fix[] };
+    if (!Array.isArray(j.items)) throw new Error('no list');
+    fixes.set({ items: j.items, loading: false, error: '', owner: false });
+  } catch {
+    fixes.set({ items: [], loading: false, error: "Couldn't load the list. Check your internet and try again.", owner: false });
+  }
 }
 
 /** Tick, trash or put back a suggestion. Shown at once; put back as it was if the server says no. */
