@@ -6,6 +6,7 @@
     "dev": "vite",
     "prebuild": "node ../tools/changelog.mjs",
     "build": "tsc --noEmit && vite build",
+    "postbuild": "node ../tools/itch-zip.mjs",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",

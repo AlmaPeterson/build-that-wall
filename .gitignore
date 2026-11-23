@@ -1,1 +1,3 @@
 .claude/
+# itch.io upload, made by every build (tools/itch-zip.mjs)
+build-that-wall-zip*.zip
