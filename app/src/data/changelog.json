@@ -3,6 +3,7 @@
   "version": "1.14",
   "date": "2026-11-23",
   "changes": [
+   "CrazyGames mode: their SDK, no outside logins, ads, links or purchases",
    "itch.io: Google sign-in goes through the game's website",
    "itch.io zip made by every build"
   ]

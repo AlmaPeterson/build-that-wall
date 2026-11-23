@@ -25,6 +25,7 @@ import { Scoreboard } from './Scoreboard';
 import { MyWalls, OtherWalls } from './Walls';
 import { showCard } from '../components/zoom';
 import './board.css';
+import { onCG } from '../platform';
 
 const AMAZON = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
 const HEADER_IMAGE = 'assets/stage/page.svg';
@@ -208,7 +209,8 @@ export function Board({ controller }: { controller: GameController }) {
     </div>
     {/* At the bottom of the window, however tall it is */}
     <footer class="board__footer">
-      <a href={AMAZON} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>
+      {/* No outside store links on CrazyGames */}
+      {!onCG() && <a href={AMAZON} target="_blank" rel="noopener">Get BUILD THAT WALL at Amazon.com</a>}
       <small>™ &amp; ® 2024 Beacon Political</small>
     </footer>
     </>
