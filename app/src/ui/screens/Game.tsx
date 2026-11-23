@@ -6,7 +6,7 @@ import { CardZoom } from '../board/CardZoom';
 import { startDemoFromUrl } from '../board/demo';
 import { Button } from '../components/Button';
 import { Overlays } from '../overlays/Overlays';
-import { useStore } from '../store';
+import { createStore, useStore } from '../store';
 import { endReplay, ReplayController } from '../replay';
 
 // ?demo in the address starts a game straight away (a dev helper; see board/demo.ts)
@@ -52,11 +52,16 @@ function ReplayBar({ c }: { c: ReplayController }) {
   );
 }
 
+/** "Keep playing like this" was pressed: no more asking until the page is opened again. */
+const keepUpright = createStore(false);
+
 /**
  * On a phone held upright (CSS shows it only then): turn the phone sideways. Where the browser allows it
- * (Android), a button goes full screen and turns the game sideways by itself.
+ * (Android), a button goes full screen and turns the game sideways by itself. "Keep playing like this" plays on
+ * upright instead.
  */
 function RotateHint() {
+  const upright = useStore(keepUpright);
   const canFull = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen && document.fullscreenEnabled;
   const fullScreen = async () => {
     try {
@@ -64,6 +69,7 @@ function RotateHint() {
       await (globalThis.screen as unknown as { orientation?: { lock?: (o: string) => Promise<void> } }).orientation?.lock?.('landscape');
     } catch { /* not allowed here: turning the phone still works */ }
   };
+  if (upright) return null;
   return (
     <div class="rotate-hint" role="dialog" aria-label="Turn your phone sideways">
       <svg class="rotate-hint__phone" viewBox="0 0 90 90" aria-hidden="true">
@@ -74,6 +80,7 @@ function RotateHint() {
       <h2>Turn your phone sideways</h2>
       <p>The game board is wide. Hold your phone sideways to play; your game is waiting.</p>
       {canFull && <Button onClick={() => void fullScreen()}>Play full screen</Button>}
+      <Button class="rotate-hint__end" color="plain" onClick={() => keepUpright.set(true)}>Keep playing like this</Button>
     </div>
   );
 }

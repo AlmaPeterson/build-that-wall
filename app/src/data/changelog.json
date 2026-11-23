@@ -3,6 +3,8 @@
   "version": "1.14",
   "date": "2026-11-23",
   "changes": [
+   "Portrait preview video: \"Turn your phone sideways\", then the game turns and fills the frame",
+   "CrazyGames: covers and preview videos; no Amazon link on the board there",
    "CrazyGames mode: their SDK, no outside logins, ads, links or purchases",
    "itch.io: Google sign-in goes through the game's website",
    "itch.io zip made by every build"

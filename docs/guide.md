@@ -717,7 +717,7 @@ The game screen shows everything at once: the scores at the top left, the piles 
 
 ### 9.1 Phones and screen size
 
-The board is wide, so phones must be turned sideways (landscape). If you hold a phone upright, a picture of a phone turning appears with the message to turn it sideways. On Android phones there is also a **Play full screen** button, which fills the whole screen and turns the game sideways for you.
+The board is wide, so phones play best turned sideways (landscape). If you hold a phone upright, a picture of a phone turning appears with the message to turn it sideways. On Android phones there is also a **Play full screen** button, which fills the whole screen and turns the game sideways for you. To play with the phone upright anyway, press **Keep playing like this**: the board shows small at the top of the screen, and the message doesn't come back until you open the game again.
 
 ![Turn your phone sideways](guide/80-phone-upright.png)
 
