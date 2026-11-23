@@ -1,6 +1,7 @@
 // The app's services (src/services), created once and shared by every screen.
 // Guest play: everything works signed out. Signing in (Google) is only needed for Gold, purchases,
 // saves that follow you to other devices, and putting your scores on the world leaderboard.
+import { onCG } from './platform';
 import { onItch, signInElsewhere } from '../services/account/link';
 import { createBotMemory } from '../game/bots';
 import type { BotMemory, GameEvent, GameState } from '../game';
@@ -121,6 +122,7 @@ export function createServices(deps: ServiceDeps) {
   }
 
   async function signIn(): Promise<string> {
+    if (onCG()) return '';                       // CrazyGames allows no sign-in but its own
     const renewing = signInExpired(store) ? getUser(store)?.sub : undefined;
     const c = config.get();
     // Apple, GitHub and passwords are checked by the game server, so they need one

@@ -32,8 +32,8 @@ export function takeJoinLink(): string | null {
 }
 
 /** Copy the link, or on a phone open the share sheet (Messages, WhatsApp...). Says what happened. */
-export async function shareJoinLink(code: string, share: boolean): Promise<'shared' | 'copied' | 'failed' | 'cancelled'> {
-  const url = joinLink(code);
+export async function shareJoinLink(code: string, share: boolean, link?: string): Promise<'shared' | 'copied' | 'failed' | 'cancelled'> {
+  const url = link || joinLink(code);
   const nav = typeof navigator !== 'undefined' ? navigator : undefined;
   if (share && nav?.share) {
     try { await nav.share({ title: 'Build That Wall', text: 'Join my Build That Wall game! Room code ' + code, url }); return 'shared'; }

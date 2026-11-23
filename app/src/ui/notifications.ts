@@ -1,6 +1,7 @@
 // The notification bell's list, and what this player has read. Read notifications are kept in
 // "btw:noteread"; "btw:notesince" is when this device first opened the game, so a new player isn't greeted
 // by every old version. The owner's feedback inbox comes from the game server, and its read marks are kept there.
+import { onCG } from './platform';
 import changelog from '../data/changelog.json';
 import { PACK_ANNOUNCEMENTS } from '../data/announcements';
 import { isSignedIn } from '../services/account';
@@ -34,7 +35,7 @@ function since(): number {
 /** The sale on today, when it can be shown honestly: payments are off (it says so) or the sale's PayPal plans are set up. */
 export function saleNow(now = new Date()): SaleInfo | null {
   const sale = saleOn(now);
-  if (!sale) return null;
+  if (!sale || onCG()) return null;              // no Gold for sale on CrazyGames
   const c = services.config.get();
   const paymentsOff = services.paymentsOff;
   if (!paymentsOff && !(c.paypalPlanYearSale || c.paypalPlanMonthSale)) return null;

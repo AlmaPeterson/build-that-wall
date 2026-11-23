@@ -23,6 +23,17 @@ npm run build      # type-check and build to dist/
   `guide.html`, the full player's guide with screenshots (built from `../docs/guide.md` by
   `../tools/build-guide.mjs`).
 
+## On itch.io and CrazyGames
+
+The same build (`build-that-wall-zip.zip`, made by `npm run build`) goes everywhere.
+
+- **itch.io:** Google sign-in goes through the website (`services/account/link.ts`); Apple and GitHub are hidden.
+- **CrazyGames** (`ui/crazygames.ts`, `ui/platform.ts`): the game notices it's on a crazygames domain and loads the
+  CrazyGames SDK. No sign-in, Gold, donations, Amazon link or video ads; players use their CrazyGames username;
+  online rooms are reported to CrazyGames (Invite button, invite links, Instant Multiplayer); its mute setting is
+  followed; gameplay start/stop is reported. Test it locally with `?useLocalSdk=true` (add `&instantJoin=true` for a
+  party leader).
+
 ## Owner settings
 
 `public/game-settings.json` turns the online parts on. Empty values leave that part off, and the

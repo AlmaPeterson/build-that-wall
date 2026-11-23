@@ -1,4 +1,6 @@
 // Online: quick match, host a private room, join with a code; then the lobby until the host starts.
+import { onCG } from '../platform';
+import { cgInviteLink } from '../crazygames';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { screen, settings } from '../app-state';
 import { Message, Page } from '../account/Page';
@@ -93,7 +95,8 @@ function JoinLinkButtons({ code }: { code: string }) {
   const [said, setSaid] = useState('');
   const canShare = typeof navigator !== 'undefined' && !!navigator.share;
   const go = async (share: boolean) => {
-    const r = await shareJoinLink(code, share);
+    // On CrazyGames: their own invite link
+    const r = await shareJoinLink(code, share, onCG() ? cgInviteLink(code) : undefined);
     setSaid(r === 'copied' ? 'Link copied! Paste it in a message to your friends. Opening it joins this room.'
       : r === 'shared' ? 'Link sent!' : r === 'failed' ? "Couldn't copy the link. Tell your friends the room code instead." : '');
   };

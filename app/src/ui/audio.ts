@@ -1,5 +1,6 @@
 // Sound effects and background music. Sound effects follow the Sound Effects setting; music is a
 // playlist of the game's own song, YouTube links, song links and the player's own song files (Cycle All / Play One).
+import { platform } from './platform';
 import { settings, type UiSettings } from './app-state';
 import { sound } from './assets';
 import { playDefaultSong, songById, SONGS, type SongPlayer } from './music/default-song';
@@ -19,8 +20,11 @@ export let makeAudio: (src: string) => { play(): Promise<unknown> | void; volume
 export function setAudioFactory(f: typeof makeAudio): void { makeAudio = f; }
 
 /** Play a sound effect by name (e.g. 'card', 'click', 'build', 'win'). Does nothing when sound is off. */
+/** No sound effects: turned off in Settings, or muted by CrazyGames. */
+const quiet = () => !settings.get().sound || platform.get().muted;
+
 export function playSfx(name: string): void {
-  if (!settings.get().sound) return;
+  if (quiet()) return;
   const key = SFX[name] ? name : ALIASES[name];
   const entry = key ? SFX[key] : undefined;
   const path = entry ? sound(entry[0], entry[1]) : null;
@@ -34,7 +38,7 @@ export function playSfx(name: string): void {
 
 /** A bright two-note ding (made by the browser, no file): it's your move. Follows the Sound Effects setting. */
 export function playDing(): void {
-  if (!settings.get().sound) return;
+  if (quiet()) return;
   try {
     const Ctx = (globalThis as { AudioContext?: typeof AudioContext }).AudioContext;
     if (!Ctx) return;
@@ -55,7 +59,7 @@ export function playDing(): void {
 
 /** A short fanfare when you win: a rising major arpeggio and a held chord, made with Web Audio (no file). */
 export function playFanfare(): void {
-  if (!settings.get().sound) return;
+  if (quiet()) return;
   try {
     const Ctx = (globalThis as { AudioContext?: typeof AudioContext }).AudioContext;
     if (!Ctx) return;
@@ -252,7 +256,7 @@ export function startMusic(): void {
   const sync = () => {
     const s = settings.get();
     music.setVolume(s.musicVolume);
-    if (!s.music || !unlocked) music.stop();
+    if (!s.music || !unlocked || platform.get().muted) music.stop();
     else music.setTracks(tracksFor(s, mySongs.get()));
     nowPlaying.set(nowPlaying.get() + 1);
   };
@@ -266,6 +270,7 @@ export function startMusic(): void {
   window.addEventListener('pointerdown', unlock, true);
   window.addEventListener('keydown', unlock, true);
   settings.subscribe(sync);
+  platform.subscribe(sync);
   mySongs.subscribe(sync);
   void loadMySongs();
 }

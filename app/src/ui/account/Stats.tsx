@@ -1,5 +1,6 @@
 // "Your stats" on Account & Store. Everyone sees the totals; Gold members also see win rates by mode and
 // bot level, their best game, favourite card, streaks and a chart of their last 20 games.
+import { onCG } from '../platform';
 import { cardById } from '../../data/cards';
 import { loadLog, pct, summarize, type GameLine, type GameMode } from '../../services/stats/stats';
 import { services } from '../services';
@@ -54,7 +55,7 @@ export function StatsCard({ gold }: { gold: boolean }) {
         <div><b>{games ? Math.round(100 * wins / games) + '%' : '-'}</b><span>won</span></div>
         <div><b>{best}</b><span>best miles</span></div>
       </div>
-      {!gold && <p class="btw-muted">Gold members also see win rates by mode and bot level, their best game, favourite card, streaks and a chart of their games.</p>}
+      {!gold && !onCG() && <p class="btw-muted">Gold members also see win rates by mode and bot level, their best game, favourite card, streaks and a chart of their games.</p>}
       {gold && (s.games === 0
         ? <p class="btw-muted">Play a game and your detailed stats show here.</p>
         : (

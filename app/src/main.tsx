@@ -1,4 +1,6 @@
 import { render } from 'preact';
+import { onCG } from './ui/platform';
+import { startCrazyGames } from './ui/crazygames';
 import { App } from './ui/app';
 import './ui/theme.css';
 import './ui/replay';                 // records games for Gold replays (before a saved game is brought back)
@@ -38,6 +40,9 @@ else try {
 }
 
 if (linkId) showLinkApprove(linkId);
+
+// On CrazyGames: their SDK (username, invites, Instant Multiplayer, mute). Nothing loads anywhere else.
+if (onCG()) void startCrazyGames();
 
 // The game was briefly installable with an offline helper (service worker). It's a website only now: remove it.
 if ('serviceWorker' in navigator) {

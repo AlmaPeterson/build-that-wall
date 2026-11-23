@@ -1,4 +1,5 @@
 // Account & Store: sign in (optional), your name, Gold, donations, backups, feedback.
+import { platform } from '../platform';
 import { useEffect, useState } from 'preact/hooks';
 import { deviceInfo, openFeedbackBox } from '../../services/feedback';
 import { FixList } from '../menus/FixList';
@@ -27,12 +28,15 @@ export function AccountScreen() {
   const run = async (fn: () => Promise<void>) => { setBusy(true); try { await fn(); } finally { setBusy(false); } };
 
   useEffect(() => { void services.init(); }, []);
+  // On CrazyGames: no sign-in, no Gold for sale and no donations (only CrazyGames' own accounts and purchases)
+  const cg = useStore(platform).crazyGames;
 
   return (
     <Page title="Account & Store">
-      <AccountCard player={player} googleReady={!!config.googleClientId} busy={busy} run={run} said={said.account ?? null} say={s => say('account', s)} />
+      {cg ? <CrazyGamesCard player={player} said={said.account ?? null} say={s => say('account', s)} busy={busy} run={run} />
+        : <AccountCard player={player} googleReady={!!config.googleClientId} busy={busy} run={run} said={said.account ?? null} say={s => say('account', s)} />}
 
-      <section class="btw-card" aria-labelledby="gold-h">
+      {!cg && <section class="btw-card" aria-labelledby="gold-h">
         <h2 id="gold-h">Gold Membership</h2>
         <p>{player.gold ? <span class="btw-gold">{player.goldInfo || 'Gold is active'}</span> : 'Gold unlocks every extra and supports the game.'}</p>
         {(!player.signedIn || player.expired) && <p class="btw-muted">To buy Gold, sign in {player.expired ? 'again' : 'first'}: Gold belongs to your account, so it follows you to every device. The free trial works without signing in, on this device.</p>}
@@ -73,7 +77,7 @@ export function AccountScreen() {
           {!player.gold && <p class="btw-muted">Leaderboards are for Gold members.</p>}
         </div>
         <Message text={said.gold?.text ?? ''} ok={!!said.gold?.ok} />
-      </section>
+      </section>}
 
       <StatsCard gold={player.gold} />
 
@@ -83,7 +87,7 @@ export function AccountScreen() {
         <div class="btw-row"><Button color="plain" disabled>Coming soon</Button></div>
       </section>
 
-      <Donate busy={busy} run={run} currency={config.currency} said={said.donate ?? null} say={s => say('donate', s)} />
+      {!cg && <Donate busy={busy} run={run} currency={config.currency} said={said.donate ?? null} say={s => say('donate', s)} />}
 
       <section class="btw-card" aria-labelledby="feedback-h">
         <h2 id="feedback-h">Feedback</h2>
@@ -104,6 +108,29 @@ export function AccountScreen() {
 
 type Run = (fn: () => Promise<void>) => Promise<void>;
 type PlayerInfo = ReturnType<typeof services.player.get>;
+
+/** On CrazyGames: you play under your CrazyGames username (or a name you pick, as a guest). */
+function CrazyGamesCard({ player, busy, run, said, say }: { player: PlayerInfo; busy: boolean; run: Run; said: Said | null; say: (s: Said | null) => void }) {
+  const { username } = useStore(platform);
+  const [name, setName] = useState(player.name);
+  useEffect(() => setName(player.name), [player.name]);
+  return (
+    <section class="btw-card" aria-labelledby="acct-h">
+      <h2 id="acct-h">Your name</h2>
+      {username
+        ? <p>You're playing as <b>{username}</b>, your CrazyGames username.</p>
+        : <>
+            <p>You're playing as a guest. Log in to CrazyGames to play under your CrazyGames username.</p>
+            <label class="btw-row">
+              <span>Your name</span>
+              <input class="btw-input" value={name} maxLength={20} onInput={e => setName((e.target as HTMLInputElement).value)} aria-label="Your name" />
+              <Button color="plain" disabled={busy} onClick={() => run(async () => say(nameMessage(await saveMyName(name))))}>Save name</Button>
+            </label>
+          </>}
+      <Message text={said?.text ?? ''} ok={!!said?.ok} />
+    </section>
+  );
+}
 
 function AccountCard({ player, googleReady, busy, run, said, say }: { player: PlayerInfo; googleReady: boolean; busy: boolean; run: Run; said: Said | null; say: (s: Said | null) => void }) {
   const [name, setName] = useState(player.name);
