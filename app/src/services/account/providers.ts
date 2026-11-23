@@ -17,6 +17,7 @@ export type AuthCall = (path: string, body: Record<string, unknown>) => Promise<
 
 /** What to tell the player for each error. */
 export const SIGN_IN_ERRORS: Record<string, string> = {
+  linktimeout: 'Signing in on our website took too long. Press Sign in with Google to try again.',
   wrong: 'Wrong username or password.',
   locked: 'Too many tries. Wait 15 minutes and try again.',
   taken: 'That username is taken. Pick another one.',

@@ -1,5 +1,12 @@
 [
  {
+  "version": "1.14",
+  "date": "2026-11-23",
+  "changes": [
+   "itch.io zip made by every build"
+  ]
+ },
+ {
   "version": "1.13",
   "date": "2026-11-22",
   "changes": [

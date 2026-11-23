@@ -511,6 +511,7 @@ function handleApi_(path, body) {
     case 'paypal/confirm': return PAYMENTS_OFF_REASON ? { error: 'paused', reason: PAYMENTS_OFF_REASON } : paypalConfirm_(sheet, row, body);
     case 'paypal/subscribed': return PAYMENTS_OFF_REASON ? { error: 'paused', reason: PAYMENTS_OFF_REASON } : paypalSubscribed_(sheet, row, body);
     case 'paypal/cancel': return paypalCancel_(sheet, row);
+    case 'link/approve': return linkApprove_(user, sheet, row, body.link);
     case 'admin/inbox':
       if (!isOwner) return { error: 'owner' };
       return { items: readInbox_(props) };
@@ -747,6 +748,7 @@ function handleAuth_(kind, body) {
   else if (kind === 'password-register') who = passwordRegister_(body.username, body.password);
   else if (kind === 'apple') who = appleLogin_(body.apple_token, body.name);
   else if (kind === 'github') who = githubLogin_(body.code, body.redirect_uri);
+  else if (kind === 'link-claim') return linkClaim_(body.link);
   else return { error: 'unknown' };
   if (!who || who.error) return who || { error: 'login' };
   const exp = now_() + SESSION_DAYS * DAY;
@@ -755,6 +757,30 @@ function handleAuth_(kind, body) {
   const saved = String(sheet.getRange(row, C.name).getValue() || '');
   const name = String(saved || who.name || 'Player').slice(0, 20);
   return { token: makeSession_({ id: who.id, name: name, email: who.email || '', exp: exp }), id: who.id, name: name, email: who.email || '', exp: exp };
+}
+
+// ---- Signing in on itch.io with Google: itch.io runs the game on a web address every itch.io game shares, so
+// Google sign-in isn't allowed there. The itch.io copy opens the game's own website with ?link=<random id>; the
+// player signs in with Google there and approves (link/approve below), and the itch.io copy picks up a game
+// sign-in for the same account (link-claim). Each link works once, for 10 minutes.
+const LINK_RE_ = /^[A-Za-z0-9_-]{20,64}$/;
+
+function linkApprove_(user, sheet, row, link) {
+  if (!LINK_RE_.test(String(link || ''))) return { error: 'empty' };
+  const exp = now_() + SESSION_DAYS * DAY;
+  const name = String(sheet.getRange(row, C.name).getValue() || user.name || 'Player').slice(0, 20);
+  const reply = { token: makeSession_({ id: user.sub, name: name, email: user.email || '', exp: exp }), id: user.sub, name: name, email: user.email || '', exp: exp };
+  CacheService.getScriptCache().put('link:' + link, JSON.stringify(reply), 600);
+  return { ok: true };
+}
+
+function linkClaim_(link) {
+  if (!LINK_RE_.test(String(link || ''))) return { error: 'empty' };
+  const cache = CacheService.getScriptCache();
+  const got = cache.get('link:' + link);
+  if (!got) return { waiting: true };
+  cache.remove('link:' + link);
+  return JSON.parse(got);
 }
 
 function sessionSecret_() {

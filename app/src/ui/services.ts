@@ -1,6 +1,7 @@
 // The app's services (src/services), created once and shared by every screen.
 // Guest play: everything works signed out. Signing in (Google) is only needed for Gold, purchases,
 // saves that follow you to other devices, and putting your scores on the world leaderboard.
+import { onItch, signInElsewhere } from '../services/account/link';
 import { createBotMemory } from '../game/bots';
 import type { BotMemory, GameEvent, GameState } from '../game';
 import { addLine, lineFor, type GameMode } from '../services/stats/stats';
@@ -124,10 +125,15 @@ export function createServices(deps: ServiceDeps) {
     const c = config.get();
     // Apple, GitHub and passwords are checked by the game server, so they need one
     const viaServer = /^https:/.test(c.serverUrl);
-    const name = await google.signIn(c.googleClientId, viaServer ? {
-      apple: c.appleClientId ? () => others.apple(c.appleClientId) : undefined,
-      github: c.githubClientId ? () => others.github(c.githubClientId) : undefined,
+    // On itch.io Google, Apple and GitHub won't sign in on its shared web address: Google goes through our website
+    const itch = onItch();
+    const name = await google.signIn(itch ? '' : c.googleClientId, viaServer ? {
+      apple: c.appleClientId && !itch ? () => others.apple(c.appleClientId) : undefined,
+      github: c.githubClientId && !itch ? () => others.github(c.githubClientId) : undefined,
       password: (mode, user, pass) => others.password(mode, user, pass),
+      elsewhere: itch && c.googleClientId ? (stillOpen, show) => signInElsewhere({
+        call: (path, body) => api.call(c.serverUrl, path, body), accept: r => others.accept(r), stillOpen, show,
+      }) : undefined,
     } : {});
     if (name && name !== 'nosetup') {
       // Same player back: what they did while signed out of the server is newer than its copy, which /load brings down

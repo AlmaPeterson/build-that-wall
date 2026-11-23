@@ -1515,6 +1515,8 @@ Press **Cancel** to close the box without signing in.
 
 The game never stores your password, only a scrambled form of it that can't be turned back into the password.
 
+**Playing on itch.io?** There, **Sign in with Google** opens a new tab on the game's own website and shows a 4-letter code. Sign in with Google in that tab, check the website shows the same code, and press **Yes, sign in on itch.io**. Go back to the itch.io tab: you're signed in there by yourself within a few seconds. If the tab didn't open, press **Tab didn't open? Open it here** in the sign-in box. Only press Yes when you asked to sign in yourself and the codes match. Username and password sign-in works on itch.io as usual; Apple and GitHub sign-in aren't offered there.
+
 **Forgot your password?** There is no password reset yet. Your saves are still on the device you play on; you can create a new account, or ask for help with **Send feedback** (section 17.7).
 
 #### Signing out, and when a sign-in runs out

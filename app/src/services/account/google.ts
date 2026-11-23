@@ -16,6 +16,8 @@ export interface SignInChoices {
   apple?: () => Promise<SignInResult>;
   github?: () => Promise<SignInResult>;
   password?: (mode: 'login' | 'register', username: string, password: string) => Promise<SignInResult>;
+  /** itch.io: Google sign-in happens on the game's website instead (link.ts). */
+  elsewhere?: (stillOpen: () => boolean, show: (code: string, url: string) => void) => Promise<SignInResult>;
 }
 
 type GoogleWindow = Window & { google?: { accounts?: { id?: GoogleId } } };
@@ -43,10 +45,10 @@ export class GoogleSignIn {
   // to sign in with (no client id, or Google can't be reached and there are no other ways).
   async signIn(clientId: string, others: SignInChoices = {}): Promise<string> {
     const cid = String(clientId || '').trim();
-    const hasOthers = !!(others.apple || others.github || others.password);
+    const hasOthers = !!(others.apple || others.github || others.password || others.elsewhere);
     if ((!cid && !hasOthers) || typeof document === 'undefined') return 'nosetup';
     let id: GoogleId | undefined;
-    if (cid) { try { await this.loadGis(); id = gis(); } catch { id = undefined; } }
+    if (cid && !others.elsewhere) { try { await this.loadGis(); id = gis(); } catch { id = undefined; } }
     if (!id && !hasOthers) return 'nosetup';
     return new Promise(res => {
       const el = <K extends keyof HTMLElementTagNameMap>(tag: K, css: string, text = '') => {
@@ -72,6 +74,21 @@ export class GoogleSignIn {
       const btnCss = 'display:block;width:100%;padding:9px 12px;margin:8px 0;border-radius:6px;font:bold 14px Arial;cursor:pointer;';
       const googleHolder = el('div', 'display:flex;justify-content:center;margin:8px 0');
       if (id) box.append(googleHolder);
+      if (others.elsewhere) {
+        // On itch.io: Google sign-in on the game's own website, then back here by itself
+        const b = el('button', btnCss + 'background:#fff;color:#3c4043;border:1px solid #dadce0;font-weight:500', 'Sign in with Google');
+        const note = el('div', 'font-size:13px;color:#444;margin:4px 0 8px;text-align:left;line-height:1.4');
+        note.setAttribute('role', 'status');
+        b.onclick = () => attempt(() => others.elsewhere!(() => !done, (code, url) => {
+          note.textContent = '';
+          note.append('A new tab opens on our website. Sign in with Google there, check it shows the code ', el('b', 'font-size:15px;letter-spacing:2px', code),
+            " and press Yes. You'll be signed in here by yourself. ");
+          const a = el('a', 'color:#1f22f5;font-weight:bold', "Tab didn't open? Open it here");
+          a.href = url; a.target = '_blank'; a.rel = 'noopener';
+          note.append(a);
+        }));
+        box.append(b, note);
+      }
       if (others.apple) {
         const b = el('button', btnCss + 'background:#000;color:#fff;border:1px solid #000', 'Sign in with Apple');
         b.onclick = () => attempt(others.apple!); box.append(b);
@@ -81,7 +98,7 @@ export class GoogleSignIn {
         b.onclick = () => attempt(others.github!); box.append(b);
       }
       if (others.password) {
-        if (id || others.apple || others.github) box.append(el('div', 'color:#777;font-size:13px;margin:10px 0 4px', 'or use a username'));
+        if (id || others.elsewhere || others.apple || others.github) box.append(el('div', 'color:#777;font-size:13px;margin:10px 0 4px', 'or use a username'));
         const form = el('form', 'display:flex;flex-direction:column;gap:6px;text-align:left');
         const input = (type: string, label: string, auto: AutoFill) => {
           const i = el('input', 'padding:8px;border:1px solid #aaa;border-radius:6px;font:15px Arial');

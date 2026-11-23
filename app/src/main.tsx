@@ -6,11 +6,15 @@ import { clearSavedGame, resumeSavedGame } from './ui/saved-game';
 import { controller, screen } from './ui/app-state';
 import { githubReturn } from './services/account';
 import { takeJoinLink } from './ui/online/join-link';
+import { showLinkApprove, takeLinkParam } from './ui/account/link-approve';
 
 const root = document.getElementById('app')!;
 
 // This is GitHub's sign-in pop-up coming back: it hands the code to the game and closes, so don't start a game here
 const githubPopup = githubReturn(location.search) === 'popup';
+
+// Opened from the itch.io copy to sign in with Google here (ui/account/link-approve.ts)
+const linkId = githubPopup ? null : takeLinkParam();
 
 // Opened from a friend's join link (?join=CODE): straight to the Online screen, which joins that room
 const joinCode = githubPopup ? null : takeJoinLink();
@@ -32,6 +36,8 @@ else try {
   clearSavedGame();
   render(<App />, root);
 }
+
+if (linkId) showLinkApprove(linkId);
 
 // The game was briefly installable with an offline helper (service worker). It's a website only now: remove it.
 if ('serviceWorker' in navigator) {
