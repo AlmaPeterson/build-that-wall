@@ -177,13 +177,7 @@ export function Board({ controller }: { controller: GameController }) {
         <Button class={'side__end-turn' + (live && view.actionsLeft < 1 ? ' btw-ready' : '')} disabled={!live} onClick={() => void act({ type: 'endTurn' }, 'click')}>End Turn</Button>
         <WatchVideosButton controller={controller} />
       </div>
-      <div class="at side side--bottom">
-        <Button onClick={() => screen.set('settings')}>Settings</Button>
-        <Button color={tutorial ? 'gold' : 'red'} aria-pressed={tutorial}
-          onClick={() => settings.update(s => ({ ...s, tutorial: !s.tutorial }))}>Tutorial</Button>
-        <Button onClick={() => screen.set('instructions')}>Instructions</Button>
-        <Button color="plain" class="side__end-game" onClick={() => (online.controller === controller ? online.askLeave() : setConfirm(true))}>End Game</Button>
-      </div>
+      <BoardMenu tutorial={tutorial} onEndGame={() => (online.controller === controller ? online.askLeave() : setConfirm(true))} />
 
 
       {open !== null && hand[open] !== undefined && (
@@ -214,5 +208,39 @@ export function Board({ controller }: { controller: GameController }) {
       <small>™ &amp; ® 2024 Beacon Political</small>
     </footer>
     </>
+  );
+}
+
+/** Everything that isn't playing a card, in one menu at the top right: Settings, tutorial tips, Instructions, End Game. */
+function BoardMenu({ tutorial, onEndGame }: { tutorial: boolean; onEndGame: () => void }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // Closes on a tap anywhere else, or Escape
+  useEffect(() => {
+    if (!open) return;
+    const tap = (e: Event) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    addEventListener('pointerdown', tap); addEventListener('keydown', key);
+    return () => { removeEventListener('pointerdown', tap); removeEventListener('keydown', key); };
+  }, [open]);
+  const go = (fn: () => void) => () => { setOpen(false); fn(); };
+  return (
+    <div class="at board__menu" ref={box}>
+      <button type="button" class="board__menu-button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2.6H3zm0 5.7h18v2.6H3zm0 5.7h18V19H3z" /></svg>
+        Menu
+      </button>
+      {open && (
+        <div class="board__menu-list" role="menu" aria-label="Menu">
+          <button type="button" role="menuitem" onClick={go(() => screen.set('settings'))}>Settings</button>
+          <button type="button" role="menuitemcheckbox" aria-checked={tutorial}
+            onClick={() => settings.update(s => ({ ...s, tutorial: !s.tutorial }))}>
+            Tutorial tips<span class={'board__menu-switch' + (tutorial ? ' is-on' : '')}>{tutorial ? 'On' : 'Off'}</span>
+          </button>
+          <button type="button" role="menuitem" onClick={go(() => screen.set('instructions'))}>Instructions</button>
+          <button type="button" role="menuitem" class="board__menu-end" onClick={go(onEndGame)}>End Game</button>
+        </div>
+      )}
+    </div>
   );
 }

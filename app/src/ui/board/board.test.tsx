@@ -159,7 +159,7 @@ describe('Board', () => {
     c.api!.state.turn = 1;   // the bot's turn
     await act(() => { c.refresh(); });
     expect(sideButton('End Turn').disabled).toBe(true);
-    expect(sideButton('End Game').disabled).toBe(false);
+    expect(($('.board__menu-button') as HTMLButtonElement).disabled).toBe(false);
     expect($('.hand__hidden')).toBeNull();
     expect(root!.querySelectorAll('.hand button[data-slot]').length).toBe(2);
     await click(root!.querySelector<HTMLButtonElement>('.hand button[data-slot="0"]')!);
@@ -181,12 +181,18 @@ describe('board-state', () => {
     viewer: 0, events: [], prompt: null, passTo: null, ...over,
   });
 
-  it('End Turn is on its own at the top; End Game is last at the bottom and looks different', async () => {
+  it('End Turn is on its own at the side; everything else is in the Menu, End Game last and set apart', async () => {
     await setup([29]);
     expect(texts('.side--top button')).toEqual(['End Turn']);
-    expect(texts('.side--bottom button')).toEqual(['Settings', 'Tutorial', 'Instructions', 'End Game']);
-    expect(sideButton('End Game').classList.contains('side__end-game')).toBe(true);
-    expect(sideButton('Settings').classList.contains('side__end-game')).toBe(false);
+    expect($('.side--bottom')).toBeNull();
+    expect($('.board__menu-list')).toBeNull();
+    await click($('.board__menu-button')!);
+    expect(texts('.board__menu-list button')).toEqual(['Settings', 'Tutorial tipsOff', 'Instructions', 'End Game']);
+    expect($('.board__menu-list button:last-child')!.classList.contains('board__menu-end')).toBe(true);
+    await click($$('.board__menu-list button').find(b => b.textContent!.startsWith('Tutorial'))!);
+    expect($('.board__menu-list [aria-checked="true"]')).not.toBeNull();
+    await click($('.board__menu-button')!);
+    expect($('.board__menu-list')).toBeNull();
   });
 
   it('End Turn turns green once there are no actions left', async () => {
