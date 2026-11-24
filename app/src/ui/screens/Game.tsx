@@ -1,4 +1,5 @@
 // The in-game screen: the board with the overlays (questions, pass screen, win screen...) on top.
+import { Coach } from '../coach';
 import { controller as controllerStore, screen } from '../app-state';
 import { Board } from '../board/Board';
 import { CardVideos } from '../board/CardVideos';
@@ -30,6 +31,7 @@ export function GameScreen() {
       <CardZoom />
       <CardVideos controller={c} />
       <RotateHint />
+      <Coach />
     </div>
   );
 }

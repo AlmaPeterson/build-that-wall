@@ -1,5 +1,6 @@
 // Everything drawn over the board: decision prompts, pass-the-device screen, turn recap, announcements,
 // the final-round notice, the win screen and tutorial tips. The board renders <Overlays controller={c} />.
+import { coach } from '../coach';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { createBotMemory, think } from '../../game/bots';
 import type { GameEvent } from '../../game';
@@ -38,6 +39,7 @@ export function Overlays({ controller }: { controller: GameController }) {
   const [adSeen, setAdSeen] = useState(false);
   const [adThen, setAdThen] = useState<(() => void) | null>(null);
   const [tipHidden, setTipHidden] = useState(false);
+  const coaching = useStore(coach);   // the first-game coach first, then the tips
   const seen = useRef(0);
   const toastId = useRef(0);
 
@@ -164,7 +166,7 @@ export function Overlays({ controller }: { controller: GameController }) {
         </div>
       )}
       {!view.over && <StandIn controller={controller} />}
-      {tip && !modal && <TutorialTip best={tip.best} why={tip.why} tips={tip.tips} onHide={() => setTipHidden(true)} />}
+      {tip && !modal && coaching === null && <TutorialTip best={tip.best} why={tip.why} tips={tip.tips} onHide={() => setTipHidden(true)} />}
     </div>
   );
 }

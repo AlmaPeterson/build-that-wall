@@ -1,5 +1,6 @@
 // Starting games from the menu (docs/game-rules.md section 2, Cards › Start Request). No sign-in is
 // needed to play (owner decision: guest play).
+import { startCoach } from '../coach';
 import { nameIsOk } from '../../services/names/name-filter';
 import type { GameSettings } from '../../game';
 import { getUser } from '../../services/account/user';
@@ -75,5 +76,12 @@ export function goOnline(intent: OnlineIntent): void {
 export function startTutorialGame(): void {
   settings.set({ ...settings.get(), tutorial: true });
   const g = settings.get().game;
-  startLocalGame({ ...gameSettingsFor(g.players, g.players - 1), firstSeat: 0 });   // learning: you go first
+  // Learning: you go first, against Easy bots, and the coach shows what's what
+  const s = gameSettingsFor(g.players, g.players - 1);
+  startLocalGame({ ...s, firstSeat: 0, difficulties: s.difficulties.map(() => 'easy') });
+  services.store.set('coached', '1');
+  startCoach();
 }
+
+/** Never shown the first-game coach on this device. */
+export const neverCoached = () => !services.store.get('coached');

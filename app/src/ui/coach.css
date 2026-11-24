@@ -1,0 +1,28 @@
+/* The first-game coach (coach.tsx): the board dims, one part lights up, a white bubble says what it's for */
+.coach { position: fixed; inset: 0; z-index: 1500; pointer-events: none; font-family: var(--font-body); }
+.coach__spot {
+  position: fixed; border-radius: 14px; border: 3px solid #ffd84d;
+  box-shadow: 0 0 0 9999px rgba(20, 0, 0, .55), 0 0 18px 4px rgba(255, 216, 77, .7);
+  transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease;
+  animation: coach-glow 1.6s ease-in-out infinite;
+}
+@keyframes coach-glow { 50% { box-shadow: 0 0 0 9999px rgba(20, 0, 0, .55), 0 0 26px 8px rgba(255, 216, 77, .9); } }
+.coach__bubble {
+  position: fixed; pointer-events: auto; box-sizing: border-box;
+  background: #fff; color: #2a1210; border-radius: 16px; padding: 14px 16px 12px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .45); border: 3px solid #ffd84d;
+  animation: coach-in .25s ease-out;
+}
+@keyframes coach-in { from { opacity: 0; transform: translateY(8px); } }
+.coach__head { display: flex; align-items: center; gap: 10px; font-size: 1.25rem; color: #b3122a; }
+.coach__icon { font-size: 1.9rem; line-height: 1; }
+.coach__text { margin: 8px 0 12px; font-size: 1.05rem; line-height: 1.35; font-weight: bold; }
+.coach__foot { display: flex; align-items: center; gap: 10px; }
+.coach__dots { display: flex; gap: 6px; margin-right: auto; }
+.coach__dots i { width: 9px; height: 9px; border-radius: 50%; background: #ead7d2; }
+.coach__dots i.is-on { background: #d9342b; }
+.coach__skip, .coach__next { min-height: 42px; padding: 0 16px; border-radius: 10px; font: bold 1rem var(--font-body); cursor: pointer; }
+.coach__skip { background: none; border: 2px solid #ead7d2; color: #7a5a54; }
+.coach__next { background: #ffd84d; border: 2px solid #c9a227; color: #5a1210; }
+.coach__next:hover { background: #ffe57a; }
+@media (prefers-reduced-motion: reduce) { .coach__spot, .coach__bubble { animation: none; transition: none; } }

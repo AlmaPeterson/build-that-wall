@@ -3,6 +3,7 @@
   "version": "1.15",
   "date": "2026-11-24",
   "changes": [
+   "Board look redone for the white background; timer no longer under the Menu",
    "Board: one Menu for everything but playing; background back to white (step 2)",
    "New look for the game board (step 1 of the quality pass)"
   ]

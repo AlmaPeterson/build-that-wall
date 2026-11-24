@@ -4,7 +4,7 @@
 // room; CrazyGames' mute setting is followed; and it's told when a game is being played.
 import { CrazyGames } from '../services/platform/crazygames';
 import { screen } from './app-state';
-import { onlineIntent } from './menus/start';
+import { neverCoached, onlineIntent, startTutorialGame } from './menus/start';
 import { online } from './online';
 import { pendingJoin } from './online/join-link';
 import { MAX_SEATS } from './online/messages';
@@ -58,4 +58,6 @@ export async function startCrazyGames(): Promise<void> {
   const invited = sdk.invitedRoom();
   if (invited) joinRoom(invited);
   else if (sdk.instantMultiplayer() && online.state.get().phase === 'idle') { onlineIntent.set('host'); screen.set('online'); }
+  // New here: straight into a first game against a bot, with the coach (CrazyGames: onboarding in gameplay)
+  else if (neverCoached() && screen.get() === 'menu' && online.state.get().phase === 'idle') startTutorialGame();
 }

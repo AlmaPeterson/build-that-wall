@@ -332,7 +332,11 @@ Section 8 explains each ending in detail and which to pick. Most players leave i
 
 ### 5.7 The Tutorial game
 
-The **Tutorial** button on the home page opens the Tutorial: the rules, then a picture tour of the website. Its last page has a **Start a tutorial game** button, which starts a game against bots with two differences: you always go first, and Tutorial tips are switched on, so a yellow box suggests a good move every turn and explains why (section 18.3).
+The **Tutorial** button on the home page opens the Tutorial: the rules, then a picture tour of the website. Its last page has a **Start a tutorial game** button, which starts a game against Easy bots in which you always go first and Tutorial tips are switched on, so a yellow box suggests a good move every turn and explains why (section 18.3).
+
+It begins with a **quick guide** of four steps. The board goes dim and one part lights up at a time, with a short note: **Your cards** (tap a card to see what it does, then play it), **Build your wall** (Wall Section cards, paid for with a Man Hour or 2 other wall cards), **Score miles** (1 matching wall is 3 miles, 2 are 8, 3 are 16) and **3 actions a turn** (then press End Turn). Press **Next** to go on, **Skip** to stop it at any time, and **Let's play!** on the last step. It waits until the "Your turn" banner is closed.
+
+**On CrazyGames,** someone playing for the first time goes straight into a tutorial game against a bot, with the quick guide, instead of the home page. After that the game opens on the home page as usual.
 
 ## 6. Pass'n'Play
 
