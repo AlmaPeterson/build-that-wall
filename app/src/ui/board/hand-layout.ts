@@ -5,14 +5,14 @@
 import { cardById, isWall, CARD, type CardId } from '../../data/cards';
 
 /** The hand box on the stage, in stage units (board.css .hand). */
-export const HAND_BOX = { x: 5, y: 218, w: 464, h: 84 };
+export const HAND_BOX = { x: 5, y: 214, w: 464, h: 98 };
 /** The box's border width, in stage units. Card spots are measured from inside it (CSS absolute positioning). */
 export const HAND_BORDER = 1.5;
-/** Where cards can go inside the border (the box is 461 × 81 in there). */
-const INNER = { x: 4, y: 3.5, w: 453, h: 74 };
+/** Where cards can go inside the border (the box is 461 × 95 in there). */
+const INNER = { x: 4, y: 3.5, w: 453, h: 88 };
 
-/** The full-size card in the hand, in stage units (the old game's size). */
-const CARD_W = 49, CARD_H = 67;
+/** The full-size card in the hand, in stage units (a quarter bigger than the old game's 49 × 67). */
+const CARD_W = 60, CARD_H = 82;
 /** Each card in a stack sits this much of a card's height lower than the one under it: the title shows. */
 const STACK_STEP = 0.18;
 /** Never show cards smaller than this (stage units wide): past it, stacks overlap sideways instead. */

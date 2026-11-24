@@ -24,13 +24,13 @@ describe('hand layout', () => {
         expect(s.x).toBeGreaterThanOrEqual(0);
         expect(s.y).toBeGreaterThanOrEqual(0);
         expect(s.x + s.w).toBeLessThanOrEqual(461);
-        expect(s.y + s.h).toBeLessThanOrEqual(81);
+        expect(s.y + s.h).toBeLessThanOrEqual(95);
       }
     }
   });
 
   it('a small hand is full size; a stack shows each card a little lower', () => {
-    expect(handLayout([29, 14])[0]).toMatchObject({ w: 49, h: 67 });
+    expect(handLayout([29, 14])[0]).toMatchObject({ w: 60, h: 82 });
     const [a, b] = handLayout([14, 14]);
     expect(b!.x).toBe(a!.x);
     expect(b!.y).toBeGreaterThan(a!.y + 3);

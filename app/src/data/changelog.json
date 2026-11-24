@@ -3,6 +3,7 @@
   "version": "1.14",
   "date": "2026-11-23",
   "changes": [
+   "Phones held upright: \"Keep playing like this\"; portrait video shows the real screen",
    "Portrait preview video: \"Turn your phone sideways\", then the game turns and fills the frame",
    "CrazyGames: covers and preview videos; no Amazon link on the board there",
    "CrazyGames mode: their SDK, no outside logins, ads, links or purchases",

@@ -25,10 +25,10 @@ import { Scoreboard } from './Scoreboard';
 import { MyWalls, OtherWalls } from './Walls';
 import { showCard } from '../components/zoom';
 import './board.css';
+import logo from '../menus/logo.png';
 import { onCG } from '../platform';
 
 const AMAZON = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
-const HEADER_IMAGE = 'assets/stage/page.svg';
 
 /** Where a card dragged out of the hand can be dropped, in stage units (board.css .piles, .walls-mine). */
 const DROP_ZONES: { zone: DropZone; x: number; y: number; w: number; h: number; label: string }[] = [
@@ -149,7 +149,7 @@ export function Board({ controller }: { controller: GameController }) {
   return (
     <>
     <div class="stage board" ref={stage}>
-      <div class="board__header" style={{ backgroundImage: `url(${HEADER_IMAGE})` }} role="banner" aria-label="Build That Wall" />
+      <div class="board__header" role="banner"><img class="board__logo" src={logo} alt="Build That Wall" /></div>
       <ActionLog events={snap.events} />
 
       <Scoreboard state={view} />
@@ -174,7 +174,7 @@ export function Board({ controller }: { controller: GameController }) {
       {!picking && message && <div class="at pickbar" role="alert">{message}</div>}
 
       <div class="at side side--top">
-        <Button class={live && view.actionsLeft < 1 ? 'btw-ready' : ''} disabled={!live} onClick={() => void act({ type: 'endTurn' }, 'click')}>End Turn</Button>
+        <Button class={'side__end-turn' + (live && view.actionsLeft < 1 ? ' btw-ready' : '')} disabled={!live} onClick={() => void act({ type: 'endTurn' }, 'click')}>End Turn</Button>
         <WatchVideosButton controller={controller} />
       </div>
       <div class="at side side--bottom">
