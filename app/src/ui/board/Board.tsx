@@ -15,7 +15,7 @@ import {
 } from './board-state';
 import { ConfirmEnd } from './BoardModal';
 import { online } from '../online';
-import { ActionLog } from './ActionLog';
+import { ActionLog, gameLogOpen } from './ActionLog';
 import { CardPopup } from './CardPopup';
 import { WatchVideosButton } from './CardVideos';
 import { cardImage } from '../assets';
@@ -211,7 +211,7 @@ export function Board({ controller }: { controller: GameController }) {
   );
 }
 
-/** Everything that isn't playing a card, in one menu at the top right: Settings, tutorial tips, Instructions, End Game. */
+/** Everything that isn't playing a card, in one menu at the top right: Game log, Settings, tutorial tips, Instructions, End Game. */
 function BoardMenu({ tutorial, onEndGame }: { tutorial: boolean; onEndGame: () => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -232,6 +232,7 @@ function BoardMenu({ tutorial, onEndGame }: { tutorial: boolean; onEndGame: () =
       </button>
       {open && (
         <div class="board__menu-list" role="menu" aria-label="Menu">
+          <button type="button" role="menuitem" onClick={go(() => gameLogOpen.set(true))}>Game log</button>
           <button type="button" role="menuitem" onClick={go(() => screen.set('settings'))}>Settings</button>
           <button type="button" role="menuitemcheckbox" aria-checked={tutorial}
             onClick={() => settings.update(s => ({ ...s, tutorial: !s.tutorial }))}>

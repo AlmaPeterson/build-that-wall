@@ -187,7 +187,8 @@ describe('board-state', () => {
     expect($('.side--bottom')).toBeNull();
     expect($('.board__menu-list')).toBeNull();
     await click($('.board__menu-button')!);
-    expect(texts('.board__menu-list button')).toEqual(['Settings', 'Tutorial tipsOff', 'Instructions', 'End Game']);
+    expect(texts('.board__menu-list button')).toEqual(['Game log', 'Settings', 'Tutorial tipsOff', 'Instructions', 'End Game']);
+    expect($('.board__log')).toBeNull();
     expect($('.board__menu-list button:last-child')!.classList.contains('board__menu-end')).toBe(true);
     await click($$('.board__menu-list button').find(b => b.textContent!.startsWith('Tutorial'))!);
     expect($('.board__menu-list [aria-checked="true"]')).not.toBeNull();

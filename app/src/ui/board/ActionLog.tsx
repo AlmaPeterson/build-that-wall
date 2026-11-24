@@ -1,26 +1,25 @@
-// "Game log", top left (the old "AI Log"): tap it to read the whole game back. The latest thing
-// that happened is still read out to screen readers.
-import { useEffect, useRef, useState } from 'preact/hooks';
+// The game log (the old "AI Log"): Menu > Game log reads the whole game back. The latest thing that
+// happened is still read out to screen readers.
+import { useEffect, useRef } from 'preact/hooks';
 import type { GameEvent } from '../../game';
 import { Button } from '../components/Button';
+import { createStore, useStore } from '../store';
+
+/** The whole game log is showing (opened from the board's Menu). */
+export const gameLogOpen = createStore(false);
 
 /** Not worth a line of their own at the top: they happen every turn. */
 const ROUTINE: readonly string[] = ['deal', 'draw', 'turnStart', 'turnEnd', 'gameStart'];
 
 export function ActionLog({ events }: { events: readonly GameEvent[] }) {
-  const [open, setOpen] = useState(false);
+  const open = useStore(gameLogOpen);
   const last = [...events].reverse().find(e => !ROUTINE.includes(e.type));
+  // A new game starts with the log closed
+  useEffect(() => () => gameLogOpen.set(false), []);
   return (
     <>
-      <button type="button" class="at board__log" title="Show everything that happened this game" onClick={() => setOpen(true)}>
-        <svg class="board__log-icon" viewBox="0 0 16 16" aria-hidden="true">
-          <circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6" />
-          <path d="M8 4.2V8l2.6 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-        </svg>
-        Game log
-      </button>
       <span class="visually-hidden" aria-live="polite">{last?.text ?? ''}</span>
-      {open && <FullLog events={events} onClose={() => setOpen(false)} />}
+      {open && <FullLog events={events} onClose={() => gameLogOpen.set(false)} />}
     </>
   );
 }

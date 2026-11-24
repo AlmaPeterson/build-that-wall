@@ -288,7 +288,7 @@ button.board__log { cursor: pointer; font-family: inherit; }
 
 /* Ends in __ Minutes: the time left, a pill in the header opposite the Game log */
 .board__clock {
-  z-index: 42; right: calc(var(--u) * 72); top: calc(var(--u) * 38); min-height: calc(var(--u) * 17);   /* left of the Menu */
+  z-index: 42; left: calc(var(--u) * 6); top: calc(var(--u) * 38); min-height: calc(var(--u) * 17);   /* top left, opposite the Menu */
   background: rgba(255, 255, 255, .94); border-radius: 999px; box-shadow: 0 calc(var(--u) * 1) calc(var(--u) * 3) rgba(0, 0, 0, .25);
   color: #7a1a16; font-weight: bold; font-size: calc(var(--u) * 9 * var(--tb)); line-height: 1.1;
   display: inline-flex; align-items: center; gap: calc(var(--u) * 4); padding: calc(var(--u) * 2) calc(var(--u) * 9) calc(var(--u) * 2) calc(var(--u) * 6);
@@ -377,3 +377,23 @@ button.board__log { cursor: pointer; font-family: inherit; }
 .board__menu-switch { padding: calc(var(--u) * 1) calc(var(--u) * 5); border-radius: 999px; background: #eee3e0; color: #7a5a54; font-size: .8em; }
 .board__menu-switch.is-on { background: #ffd84d; color: #5a1210; }
 .board__menu-list .board__menu-end { margin-top: calc(var(--u) * 4); border-top: 1px solid #ead7d2; border-radius: 0 0 calc(var(--u) * 5) calc(var(--u) * 5); color: #b3122a; }
+
+/* ---- Phones and other wide or short screens
+   The header band runs the full width of the window, so the board's sides don't look cut off
+   (68 of the stage's 640 units; the stage is as wide as the window or 16:9 of its height). */
+.game-screen {
+  min-height: 100%;
+  background: linear-gradient(var(--red), var(--red)) top center / 100% calc(min(100vw, 100dvh * 16 / 9) * 68 / 640) no-repeat, var(--paper);
+}
+/* Short screens (phones turned sideways): bigger board text */
+@media (max-height: 500px) {
+  .board { --tb: calc(var(--text-board) * 1.2); }
+  /* ...except in the fixed-size name boxes, where names would be cut short */
+  .score, .walls-row__tag { --tb: var(--text-board); }
+}
+/* Touch screens: the small pills are big enough for a finger */
+@media (pointer: coarse) {
+  .board__menu-button, .board__clock { min-height: max(calc(var(--u) * 17), 36px); padding-left: max(calc(var(--u) * 7), 12px); padding-right: max(calc(var(--u) * 9), 14px); }
+  .board__menu-list { width: max(calc(var(--u) * 130), 200px); }
+  .board__menu-list button { min-height: max(calc(var(--u) * 22), 42px); font-size: max(calc(var(--u) * 10 * var(--tb)), 15px); }
+}

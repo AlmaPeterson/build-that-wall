@@ -24,7 +24,7 @@ export function Piles({ state }: { state: GameState }) {
           {state.actionsLeft} {state.actionsLeft === 1 ? 'action left' : 'actions left'}
         </div>
       )}
-      {/* Ends in __ Minutes: the time left, in the header opposite the Game log */}
+      {/* Ends in __ Minutes: the time left, at the top left of the header */}
       {state.settings.ending === 6 && state.turn >= 0 && !state.over && (
         <div class="at board__clock" aria-live="polite" title="Time left in this game (counted at the start of each turn)">
           <svg class="board__log-icon" viewBox="0 0 16 16" aria-hidden="true">
