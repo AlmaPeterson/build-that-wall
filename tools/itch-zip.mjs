@@ -1,8 +1,10 @@
-// Makes build-that-wall-zip.zip (at the top of the project) for uploading to itch.io: the built game
-// (app/dist) with index.html at the top of the zip, as itch.io wants it. `npm run build` runs this after
-// every build, so the zip always has the latest game. Not on GitHub's build (CI), and not kept in git.
+// After every build (`npm run build`), the game ready to upload, at the top of the project:
+//  - upload-to-itch.zip: for itch.io, the built game (app/dist) with index.html at the top of the zip;
+//  - upload-to-crazygames/: for CrazyGames, which takes the files themselves (not a zip): drag everything
+//    inside this folder into CrazyGames' upload box.
+// Not on GitHub's build (CI), and not kept in git.
 // No extra packages: a plain zip writer using Node's own zlib.
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deflateRawSync } from 'node:zlib';
@@ -11,7 +13,9 @@ if (process.env.CI) process.exit(0);
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'app', 'dist');
-const OUT = join(ROOT, 'build-that-wall-zip.zip');
+const OUT = join(ROOT, 'upload-to-itch.zip');
+const CRAZY = join(ROOT, 'upload-to-crazygames');
+const OLD = join(ROOT, 'build-that-wall-zip.zip');   // what the itch.io zip used to be called
 const ITCH_MAX_FILES = 1000;
 
 const files = [];
@@ -52,4 +56,10 @@ const end = Buffer.alloc(22);
 end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10);
 end.writeUInt32LE(cenSize, 12); end.writeUInt32LE(offset, 16);
 writeFileSync(OUT, Buffer.concat([...parts, ...central, end]));
-console.log(`itch.io zip: build-that-wall-zip.zip (${files.length} files, ${(statSync(OUT).size / 1048576).toFixed(1)} MB)`);
+rmSync(OLD, { force: true });
+console.log(`itch.io: upload-to-itch.zip (${files.length} files, ${(statSync(OUT).size / 1048576).toFixed(1)} MB)`);
+
+// CrazyGames: the same files, unzipped
+rmSync(CRAZY, { recursive: true, force: true });
+cpSync(DIST, CRAZY, { recursive: true });
+console.log('CrazyGames: upload-to-crazygames/ (drag everything inside it into the upload box)');

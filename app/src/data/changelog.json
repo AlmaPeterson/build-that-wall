@@ -3,6 +3,7 @@
   "version": "1.15",
   "date": "2026-11-24",
   "changes": [
+   "Card choices wrap instead of scrolling; End Turn and Watch videos match",
    "Upright board stops above the footer; new CrazyGames videos",
    "CrazyGames: Escape left to the browser; grey hand tray (step 5)",
    "Phones held upright get their own layout (step 4, part 2)",

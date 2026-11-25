@@ -49,7 +49,7 @@ export const WIDE: Geometry = {
 
 export const TALL: Geometry = {
   stageW: 300, stageH: 600,
-  handBox: { x: 4, y: 352, w: 292, h: 196 }, handBorder: 1.5, inner: { x: 4, y: 4, w: 281, h: 185 }, handRows: 3,
+  handBox: { x: 4, y: 352, w: 292, h: 196 }, handBorder: 1.5, inner: { x: 4, y: 4, w: 281, h: 185 }, handRows: 4,
   drop: [
     { zone: 'discard', x: 52, y: 186, w: 50, h: 78, label: 'Play' },
     { zone: 'walls', x: 2, y: 286, w: 200, h: 47, label: 'Build' },

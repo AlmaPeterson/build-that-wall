@@ -1,3 +1,5 @@
 .claude/
-# itch.io upload, made by every build (tools/itch-zip.mjs)
+# Uploads for itch.io and CrazyGames, made by every build (tools/itch-zip.mjs)
 build-that-wall-zip*.zip
+upload-to-itch.zip
+upload-to-crazygames/

@@ -93,14 +93,17 @@ export function handLayout(hand: readonly CardId[]): Spot[] {
   const { inner, handRows } = geometry();
   const deepestOf = (gs: Stack[]) => Math.max(...gs.map(s => s.slots.length));
 
-  // How many rows: the one giving the biggest cards (all rows the same size)
-  let best = { rows: [groups], w: 0 };
+  // How many rows: the one where the most of each card shows. That's the card width, or less when the stacks
+  // have to overlap sideways (a huge hand), so more rows win once one row would squash the cards together.
+  let best = { rows: [groups], w: 0, shows: 0 };
   for (let r = 1; r <= Math.min(handRows, groups.length); r++) {
     const per = Math.ceil(groups.length / r);
     const rows = Array.from({ length: Math.ceil(groups.length / per) }, (_, k) => groups.slice(k * per, (k + 1) * per));
     const box = { ...inner, h: inner.h / rows.length };
-    const w = Math.min(...rows.map(row => fit(row.length, deepestOf(row), box).w));
-    if (w > best.w + 0.01) best = { rows, w };
+    const fits = rows.map(row => ({ f: fit(row.length, deepestOf(row), box), n: row.length }));
+    const w = Math.min(...fits.map(x => x.f.w));
+    const shows = Math.min(...fits.map(x => (x.n > 1 ? Math.min(x.f.w, x.f.pitch) : x.f.w)));
+    if (shows > best.shows + 0.01) best = { rows, w, shows };
   }
   const rowH = inner.h / best.rows.length;
   let z = 1;

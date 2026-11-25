@@ -425,6 +425,8 @@ html.tall-board .zoom__buttons { left: calc(var(--u) * 8); right: calc(var(--u) 
 html.tall-board .zoom__buttons .btw-button { min-width: calc(var(--u) * 130); }
 html.tall-board .board-modal__box { width: calc(var(--u) * 280); max-height: calc(var(--u) * 540); }
 html.tall-board .log__list { max-height: calc(var(--u) * 420); }
-html.tall-board .board__footer { height: 46px; flex-direction: column; gap: 2px; font-size: 14px; }
+/* Under the board, not over it: if a browser works out the height a little differently, the page scrolls a little
+   instead of the footer covering End Turn */
+html.tall-board .board__footer { position: static; height: 46px; flex-direction: column; gap: 2px; font-size: 14px; }
 html.tall-board .board__footer small { position: static; font-size: 11px; }
 html.tall-board .zoom:not(.zoom--moved) { background: rgba(0, 0, 0, .86); }
