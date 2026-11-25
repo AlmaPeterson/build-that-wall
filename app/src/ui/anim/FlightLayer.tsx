@@ -1,5 +1,6 @@
 // Draws the animator's flying cards over the board with the Web Animations API, and the caption for a
 // played card. Tapping anywhere while cards are moving finishes the step.
+import { geometry } from '../board/geometry';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { CardPopup } from '../board/CardPopup';
 import { openCardBelow, showCard, zoomedCard } from '../components/zoom';
@@ -64,7 +65,7 @@ function FlyingCard({ flight, duration, unit, paused, onOpen }: { flight: Flight
 export function FlightLayer({ animator }: { animator: Animator }) {
   const { flights, duration, caption, target, held, confirm, paused } = useStore(animator.state);
   const layer = useRef<HTMLDivElement>(null);
-  const unit = (layer.current?.parentElement?.clientWidth ?? 640) / 640;
+  const unit = (layer.current?.parentElement?.clientWidth ?? geometry().stageW) / geometry().stageW;
   // A card opened full size from the middle pauses the game until it's closed
   useEffect(() => zoomedCard.subscribe(c => { if (c === null) animator.resume(); }), [animator]);
   const open = (card: number) => { animator.pause(); showCard(card); };

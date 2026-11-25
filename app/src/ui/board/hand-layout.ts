@@ -3,13 +3,12 @@
 // and everything shrinks to fit: the whole hand is always in view, nothing scrolls.
 // Pure functions: the hand (board/Hand.tsx) and the flying cards (anim/layout.ts) both use them.
 import { cardById, isWall, CARD, type CardId } from '../../data/cards';
+import { geometry, WIDE, type Rect } from './geometry';
 
-/** The hand box on the stage, in stage units (board.css .hand). */
-export const HAND_BOX = { x: 5, y: 214, w: 464, h: 98 };
+/** The hand box on the wide stage, in stage units (board.css .hand); geometry() has the one in use now. */
+export const HAND_BOX = WIDE.handBox;
 /** The box's border width, in stage units. Card spots are measured from inside it (CSS absolute positioning). */
-export const HAND_BORDER = 1.5;
-/** Where cards can go inside the border (the box is 461 × 95 in there). */
-const INNER = { x: 4, y: 3.5, w: 453, h: 88 };
+export const HAND_BORDER = WIDE.handBorder;
 
 /** The full-size card in the hand, in stage units (a quarter bigger than the old game's 49 × 67). */
 const CARD_W = 60, CARD_H = 82;
@@ -57,41 +56,63 @@ export function displayOrder(hand: readonly CardId[]): number[] {
 
 export interface Spot { x: number; y: number; w: number; h: number; z: number }
 
-/**
- * Where each slot of `hand` is drawn, relative to the hand box's top left, in stage units. Indexed by slot.
- * `z` is the stacking order (a card covers the ones with lower z).
- */
-export function handLayout(hand: readonly CardId[]): Spot[] {
-  const groups = stacks(hand);
-  const out: Spot[] = new Array(hand.length);
-  if (!groups.length) return out;
-  const g = groups.length, deepest = Math.max(...groups.map(s => s.slots.length));
+interface Fit { w: number; h: number; pitch: number; step: number }
 
+/** The biggest cards (no bigger than `maxH` tall) for `g` stacks, the deepest `deepest` cards, side by side in `box`. */
+function fit(g: number, deepest: number, box: Rect, maxH = CARD_H): Fit {
   // Tall enough for the deepest stack...
-  let h = Math.min(CARD_H, INNER.h / (1 + (deepest - 1) * STACK_STEP));
+  let h = Math.min(maxH, box.h / (1 + (deepest - 1) * STACK_STEP));
   let w = h * CARD_W / CARD_H;
   // ...and narrow enough for every stack side by side
-  const fits = (cw: number, gap: number) => g * cw + (g - 1) * gap <= INNER.w;
+  const fits = (cw: number, gap: number) => g * cw + (g - 1) * gap <= box.w;
   let gap = w * GAP;
   if (!fits(w, gap)) {
-    gap = Math.max(w * MIN_GAP, (INNER.w - g * w) / Math.max(1, g - 1));
+    gap = Math.max(w * MIN_GAP, (box.w - g * w) / Math.max(1, g - 1));
     if (!fits(w, gap)) {
-      w = Math.max(MIN_W, INNER.w / (g + (g - 1) * MIN_GAP));
+      w = Math.max(MIN_W, box.w / (g + (g - 1) * MIN_GAP));
       h = w * CARD_H / CARD_W;
       gap = w * MIN_GAP;
     }
   }
   // Still too wide (a huge hand at the smallest size): the stacks overlap sideways, each one's left edge showing
   let pitch = w + gap;
-  if (g > 1 && w + (g - 1) * pitch > INNER.w) pitch = (INNER.w - w) / (g - 1);
-  const step = deepest > 1 ? Math.min(h * STACK_STEP, (INNER.h - h) / (deepest - 1)) : 0;
+  if (g > 1 && w + (g - 1) * pitch > box.w) pitch = (box.w - w) / (g - 1);
+  const step = deepest > 1 ? Math.min(h * STACK_STEP, (box.h - h) / (deepest - 1)) : 0;
+  return { w, h, pitch, step };
+}
 
-  const width = w + (g - 1) * pitch;
-  const left = INNER.x + Math.max(0, (INNER.w - width) / 2);   // centred
+/**
+ * Where each slot of `hand` is drawn, relative to the hand box's top left, in stage units. Indexed by slot.
+ * `z` is the stacking order (a card covers the ones with lower z). On the tall layout the stacks may wrap onto
+ * up to 3 rows, whichever gives the biggest cards.
+ */
+export function handLayout(hand: readonly CardId[]): Spot[] {
+  const groups = stacks(hand);
+  const out: Spot[] = new Array(hand.length);
+  if (!groups.length) return out;
+  const { inner, handRows } = geometry();
+  const deepestOf = (gs: Stack[]) => Math.max(...gs.map(s => s.slots.length));
+
+  // How many rows: the one giving the biggest cards (all rows the same size)
+  let best = { rows: [groups], w: 0 };
+  for (let r = 1; r <= Math.min(handRows, groups.length); r++) {
+    const per = Math.ceil(groups.length / r);
+    const rows = Array.from({ length: Math.ceil(groups.length / per) }, (_, k) => groups.slice(k * per, (k + 1) * per));
+    const box = { ...inner, h: inner.h / rows.length };
+    const w = Math.min(...rows.map(row => fit(row.length, deepestOf(row), box).w));
+    if (w > best.w + 0.01) best = { rows, w };
+  }
+  const rowH = inner.h / best.rows.length;
   let z = 1;
-  groups.forEach((s, i) => {
-    s.slots.forEach((slot, j) => {
-      out[slot] = { x: left + i * pitch, y: INNER.y + j * step, w, h, z: z++ };
+  best.rows.forEach((row, r) => {
+    const box = { ...inner, y: inner.y + r * rowH, h: rowH };
+    const f = fit(row.length, deepestOf(row), box, best.w * CARD_H / CARD_W);
+    const width = f.w + (row.length - 1) * f.pitch;
+    const left = box.x + Math.max(0, (box.w - width) / 2);   // centred
+    row.forEach((s, i) => {
+      s.slots.forEach((slot, j) => {
+        out[slot] = { x: left + i * f.pitch, y: box.y + j * f.step, w: f.w, h: f.h, z: z++ };
+      });
     });
   });
   return out;

@@ -1,6 +1,7 @@
 // The in-game board (docs/game-rules.md sections 4-6), laid out like the old game.
 // Reads the controller's snapshot; acts through controller.act. Questions the engine asks
 // (blocks, targets, picks) are shown by the overlays on top of this.
+import { geometry, layoutMode } from './geometry';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { CardId } from '../../data/cards';
 import type { Action } from '../../game';
@@ -30,11 +31,6 @@ import { onCG } from '../platform';
 
 const AMAZON = 'https://www.amazon.com/Beacon-Political-Outrageously-Adults-Players/dp/B0DPCY51PJ';
 
-/** Where a card dragged out of the hand can be dropped, in stage units (board.css .piles, .walls-mine). */
-const DROP_ZONES: { zone: DropZone; x: number; y: number; w: number; h: number; label: string }[] = [
-  { zone: 'discard', x: 252, y: 115, w: 50, h: 78, label: 'Play' },
-  { zone: 'walls', x: 3, y: 166, w: 196, h: 47, label: 'Build' },
-];
 
 /** Picking cards from the hand after choosing "Pick 2 Walls to Discard" or "Use On Wall". */
 type Picking =
@@ -45,6 +41,7 @@ export function Board({ controller }: { controller: GameController }) {
   const animator = animatorFor(controller);
   const { snap, idle } = useStore(animator.state);
   const { tutorial } = useStore(settings);
+  useStore(layoutMode);   // wide or tall: everything is placed again
   const [open, setOpen] = useState<number | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [picking, setPicking] = useState<Picking | null>(null);
@@ -123,8 +120,8 @@ export function Board({ controller }: { controller: GameController }) {
   function zoneAt(x: number, y: number): DropZone | null {
     const r = stage.current?.getBoundingClientRect();
     if (!r || !r.width) return null;
-    const u = r.width / 640, sx = (x - r.left) / u, sy = (y - r.top) / u;
-    return DROP_ZONES.find(z => sx >= z.x && sx <= z.x + z.w && sy >= z.y && sy <= z.y + z.h)?.zone ?? null;
+    const u = r.width / geometry().stageW, sx = (x - r.left) / u, sy = (y - r.top) / u;
+    return geometry().drop.find(z => sx >= z.x && sx <= z.x + z.w && sy >= z.y && sy <= z.y + z.h)?.zone ?? null;
   }
 
   function onLift(slot: number, x: number, y: number, phase: 'move' | 'drop' | 'cancel') {
@@ -185,7 +182,7 @@ export function Board({ controller }: { controller: GameController }) {
           onDoubleClick={() => { const id = hand[open]; setOpen(null); showCard(id); }} />
       )}
       {confirm && <ConfirmEnd onYes={endGame} onNo={() => setConfirm(false)} />}
-      {lift && DROP_ZONES.map(z => {
+      {lift && geometry().drop.map(z => {
         const r = dropAction(api, snap, lift.slot, z.zone, busy);
         const ok = 'choice' in r || 'open' in r;
         return (

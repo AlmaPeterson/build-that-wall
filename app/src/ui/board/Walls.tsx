@@ -5,6 +5,8 @@ import type { GameState, Seat } from '../../game';
 import { cardImage } from '../assets';
 import { zoomProps } from '../components/zoom';
 import { displayName, isGuarded, TRUMP_TRAIN, wallKinds } from './board-state';
+import { geometry, layoutMode } from './geometry';
+import { useStore } from '../store';
 
 const u = (n: number) => `calc(var(--u) * ${n})`;
 /** Other players' rows: the walls start right of the name tag (anim/layout.ts places flying cards the same). */
@@ -34,12 +36,14 @@ function WallCards({ state, seat, w, h, step, maxWidth }: { state: GameState; se
 
 /** The viewer's own walls. */
 export function MyWalls({ state, seat }: { state: GameState; seat: Seat }) {
+  useStore(layoutMode);
+  const g = geometry();
   if (!state.seats[seat]?.walls.length) {
-    return <div class="at walls-none" style={{ left: u(21), top: u(181), width: u(150), height: u(20) }}>No walls built yet</div>;
+    return <div class="at walls-none" style={{ left: u(g.none.x), top: u(g.none.y), width: u(g.none.w), height: u(g.none.h) }}>No walls built yet</div>;
   }
   return (
     <div class="at walls-mine" aria-label="Your walls">
-      <WallCards state={state} seat={seat} w={24} h={34} step={27} maxWidth={162} />
+      <WallCards state={state} seat={seat} w={g.mine.w} h={g.mine.h} step={g.mine.step} maxWidth={g.mine.max} />
     </div>
   );
 }
@@ -52,11 +56,13 @@ export function shortName(state: GameState, seat: Seat): string {
 
 /** Everyone else's walls, one row each, with a tag showing (the start of) their name. */
 export function OtherWalls({ state, viewer }: { state: GameState; viewer: Seat }) {
+  useStore(layoutMode);
+  const g = geometry();
   const others = state.seats.map((_, seat) => seat).filter(seat => seat !== viewer);
   return (
     <>
       {others.map((seat, row) => (
-        <div class="at walls-row" key={seat} style={{ top: u(95 + row * 22) }} aria-label={`${displayName(state, seat)}'s walls`}>
+        <div class="at walls-row" key={seat} style={{ left: u(g.others.x), top: u(g.others.y + row * g.others.rowStep) }} aria-label={`${displayName(state, seat)}'s walls`}>
           <span class={`walls-row__tag ${seat === state.turn ? 'walls-row__tag--turn' : ''}`} title={displayName(state, seat)}>{shortName(state, seat)}</span>
           {state.seats[seat]!.walls.length
             ? <div style={{ position: 'absolute', left: u(OTHER_WALLS_LEFT), top: u(0.5), height: u(21) }}>

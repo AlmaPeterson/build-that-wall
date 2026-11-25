@@ -721,11 +721,16 @@ The game screen shows everything at once: the scores at the top left, the piles 
 
 ### 9.1 Phones and screen size
 
-The board is wide, so phones play best turned sideways (landscape). If you hold a phone upright, a picture of a phone turning appears with the message to turn it sideways. On Android phones there is also a **Play full screen** button, which fills the whole screen and turns the game sideways for you. To play with the phone upright anyway, press **Keep playing like this**: the board shows small at the top of the screen, and the message doesn't come back until you open the game again.
+The board fits whatever way you hold your phone:
 
-![Turn your phone sideways](guide/80-phone-upright.png)
+- **Held upright:** everything is stacked from top to bottom: Miles of Wall and Cards in Hand side by side, the actions left, Draw and Discard next to everyone else's walls, your walls, then your hand in a big tray (the cards wrap onto 2 or 3 rows so they stay big) and a wide **End Turn** at the bottom. A card you tap opens with its picture at the top, what it does under it and the buttons at the bottom.
+- **Turned sideways:** the same wide board as on a computer, with bigger text on short screens.
 
-*On a phone held upright, the game asks you to turn it sideways.*
+On touch screens the **Menu** button and the items in it are big enough for a finger. The layout changes by itself when you turn the phone.
+
+![The board on a phone held upright](guide/80-phone-upright.png)
+
+*The board on a phone held upright: your hand in two rows, End Turn at the bottom.*
 
 On a computer, the board grows to fill the window while keeping its shape. Make the browser window bigger, or press F11 for full screen, to make the cards bigger.
 

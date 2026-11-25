@@ -262,23 +262,6 @@ button.board__log { cursor: pointer; font-family: inherit; }
   font: bold calc(var(--u) * 8) Arial, sans-serif; color: #1a6b2c; }
 .drop-zone--no .drop-zone__label { color: #888; }
 
-/* A phone held upright: the board is wide, so ask for the phone to be turned sideways (screens/Game.tsx) */
-.rotate-hint { display: none; }
-@media (orientation: portrait) and (max-width: 600px) {
-  .rotate-hint {
-    position: fixed; inset: 0; z-index: 2000;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-    padding: 24px 16px; text-align: center;
-    background: var(--red); color: #fff; font-family: var(--font);
-  }
-  .rotate-hint__phone { width: 90px; height: 90px; animation: rotate-hint 2.4s ease-in-out infinite; }
-  .rotate-hint h2 { margin: 0; font-size: 1.7rem; }
-  .rotate-hint p { margin: 0; max-width: 300px; font-family: var(--font-body); font-weight: bold; font-size: 1.05rem; line-height: 1.35; }
-  .rotate-hint .btw-button { font-size: 1.1rem; background: #fff; color: var(--red); border-color: var(--red-dark); }
-  .rotate-hint__end { background: none !important; color: #fff !important; border-color: #fff !important; }
-}
-@keyframes rotate-hint { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
-@media (prefers-reduced-motion: reduce) { .rotate-hint__phone { animation: none; transform: rotate(-90deg); } }
 
 /* Gold replay controls, along the bottom of the board */
 .replay-bar { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 60; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;
@@ -397,3 +380,47 @@ button.board__log { cursor: pointer; font-family: inherit; }
   .board__menu-list { width: max(calc(var(--u) * 130), 200px); }
   .board__menu-list button { min-height: max(calc(var(--u) * 22), 42px); font-size: max(calc(var(--u) * 10 * var(--tb)), 15px); }
 }
+
+/* ======================================================================================================
+   Phones held upright: the tall layout (geometry.ts TALL), a 300 × 600 stage. html.tall-board is set by
+   geometry.ts while the screen is clearly taller than wide. Top to bottom: header, the two score boxes, actions,
+   Draw / Discard beside everyone else's walls, your walls, your hand (cards in rows), End Turn.
+   ====================================================================================================== */
+html.tall-board .stage {
+  width: min(100vw, 100dvh / 2); aspect-ratio: 1 / 2;
+  --u: calc(100cqw / 300);
+}
+html.tall-board .board__footer { --u: calc(min(100vw, 100dvh / 2) / 300); }
+html.tall-board .game-screen {
+  background: linear-gradient(var(--red), var(--red)) top center / 100% calc(min(100vw, 100dvh / 2) * 44 / 300) no-repeat, var(--paper);
+}
+html.tall-board .board__header { height: calc(var(--u) * 44); }
+html.tall-board .board__logo { height: calc(var(--u) * 38); }
+html.tall-board .board__menu { right: calc(var(--u) * 5); top: calc(var(--u) * 12); }
+html.tall-board .board__clock { left: calc(var(--u) * 5); top: calc(var(--u) * 12); }
+html.tall-board .score { top: calc(var(--u) * 48); }
+html.tall-board .score--miles { left: calc(var(--u) * 4); width: calc(var(--u) * 144); }
+html.tall-board .score--hand { left: calc(var(--u) * 152); width: calc(var(--u) * 144); }
+html.tall-board .board__actions { left: calc(var(--u) * 4); top: calc(var(--u) * 150); }
+html.tall-board .board__jail { left: calc(var(--u) * 118); top: calc(var(--u) * 153); }
+html.tall-board .piles { left: calc(var(--u) * 4); top: calc(var(--u) * 174); }
+html.tall-board .walls-row { width: calc(var(--u) * 192); }
+html.tall-board .hand__title { left: calc(var(--u) * 4); top: calc(var(--u) * 334); width: calc(var(--u) * 292); }
+html.tall-board .hand, html.tall-board .hand__hidden { left: calc(var(--u) * 4); top: calc(var(--u) * 352); width: calc(var(--u) * 292); height: calc(var(--u) * 196); }
+/* Messages: over the "Your Hand" title, just above the cards */
+html.tall-board .pickbar, html.tall-board .flights__caption { left: calc(var(--u) * 4); top: calc(var(--u) * 330); width: calc(var(--u) * 292); }
+/* End Turn (and Watch videos) across the bottom */
+html.tall-board .side--top { left: calc(var(--u) * 4); top: calc(var(--u) * 556); width: calc(var(--u) * 292); flex-direction: row; }
+html.tall-board .side--top .btw-button { flex: 1; }
+/* A card popup: the picture at the top, what it does under it, the buttons at the bottom */
+html.tall-board .zoom__card { left: calc(var(--u) * 41); top: calc(var(--u) * 46); }
+html.tall-board .zoom__grip { left: calc(var(--u) * 237); top: calc(var(--u) * 327); }
+html.tall-board .zoom__qr { left: calc(var(--u) * 41); top: calc(var(--u) * 356); }
+html.tall-board .zoom__text { left: calc(var(--u) * 16); top: calc(var(--u) * 392); width: calc(var(--u) * 268); }
+html.tall-board .zoom__buttons { left: calc(var(--u) * 8); right: calc(var(--u) * 8); top: calc(var(--u) * 520); flex-wrap: wrap; gap: calc(var(--u) * 8); }
+html.tall-board .zoom__buttons .btw-button { min-width: calc(var(--u) * 130); }
+html.tall-board .board-modal__box { width: calc(var(--u) * 280); max-height: calc(var(--u) * 540); }
+html.tall-board .log__list { max-height: calc(var(--u) * 420); }
+html.tall-board .board__footer { height: calc(var(--u) * 34); flex-direction: column; gap: calc(var(--u) * 2); }
+html.tall-board .board__footer small { position: static; }
+html.tall-board .zoom:not(.zoom--moved) { background: rgba(0, 0, 0, .86); }

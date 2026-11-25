@@ -7,7 +7,7 @@ import { CardZoom } from '../board/CardZoom';
 import { startDemoFromUrl } from '../board/demo';
 import { Button } from '../components/Button';
 import { Overlays } from '../overlays/Overlays';
-import { createStore, useStore } from '../store';
+import { useStore } from '../store';
 import { endReplay, ReplayController } from '../replay';
 
 // ?demo in the address starts a game straight away (a dev helper; see board/demo.ts)
@@ -30,7 +30,6 @@ export function GameScreen() {
       {c instanceof ReplayController && <ReplayBar c={c} />}
       <CardZoom />
       <CardVideos controller={c} />
-      <RotateHint />
       <Coach />
     </div>
   );
@@ -50,39 +49,6 @@ function ReplayBar({ c }: { c: ReplayController }) {
       <Button color="plain" aria-label="Last turn" disabled={frame >= last} onClick={() => { c.pause(); c.goto(last); }}>⏭</Button>
       <span class="replay-bar__at" aria-live="polite">{frame >= last ? 'The end' : 'Turn ' + (frame + 1) + ' of ' + last}</span>
       <Button color="plain" onClick={endReplay}>Exit replay</Button>
-    </div>
-  );
-}
-
-/** "Keep playing like this" was pressed: no more asking until the page is opened again. */
-const keepUpright = createStore(false);
-
-/**
- * On a phone held upright (CSS shows it only then): turn the phone sideways. Where the browser allows it
- * (Android), a button goes full screen and turns the game sideways by itself. "Keep playing like this" plays on
- * upright instead.
- */
-function RotateHint() {
-  const upright = useStore(keepUpright);
-  const canFull = typeof document !== 'undefined' && !!document.documentElement.requestFullscreen && document.fullscreenEnabled;
-  const fullScreen = async () => {
-    try {
-      await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
-      await (globalThis.screen as unknown as { orientation?: { lock?: (o: string) => Promise<void> } }).orientation?.lock?.('landscape');
-    } catch { /* not allowed here: turning the phone still works */ }
-  };
-  if (upright) return null;
-  return (
-    <div class="rotate-hint" role="dialog" aria-label="Turn your phone sideways">
-      <svg class="rotate-hint__phone" viewBox="0 0 90 90" aria-hidden="true">
-        <rect x="27" y="8" width="36" height="74" rx="7" fill="none" stroke="#fff" stroke-width="5" />
-        <rect x="35" y="16" width="20" height="54" rx="2" fill="#fff" opacity=".35" />
-        <circle cx="45" cy="76" r="2.5" fill="#fff" />
-      </svg>
-      <h2>Turn your phone sideways</h2>
-      <p>The game board is wide. Hold your phone sideways to play; your game is waiting.</p>
-      {canFull && <Button onClick={() => void fullScreen()}>Play full screen</Button>}
-      <Button class="rotate-hint__end" color="plain" onClick={() => keepUpright.set(true)}>Keep playing like this</Button>
     </div>
   );
 }
