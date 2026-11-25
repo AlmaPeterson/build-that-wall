@@ -159,11 +159,12 @@
   .btw-pass-hand .dev, .btw-pass-card, .btw-win-body, .btw-win-brick, .btw-toast { animation: none; }
 }
 
-/* Cards from your hand: one row of stacks, every card in view. The cards shrink to fit the row. */
+/* Cards from your hand: stacks side by side, shrinking to fit one row; when they'd get too small, they wrap onto
+   more rows instead. Every card stays in view: nothing to scroll (a centred row that scrolled cut off its start). */
 .btw-ov-cards--hand {
-  flex-wrap: nowrap; gap: 8px; align-items: flex-start;
+  flex-wrap: wrap; gap: 8px; align-items: flex-start;
   container-type: inline-size; width: 100%;
-  --card-w: clamp(40px, calc((100cqw - (var(--stacks) - 1) * 8px) / var(--stacks) - 6px), calc(84px * var(--text-cards)));
+  --card-w: clamp(58px, calc((100cqw - (var(--stacks) - 1) * 8px) / var(--stacks) - 6px), calc(84px * var(--text-cards)));
 }
 .btw-ov-cards--hand .btw-ov-card img { width: var(--card-w); }
 .btw-ov-stack { display: flex; flex-direction: column; flex: none; }

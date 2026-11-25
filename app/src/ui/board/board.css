@@ -327,7 +327,10 @@ button.board__log { cursor: pointer; font-family: inherit; }
 .side .btw-button { box-shadow: 0 calc(var(--u) * 2) calc(var(--u) * 5) rgba(90, 18, 16, .2); }
 .side .side__end-turn { min-height: calc(var(--u) * 34); font-size: calc(var(--u) * 16 * var(--tb)); background: #ffd84d; color: #5a1210; border-color: #c9a227; }
 .side .side__end-turn:hover:not(:disabled) { background: #ffe57a; }
-.side .side__end-turn:disabled { background: #f4efe3; color: #b5a89a; border-color: #e4dccb; box-shadow: none; }
+.side .side__end-turn:disabled { background: #ffd84d; color: #5a1210; border-color: #c9a227; opacity: .45; box-shadow: none; }
+/* Watch videos looks just like End Turn */
+.side .side__videos { min-height: calc(var(--u) * 34); font-size: calc(var(--u) * 16 * var(--tb)); background: #ffd84d; color: #5a1210; border-color: #c9a227; }
+.side .side__videos:hover { background: #ffe57a; }
 
 /* The bot's last move, under the hand: a gold strip */
 .flights__caption { background: #ffd84d; border-color: #e0b100; color: #5a1210; }
