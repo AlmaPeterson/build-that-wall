@@ -185,9 +185,13 @@ describe('online game', () => {
     await until(() => hostC.state!.seats[1]!.bot === null);
     expect(hostC.state!.seats[1]!.standIn).toBe(false);
     await until(() => !clientC.canPlayAgain());
-    await passTurn(hostC, clientC);                          // their turn again: it waits for them
-    await until(() => hostC.api!.resting && hostC.state!.turn === 1);
+    // Their turn again: it waits for them (they may get a turn banner or a Play Immediately card first, by the deal)
+    void hostC.act({ type: 'endTurn' });
+    await until(() => hostC.state!.turn === 1 && !!clientC.snapshot.get().view);
+    await new Promise(r => setTimeout(r, 300));
     expect(hostC.state!.turn).toBe(1);
+    expect(hostC.state!.seats[1]).toMatchObject({ bot: null, standIn: false });
+    expect(hostC.allEvents.filter(e => e.type === 'turnEnd').at(-1)?.text).toBe('Hana ended their turn.');
   });
 
   it('leaving from End Game (or Back) tells the host straight away, and "Back to the game" shows the board again', async () => {

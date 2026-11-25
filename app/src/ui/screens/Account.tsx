@@ -127,7 +127,7 @@ function CrazyGamesCard({ player, busy, run, said, say }: { player: PlayerInfo; 
             <p>You're playing as a guest. Log in to CrazyGames to play under your CrazyGames username.</p>
             <label class="btw-row">
               <span>Your name</span>
-              <input class="btw-input" value={name} maxLength={20} onInput={e => setName((e.target as HTMLInputElement).value)} aria-label="Your name" />
+              <input class="btw-input" value={name} maxLength={20} autoCapitalize="none" spellcheck={false} onInput={e => setName((e.target as HTMLInputElement).value)} aria-label="Your name" />
               <Button color="plain" disabled={busy} onClick={() => run(async () => say(nameMessage(await saveMyName(name))))}>Save name</Button>
             </label>
           </>}
@@ -162,7 +162,7 @@ function AccountCard({ player, googleReady, busy, run, said, say }: { player: Pl
       </div>
       <label class="btw-row">
         <span>Your name</span>
-        <input class="btw-input" value={name} maxLength={20} onInput={e => setName((e.target as HTMLInputElement).value)} aria-label="Your name" />
+        <input class="btw-input" value={name} maxLength={20} autoCapitalize="none" spellcheck={false} onInput={e => setName((e.target as HTMLInputElement).value)} aria-label="Your name" />
         <Button color="plain" disabled={busy} onClick={() => run(async () => say(nameMessage(await saveMyName(name))))}>Save name</Button>
       </label>
       <Message text={said?.text ?? ''} ok={!!said?.ok} />

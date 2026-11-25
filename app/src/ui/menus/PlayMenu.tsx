@@ -16,12 +16,12 @@ import { startPassNPlay, startVsBots, startWatch } from './start';
 type Step = 'mode' | 'bots' | 'watch' | 'pass' | 'names';
 
 const LEVELS: { value: BotLevel; name: string }[] = [
-  { value: 'easy', name: 'Easy' }, { value: 'medium', name: 'Medium' }, { value: 'hard', name: 'Hard' }, { value: 'insane', name: 'Insane ★' }, { value: 'random', name: 'Random' },
+  { value: 'easy', name: 'Easy' }, { value: 'medium', name: 'Medium' }, { value: 'hard', name: 'Hard' }, { value: 'insane', name: 'Extra Hard ★' }, { value: 'random', name: 'Random' },
 ];
 
-/** The levels, with Insane only for Gold members. */
+/** The levels, with Extra Hard only for Gold members. */
 function levels(gold: boolean) {
-  return LEVELS.map(l => (l.value === 'insane' && !gold ? { ...l, disabled: true, title: 'Insane bots are for Gold members' } : l));
+  return LEVELS.map(l => (l.value === 'insane' && !gold ? { ...l, disabled: true, title: 'Extra Hard bots are for Gold members' } : l));
 }
 
 const setGame = (patch: Partial<UiSettings['game']>) => updateSettings(s => ({ ...s, game: { ...s.game, ...patch } }));
@@ -81,7 +81,7 @@ export function BotNames({ bots }: { bots: number }) {
       {Array.from({ length: bots }, (_, k) => (
         <label class="names__row" key={k}>
           <span class="names__label">Bot {k + 1}</span>
-          <input type="text" maxLength={BOT_NAME_MAX} value={names[k] ?? ''} placeholder={'Bot ' + (k + 1) + "'s name"} autoComplete="off"
+          <input type="text" maxLength={BOT_NAME_MAX} autoCapitalize="none" spellcheck={false} value={names[k] ?? ''} placeholder={'Bot ' + (k + 1) + "'s name"} autoComplete="off"
             onInput={e => setName(k, e.currentTarget.value)} />
         </label>
       ))}

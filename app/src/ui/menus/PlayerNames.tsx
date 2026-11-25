@@ -42,7 +42,7 @@ export function PlayerNames({ onStart, onClose }: { onStart: () => void; onClose
         {names.map((name, k) => (
           <label class="names__row" key={k}>
             <span class="names__label">Player {k + 1}</span>
-            <input type="text" maxLength={20} value={name} placeholder={'Player ' + (k + 1)} autoComplete="off" enterKeyHint={k === humans - 1 ? 'go' : 'next'}
+            <input type="text" maxLength={20} value={name} autoCapitalize="none" spellcheck={false} placeholder={'Player ' + (k + 1)} autoComplete="off" enterKeyHint={k === humans - 1 ? 'go' : 'next'}
               aria-invalid={rude === k} onInput={e => { const v = e.currentTarget.value; setNames(n => n.map((x, j) => (j === k ? v : x))); }} />
           </label>
         ))}

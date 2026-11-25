@@ -113,6 +113,7 @@ export class GoogleSignIn {
           return i;
         };
         const user = input('text', 'Username', 'username'), pass = input('password', 'Password', 'current-password');
+        user.autocapitalize = 'none'; user.spellcheck = false;   // phones mustn't capitalise the first letter
         const login = el('button', btnCss + 'margin:4px 0 0;background:#b3122a;color:#fff;border:1px solid #b3122a', 'Sign in');
         const register = el('button', btnCss + 'margin:0;background:#fff;color:#b3122a;border:1px solid #b3122a', 'Create account');
         login.type = 'submit'; register.type = 'button';

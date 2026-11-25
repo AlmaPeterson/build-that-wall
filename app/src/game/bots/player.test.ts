@@ -88,10 +88,12 @@ describe('Easy bots', () => {
     expect(builds).toBeLessThan(180);
   });
 
-  it("play Debt or a card at random when they can't build (owner decision)", () => {
-    const acts = seeds(rng => act(table({ bot: 'easy', hand: [29, 6, 7] }, undefined, { rng })));
-    const slots = new Set(acts.map(a => (a.type === 'play' ? a.slot : -1)));
-    expect(slots).toEqual(new Set([1, 2]));
+  it("play Debt or a card at random when they can't build (owner decision), but never a blue action card", () => {
+    // 26 Trump (purple) and 7 Debt (green) are played; 6 Controlled Opposition (blue) never is
+    const acts = seeds(rng => act(table({ bot: 'easy', hand: [29, 26, 7] }, undefined, { rng })));
+    expect(new Set(acts.map(a => (a.type === 'play' ? a.slot : -1)))).toEqual(new Set([1, 2]));
+    const blue = seeds(rng => act(table({ bot: 'easy', hand: [29, 6, 7] }, undefined, { rng })));
+    expect(new Set(blue.map(a => (a.type === 'play' ? a.slot : -1)))).toEqual(new Set([2]));
   });
 
   it("don't count Debt when there is no wall to take", () => {

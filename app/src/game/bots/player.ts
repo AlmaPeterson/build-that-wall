@@ -11,6 +11,9 @@ const DEBT = 7, MAN_HOUR = 14, TRUMP_TRAIN = 25;
 /** Cards bots consider playing (besides Debt), in no particular order. */
 export const PLAYABLE: readonly CardId[] = [3, 5, 6, 9, 11, 13, 16, 17, 21, 22, 23, 27, 28, 45, 46, 47, 48, 49, 25, 26];
 
+/** The only cards (besides Debt) Easy bots play: Trump and Trump Train. No blue action cards. */
+export const EASY_CARDS: readonly CardId[] = [25, 26];
+
 /** Hard bots play the first of these they can. */
 export const HARD_PRIORITY: readonly CardId[] = [25, 3, 13, 28, 23, 21, 6, 5, 16, 17, 9, 26, 22, 27, 11, 47, 45, 48, 49];
 
@@ -38,7 +41,7 @@ export function think(api: GameApi, seat: Seat, memory: BotMemory, as?: Difficul
     const cnt = wallCount(state, seat, hand[k]!);
     let gain = buildGain(cnt);
     if (lvl === 'easy' && roll(state, 1, 2) === 1) gain = roll(state, 1, 8);
-    if (lvl === 'medium' && roll(state, 1, 5) === 1) gain = roll(state, 1, 8);
+    if (lvl === 'medium' && roll(state, 1, 3) === 1) gain = roll(state, 1, 8);   // careless 1 time in 3
     if (lvl === 'hard') {
       if (cnt === 2) gain = 20;
       if (cnt === 1) gain = 6 + (threat > 0.4 ? 2 : 0);
@@ -54,10 +57,11 @@ export function think(api: GameApi, seat: Seat, memory: BotMemory, as?: Difficul
     // picked at random from everything they can play (the Debt target is random too, see decider).
     // An Easy bot that could build but skipped it on its 1-in-4 roll still stops, as before.
     if (build) return END;
+    // Easy bots never play the blue action cards (new players don't know them yet): only Debt, Trump and Trump Train
     const cands = hand.map((c, i) => i).filter(i => {
       const c = hand[i]!;
       if (c === DEBT) return api.debtTargets(seat).length > 0 && api.canPlay(seat, i).ok;
-      return PLAYABLE.includes(c) && api.canPlay(seat, i).ok;
+      return EASY_CARDS.includes(c) && api.canPlay(seat, i).ok;
     });
     return cands.length ? { type: 'play', slot: cands[roll(state, 1, cands.length) - 1]! } : END;
   }
@@ -68,6 +72,8 @@ export function think(api: GameApi, seat: Seat, memory: BotMemory, as?: Difficul
     return { type: 'play', slot: debtSlot };
   }
 
+  // Medium keeps its cards 1 time in 4 instead of playing one (so Hard is clearly stronger)
+  if (lvl === 'medium' && roll(state, 1, 4) === 1) return END;
   // Play a card: Medium plays the first candidate in hand order, Hard follows its priority list
   const cands = hand.map((_, i) => i).filter(i => PLAYABLE.includes(hand[i]!) && api.canPlay(seat, i).ok);
   if (!cands.length) return END;

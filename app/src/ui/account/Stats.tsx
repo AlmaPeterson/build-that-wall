@@ -8,7 +8,7 @@ import { Button } from '../components/Button';
 import { loadReplay, startReplay } from '../replay';
 
 const MODE_NAMES: Record<GameMode, string> = { bots: 'Against bots', pass: "Pass'n'Play", online: 'Online', watch: 'Watching bots' };
-const LEVEL_NAMES = { easy: 'Easy bots', medium: 'Medium bots', hard: 'Hard bots', insane: 'Insane bots' } as const;
+const LEVEL_NAMES = { easy: 'Easy bots', medium: 'Medium bots', hard: 'Hard bots', insane: 'Extra Hard bots' } as const;
 
 const when = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 

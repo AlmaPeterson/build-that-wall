@@ -3,6 +3,7 @@
   "version": "3.12",
   "date": "2026-11-24",
   "changes": [
+   "Old username accounts add an email at their next sign-in; the owner owns every pack",
    "Owner always has Gold; username accounts link to the Google account with their email; Gold needs sign-in",
    "New username accounts need an emailed code; one free trial per email",
    "Version numbers: 1.0 was the Scratch game, 2.0 the first commit, 3.0 the refactor",

@@ -16,7 +16,7 @@ import type { Ending } from '../../game';
 import { services } from '../services';
 import { useStore } from '../store';
 
-const BOT_LEVELS: [BotLevel, string][] = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['insane', 'Insane ★'], ['random', 'Random']];
+const BOT_LEVELS: [BotLevel, string][] = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['insane', 'Extra Hard ★'], ['random', 'Random']];
 
 /** Host: change how the game ends, and remember it for next time (the Play menu's More options too). */
 function pickEnding(ending: Ending, endingTimes: 1 | 2, numbers: { miles?: number; minutes?: number } = {}): void {
@@ -81,7 +81,7 @@ function DeviceGuests({ guests, full }: { guests: string[]; full: boolean }) {
         ))}</ul>
       )}
       <form class="btw-row" onSubmit={add}>
-        <input class="btw-input" value={name} maxLength={20} placeholder="Their name" aria-label="Name of another player on this device"
+        <input class="btw-input" value={name} maxLength={20} placeholder="Their name" autoCapitalize="none" spellcheck={false} aria-label="Name of another player on this device"
           onInput={e => setName(e.currentTarget.value)} />
         <Button color="plain" type="submit" disabled={full}>Add player</Button>
       </form>

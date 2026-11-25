@@ -274,21 +274,21 @@ The **−** button is greyed out at 1 bot and the **+** button at 5 bots, becaus
 
 ### 5.3 How hard are the bots?
 
-The buttons set every bot to the same level. **Insane** is greyed out without Gold; if a game is started with Insane bots after Gold has ended, they play as Hard.
+The buttons set every bot to the same level. **Extra Hard** is greyed out without Gold; if a game is started with Extra Hard bots after Gold has ended, they play as Hard.
 
 | Level | How the bot plays | Good for |
 | --- | --- | --- |
-| **Easy** | Only builds walls, and makes careless choices: half the time it doesn't pick the best wall, and sometimes it skips building altogether. It never plays Debt or other action cards. It blocks your attacks only about half the time. | Your first few games, young players, a relaxed game. |
-| **Medium** | Builds sensibly, plays Debt on your walls, and plays its other cards when it can. Now and then it makes a less-than-best choice. | Most players, most of the time. |
-| **Hard** | Plays to win. It watches who is leading and aims its Debt at the leader. It finishes pairs into sets first, protects its pairs with Trump Train when you have been attacking, and plays its strongest cards in the best order. | A real challenge, once you know the cards. |
-| **Insane ★** | Gold members only. Before every move it tries each move it could make in quick practice games and picks the one that works out best. It plays fair: in practice it shuffles the cards it can't see, so it never knows your hand. It thinks for a moment before each move. | Strong players who find Hard too easy. |
-| **Random** | Each bot gets Easy, Medium or Hard at random when the game starts, so you don't know which is which. (Random never picks Insane.) | Variety and surprise. |
+| **Easy** | Mostly builds walls, and makes careless choices: half the time it doesn't pick the best wall, and sometimes it skips building altogether. When it can't build it may play Debt, Trump or Trump Train, but it never plays the blue action cards, so new players don't meet them all at once. It blocks your attacks only about half the time. | Your first few games, young players, a relaxed game. |
+| **Medium** | Builds sensibly, plays Debt on your walls, and usually plays its other cards when it can. Quite often it makes a less-than-best choice. | Most players, most of the time. |
+| **Hard** | Plays to win. It plays a strategy the bots learned by playing thousands of games against each other in their own simulator, with no people playing or watching. It aims its Debt at the leader and finishes pairs into sets first. | A real challenge, once you know the cards. |
+| **Extra Hard ★** | Gold members only. It starts from the same learned strategy as Hard, but before every move it tries each move it could make in many more practice games, looking further ahead, and picks the one that works out best. It plays fair: in practice it shuffles the cards it can't see, so it never knows your hand. It thinks for a moment before each move. | Strong players who find Hard too easy. |
+| **Random** | Each bot gets Easy, Medium or Hard at random when the game starts, so you don't know which is which. (Random never picks Extra Hard.) | Variety and surprise. |
 
 All bots, whatever their level, must play Play Immediately cards when they draw them, and all of them can block your attacks with Self-Defense and Savings.
 
 #### The bots learn how you play
 
-Bots remember how each player plays on your device, by name. Over several games they learn things like how often you play Debt and how many miles you usually build. Hard bots use this: if you often play Debt, they protect their pairs sooner. This memory stays on your device; it is not shared with anyone.
+Bots remember how each player plays on your device, by name. Over several games they learn things like how often you play Debt and how many miles you usually build. Hard and Extra Hard bots use this to work out who the real leader is when they aim their Debt, and Tutorial tips use it too: if you often play Debt, the tips protect pairs sooner. This memory stays on your device; it is not shared with anyone.
 
 ### 5.4 Set each bot separately
 
@@ -482,7 +482,7 @@ As the host you see **Your room** with these parts, top to bottom:
 - **Room code:** the code to share (private rooms only), with **Copy join link** and, on phones, **Share…** under it (section 7.3).
 - **Players (n):** everyone in the room, with "host (you)" beside your name. Gold members have a gold ★ before their name. With bots, the count shows them too, for example "Players (2 + 1 bot)".
 - **More people on this device?:** add people who will share your device (section 7.6).
-- **Bots:** with **-** and **+** buttons. Each bot you add gets its own row, **Bot 1:**, **Bot 2:** and so on, with a drop-down to choose **Easy**, **Medium**, **Hard**, **Insane ★** (only when the host has Gold) or **Random**. Bots get the names you gave them under Name the bots (section 5.4). Bots fill seats up to 6 players in all.
+- **Bots:** with **-** and **+** buttons. Each bot you add gets its own row, **Bot 1:**, **Bot 2:** and so on, with a drop-down to choose **Easy**, **Medium**, **Hard**, **Extra Hard ★** (only when the host has Gold) or **Random**. Bots get the names you gave them under Name the bots (section 5.4). Bots fill seats up to 6 players in all.
 - **The game ends with:** a drop-down with the six endings, and **The deck runs out: Once / Twice** for the endings that use the deck (section 8). Everyone in the room sees what you pick. It starts from the ending you last chose under More options, and your choice is remembered.
 - **Start game:** starts the game for everyone. It is greyed out until there are at least 2 players (people or bots).
 - **Close room:** closes the room and sends everyone back.
@@ -1550,7 +1550,7 @@ Gold Membership is an optional extra that supports the game. It doesn't change t
 | Gold gives you | Where |
 | --- | --- |
 | A gold ★ by your name: on the home page, the board, the win screen, online rooms and the leaderboards | Below |
-| Insane bots | Section 5.3 |
+| Extra Hard bots | Section 5.3 |
 | Up to 5 games going at once (Saved games) | Below |
 | Detailed stats | Below |
 | Game replays | Below |
@@ -1582,7 +1582,7 @@ Without Gold, the game keeps one game going: starting a new game replaces it. Wi
 **Your stats** on Account & Store shows everyone their games, wins, win percentage and best miles. Gold members also see:
 
 - **A chart of your last 20 games:** one bar per game showing its miles, with a ★ above the games you won. Point at a bar for its date, miles and how it was played.
-- **Win rate** by how you played (against bots, Pass'n'Play, online, watching bots) and by the hardest bot in the game (Easy, Medium, Hard, Insane).
+- **Win rate** by how you played (against bots, Pass'n'Play, online, watching bots) and by the hardest bot in the game (Easy, Medium, Hard, Extra Hard).
 - **Best game, Average** miles, **Favourite card** (the card you have played most) and **Wins in a row** (now, and your best).
 
 Stats are kept for your last 80 games, and they follow you to other devices when you're signed in. Games played before Gold are counted too, so they show as soon as you get Gold.
@@ -1858,9 +1858,10 @@ The winning habit is simple: build matching sections, protect your pairs, and us
 
 ### 19.7 Playing against bots
 
-- **Easy bots never attack,** so you can build freely. They block only half the time.
+- **Easy bots rarely attack** and never play blue action cards, so you can build fairly freely. They block only half the time.
 - **Medium bots Debt you** as soon as they can. Protect pairs early.
-- **Hard bots target the leader** and remember how you play. If you Debt them often, they protect their pairs with Trump Train sooner. Being quietly second can keep them off your back.
+- **Hard bots target the leader** and play the strategy the bots learned in their own practice games. Being quietly second can keep them off your back.
+- **Extra Hard bots** look even further ahead. Expect them to protect their pairs and save their best cards for the right moment.
 
 ## 20. Troubleshooting and questions
 

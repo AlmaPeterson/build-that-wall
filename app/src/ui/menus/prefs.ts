@@ -43,7 +43,7 @@ export function endingName(ending: Ending, g: { miles?: number; minutes?: number
 export const usesDeck = (e: Ending): boolean => e >= 2 && e <= 4;
 
 const LEVEL_TO_OLD: Record<BotLevel, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard', insane: 'Insane', random: 'Random' };
-const OLD_TO_LEVEL: Record<string, BotLevel> = { Easy: 'easy', Medium: 'medium', Hard: 'hard', Insane: 'insane', Random: 'random' };
+const OLD_TO_LEVEL: Record<string, BotLevel> = { Easy: 'easy', Medium: 'medium', Hard: 'hard', Insane: 'insane', 'Extra Hard': 'insane', Random: 'random' };
 
 /** Text size areas and the old game's pref keys ("ts_<key>"). Popups, cards in hand and the board match
  *  old categories one to one; "menu" uses the old "Windows and guides" size. */

@@ -54,7 +54,7 @@ function MyName() {
   return (
     <form class="menu__name-form" onSubmit={e => void save(e)}>
       <label class="menu__name-label" for="menu-name">Your name</label>
-      <input id="menu-name" type="text" maxLength={20} value={typed} autoFocus autoComplete="nickname" enterKeyHint="done"
+      <input id="menu-name" type="text" autoCapitalize="none" spellcheck={false} maxLength={20} value={typed} autoFocus autoComplete="nickname" enterKeyHint="done"
         onInput={e => setTyped(e.currentTarget.value)} />
       <Button type="submit" disabled={busy}>Save</Button>
       <Button type="button" color="plain" onClick={() => setEditing(false)}>Cancel</Button>
