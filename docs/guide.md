@@ -1967,7 +1967,7 @@ The game works with a mouse, a touch screen or a keyboard, and with screen reade
 | Tab / Shift+Tab | Everywhere | Moves between buttons, cards and boxes. |
 | Enter or Space | A button or a card | Presses the button, or opens the card. |
 | Enter | The pass screen, the turn banner, notices | Presses the main button (**I'm *Name* - show me**, **OK**). |
-| Escape | A card popup, the Tutorial, the videos window, other boxes | Closes it. |
+| Escape | A card popup, the Tutorial, the videos window, other boxes | Closes it. (Not on CrazyGames, where Escape leaves full screen: use the box's own close button there.) |
 | Left / Right arrow | The Tutorial | Previous / next page. |
 | Enter | The Room code box | Joins the room. |
 | F11 | A computer's browser | Full screen, for bigger cards. |

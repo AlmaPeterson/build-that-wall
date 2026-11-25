@@ -28,7 +28,14 @@ function useName(username: string | null): void {
   if (username) { services.store.set('name', username); services.refresh(); }
 }
 
+/** CrazyGames: Escape belongs to the browser (it leaves full screen), so the game's own Escape shortcuts are off.
+ *  Every popup and menu also has a button to close it. */
+function leaveEscapeToBrowser(): void {
+  addEventListener('keydown', e => { if (e.key === 'Escape') e.stopImmediatePropagation(); }, true);
+}
+
 export async function startCrazyGames(): Promise<void> {
+  leaveEscapeToBrowser();
   cg = await CrazyGames.start();
   if (!cg) return;
   const sdk = cg;

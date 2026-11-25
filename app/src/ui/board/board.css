@@ -299,10 +299,10 @@ button.board__log { cursor: pointer; font-family: inherit; }
 .walls-none { color: #a08a85; border-radius: calc(var(--u) * 8); }
 .hand__hidden { border-radius: calc(var(--u) * 8); color: #a08a85; }
 
-/* The hand: a warm tray, so the cards stand out */
+/* The hand: a light grey tray, so the cards stand out */
 .hand {
-  background: linear-gradient(#f7ece7, #efdfd8); border: 1px solid #e2cbc4; border-radius: calc(var(--u) * 8);
-  box-shadow: inset 0 calc(var(--u) * 1.5) calc(var(--u) * 4) rgba(90, 18, 16, .12);
+  background: linear-gradient(#f1f2f4, #e3e5e9); border: 1px solid #cfd3da; border-radius: calc(var(--u) * 8);
+  box-shadow: inset 0 calc(var(--u) * 1.5) calc(var(--u) * 4) rgba(0, 0, 0, .1);
 }
 .hand__card { filter: drop-shadow(0 calc(var(--u) * 1.5) calc(var(--u) * 2.5) rgba(0, 0, 0, .35)); }
 
