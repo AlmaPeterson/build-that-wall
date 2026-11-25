@@ -60,9 +60,11 @@ export class GoldService {
   }
 
   // The 7-day free trial: on the server when signed in, otherwise once per email on this device
-  // The trial costs nothing, so a guest (not signed in) can have one too: on this device ('ok-device').
+  // The trial costs nothing, but it needs an account ('signin' without one).
   async startTrialAny(server: string, user = ''): Promise<string> {
-    if (verifiedUser(this.store) && isServerUrl(server)) {
+    // Gold needs an account, the free trial too (one per account and per email: the server checks)
+    if (!verifiedUser(this.store)) return 'signin';
+    if (isServerUrl(server)) {
       const r = await this.api.call<ServerEntitlements>(server, '/trial', {});
       if (r && isError(r)) return r.error;
       if (r) { this.ent.applyServer(r); return 'ok'; }
@@ -73,10 +75,8 @@ export class GoldService {
     const used = this.store.getJson<string[]>('trials', []);
     if (used.includes(who)) return 'used';
     used.push(who); this.store.setJson('trials', used);
-    // Not signed in (or the sign-in ran out): it counts on this device anyway
-    const guest = !verifiedUser(this.store);
-    this.ent.addPaid({ kind: 'gold', id: 'trial', exp: this.ent.planExp('trial'), src: 'local', ...(guest ? { guest: true } : {}) });
-    return guest ? 'ok-device' : 'ok';
+    this.ent.addPaid({ kind: 'gold', id: 'trial', exp: this.ent.planExp('trial'), src: 'local' });
+    return 'ok';
   }
 
   // Older trial flow that expected the server to send back a Gold code

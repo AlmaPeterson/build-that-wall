@@ -58,16 +58,22 @@ describe('GoldService', () => {
     expect(ent.goldInfo()).toMatch(/^Free trial, 7 days left/);
   });
 
-  it('trial on this device: once per email', async () => {
+  it('trial: once per email, and only with an account', async () => {
     const { ent, gold } = setup();
     expect(await gold.startTrialAny('')).toBe('ok');
     expect(ent.trialRecord()?.exp).toBe(SEC + 7 * DAY);
     expect(await gold.startTrialAny('')).toBe('used');
-    // Not signed in: a trial on this device, once
+    // Not signed in: no trial, and no Gold at all
     const guest = setup({}, false);
-    expect(await guest.gold.startTrialAny('')).toBe('ok-device');
-    expect(guest.ent.goldActive()).toBe(true);
-    expect(await guest.gold.startTrialAny('')).toBe('used');
+    expect(await guest.gold.startTrialAny('')).toBe('signin');
+    expect(guest.ent.goldActive()).toBe(false);
+  });
+
+  it("the owner's Gold from the server says so", () => {
+    const { ent } = setup();
+    ent.applyServer({ gold: { plan: 'owner', exp: 0 }, packs: [] });
+    expect(ent.goldActive()).toBe(true);
+    expect(ent.goldInfo()).toBe('Owner: Gold always on');
   });
 
   it('the old code-based trial ends "invalid" against today\'s server', async () => {

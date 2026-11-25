@@ -39,7 +39,7 @@ export function AccountScreen() {
       {!cg && <section class="btw-card" aria-labelledby="gold-h">
         <h2 id="gold-h">Gold Membership</h2>
         <p>{player.gold ? <span class="btw-gold">{player.goldInfo || 'Gold is active'}</span> : 'Gold unlocks every extra and supports the game.'}</p>
-        {(!player.signedIn || player.expired) && <p class="btw-muted">To buy Gold, sign in {player.expired ? 'again' : 'first'}: Gold belongs to your account, so it follows you to every device. The free trial works without signing in, on this device.</p>}
+        {(!player.signedIn || player.expired) && <p class="btw-muted">To get Gold or the free trial, sign in {player.expired ? 'again' : 'first'}: Gold belongs to your account, so it follows you to every device.</p>}
         {sale && <p class="btw-sale"><b>{sale.sale.name} sale:</b> {sale.percent}% off Gold, {saleEnds(sale.sale)}.</p>}
         {services.paymentsOff && <p class="btw-muted" role="note">{paymentsOffText(services.paymentsOff)}</p>}
         <div class="btw-row">
@@ -54,8 +54,12 @@ export function AccountScreen() {
           ))}
         </div>
         <div class="btw-row">
-          {/* Free: no payment needed, so it works while payments are off, and without signing in (on this device) */}
+          {/* Free: no payment needed, so it works while payments are off. It needs an account: not signed in, it signs in first */}
           {!player.gold && <Button color="gold" disabled={busy} onClick={() => run(async () => {
+            if (!services.player.get().verified || services.player.get().expired) {
+              const name = await services.signIn();
+              if (!name || name === 'nosetup' || !services.player.get().verified) { say('gold', trialMessage('signin')); return; }
+            }
             say('gold', trialMessage(await services.gold.startTrialAny(services.server())));
             services.refresh();
           })}>Try Gold free for 7 days</Button>}

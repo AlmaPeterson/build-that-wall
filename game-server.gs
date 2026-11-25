@@ -464,6 +464,11 @@ function handleApi_(path, body) {
   // The owner: a Google sign-in whose verified email is OWNER_EMAIL (never a password, Apple or GitHub account, never with OWNER_EMAIL unset)
   const ownerEmail = String(props.getProperty('OWNER_EMAIL') || '').trim().toLowerCase();
   const isOwner = !!ownerEmail && user.verified === true && String(user.email || '').trim().toLowerCase() === ownerEmail;
+  // The game's owner never pays for their own Gold: their account has it for good
+  if (isOwner) {
+    const g = readJson_(sheet, row, C.gold, null);
+    if (!(g && g.exp === 0)) writeJson_(sheet, row, C.gold, { plan: 'owner', exp: 0 });
+  }
 
   switch (path) {
     case 'load':
@@ -829,6 +834,7 @@ function loginsSheet_() {
   let sh = ss.getSheetByName('Logins');
   if (!sh) { sh = ss.insertSheet('Logins'); sh.appendRow(['Username', 'Salt', 'Hash', 'Created', 'Email']); sh.setFrozenRows(1); }
   if (sh.getRange(1, LOGIN_EMAIL_COL).getValue() !== 'Email') sh.getRange(1, LOGIN_EMAIL_COL).setValue('Email');   // sheets made before emails
+  if (sh.getRange(1, LOGIN_ACCOUNT_COL).getValue() !== 'Account') sh.getRange(1, LOGIN_ACCOUNT_COL).setValue('Account');
   return sh;
 }
 
@@ -847,7 +853,16 @@ function cleanUsername_(u) {
 // ---- New username accounts are checked by email: register-code emails a 6-digit code (at most 3 an hour to an
 // address), and password-register makes the account only with that code (5 tries, 15 minutes). One account per
 // email. Signing in to an account that already exists needs no code.
-const LOGIN_EMAIL_COL = 5;
+const LOGIN_EMAIL_COL = 5, LOGIN_ACCOUNT_COL = 6;
+
+/** The account (Google, Apple or GitHub) that already has this email, for a username account to lead to; '' if none. */
+function accountWithEmail_(email) {
+  const sheet = accountsSheet_();
+  if (!email || sheet.getLastRow() < 2) return '';
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
+  const hit = rows.find(r => String(r[0]).indexOf('pw:') !== 0 && String(r[1]).trim().toLowerCase() === email);
+  return hit ? String(hit[0]) : '';
+}
 
 function cleanEmail_(email) {
   const e = String(email || '').trim().toLowerCase();
@@ -908,8 +923,10 @@ function passwordRegister_(username, password, code) {
   const sh = loginsSheet_();
   if (sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext()) return { error: 'taken' };
   if (loginEmailUsed_(sh, p.email)) return { error: 'emailused' };
-  sh.appendRow([u, p.salt, p.hash, new Date(), p.email]);
-  return { id: 'pw:' + u, name: p.name, email: p.email };
+  // The email was just proved to be theirs: if it already has an account, the username signs in to that one
+  const linked = accountWithEmail_(p.email);
+  sh.appendRow([u, p.salt, p.hash, new Date(), p.email, linked]);
+  return { id: linked || 'pw:' + u, name: p.name, email: p.email };
 }
 
 function passwordLogin_(username, password) {
@@ -921,13 +938,13 @@ function passwordLogin_(username, password) {
   if (fails >= 10) return { error: 'locked' };
   const sh = loginsSheet_();
   const found = sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext();
-  const row = found && found.getRow() > 1 ? sh.getRange(found.getRow(), 1, 1, LOGIN_EMAIL_COL).getValues()[0] : null;
+  const row = found && found.getRow() > 1 ? sh.getRange(found.getRow(), 1, 1, LOGIN_ACCOUNT_COL).getValues()[0] : null;
   if (!row || passwordHash_(password, String(row[1])) !== String(row[2])) {
     cache.put(failKey, String(fails + 1), 900);
     return { error: 'wrong' };
   }
   cache.remove(failKey);
-  return { id: 'pw:' + u, name: u, email: String(row[LOGIN_EMAIL_COL - 1] || '') };
+  return { id: String(row[LOGIN_ACCOUNT_COL - 1] || '') || 'pw:' + u, name: u, email: String(row[LOGIN_EMAIL_COL - 1] || '') };
 }
 
 // ---- Sign in with Apple: Apple's token is signed with RS256; the signature is checked here with Apple's keys

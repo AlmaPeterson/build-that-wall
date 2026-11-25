@@ -77,8 +77,8 @@ export class Entitlements {
 
   goldActive(): boolean {
     if (this.testGold || this.isOwner) return true;
-    // NOTE: a valid Gold code or purchase only counts while signed in (a guest's free trial counts anyway)
-    if (!isSignedIn(this.store)) return this.paid().some(p => p.guest && p.id === 'trial');
+    // Gold (codes, purchases and the free trial) only counts while signed in
+    if (!isSignedIn(this.store)) return false;
     return this.live().some(p => p.kind === 'gold') || this.paid().length > 0;
   }
 
@@ -97,6 +97,7 @@ export class Entitlements {
     if (this.testGold) return 'Gold (test mode)';
     const g: { exp?: number; id?: string }[] = [...this.live().filter(p => p.kind === 'gold'), ...this.paid()];
     if (!g.length) return '';
+    if (g.some(p => p.id === 'owner')) return 'Owner: Gold always on';
     if (g.some(p => !p.exp)) return 'Lifetime Gold';
     const end = Math.max(...g.map(p => p.exp!)), day = new Date(end * 1000).toISOString().slice(0, 10);
     const left = this.daysLeft(end), dl = left + (left === 1 ? ' day' : ' days') + ' left';
