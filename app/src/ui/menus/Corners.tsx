@@ -103,7 +103,7 @@ export function VersionBadge() {
             <ol class="history__list">
               {VERSIONS.map(v => (
                 <li key={v.version}>
-                  <div class="history__head"><b>Version {v.version}</b> <span class="btw-muted">{when(new Date(v.date + 'T00:00:00').getTime())}</span></div>
+                  <div class="history__head"><b>Version {v.version}</b> <span class="btw-muted">{v.date ? when(new Date(v.date + 'T00:00:00').getTime()) : 'Made in Scratch'}</span></div>
                   <ul>{v.changes.map((c, i) => <li key={i}>{c}</li>)}</ul>
                 </li>
               ))}

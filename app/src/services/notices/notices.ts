@@ -34,7 +34,7 @@ const dayAt = (date: string) => { const [y, m, d] = date.split('-').map(Number);
 
 export function versionNotice(v: Version): Notice {
   return {
-    id: 'v' + v.version, kind: 'feature', at: dayAt(v.date),
+    id: 'v' + v.version, kind: 'feature', at: v.date ? dayAt(v.date) : 0,
     title: 'New in version ' + v.version,
     text: v.changes.length === 1 ? v.changes[0]! : v.changes.length + ' changes came out.',
     lines: v.changes.length > 1 ? v.changes.slice(0, 6) : undefined,

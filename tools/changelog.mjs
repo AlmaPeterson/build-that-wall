@@ -1,6 +1,10 @@
 // Builds the version history shown in the game (app/src/data/changelog.json) from the git history:
-// each day something was published is one version (1.0 on the first day, then 1.1, 1.2, ...), listing
-// that day's changes newest first. Merge commits are left out.
+// each day something was published is one version, listing that day's changes newest first. Merge commits
+// are left out. The numbers:
+//   1.0  the original game, made in Scratch (before this project; added by hand below)
+//   2.x  from the first commit (2.0), the Scratch game converted, one more each day
+//   3.x  from the refactor that removed the Scratch code (3.0), one more each day
+// A new major number starts on the day in MAJORS.
 //
 // Run by `npm run build` (prebuild). With no git, or a shallow copy that has fewer days than the file
 // already holds, the file is left as it is.
@@ -28,7 +32,21 @@ for (const rec of log.split('\x1e')) {
   days.get(date).push(subject.trim());
 }
 
-const versions = [...days.entries()].map(([date, changes], i) => ({ version: '1.' + i, date, changes: changes.reverse() })).reverse();
+/** Each major version starts on this day (and runs until the next one). */
+const MAJORS = [
+  { major: 2, from: '2026-10-19' },   // the first commit: the Scratch game converted
+  { major: 3, from: '2026-10-27' },   // the refactor that removed the Scratch code
+];
+const SCRATCH = { version: '1.0', date: '', changes: ['The original Build That Wall game, made in Scratch.'] };
+
+const counts = new Map();
+const versions = [...days.entries()].map(([date, changes]) => {
+  const major = [...MAJORS].reverse().find(m => date >= m.from)?.major ?? MAJORS[0].major;
+  const minor = counts.get(major) ?? 0;
+  counts.set(major, minor + 1);
+  return { version: major + '.' + minor, date, changes: changes.reverse() };
+}).reverse();
+versions.push(SCRATCH);
 
 const old = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : [];
 if (versions.length < old.length) {

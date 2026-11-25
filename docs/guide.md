@@ -69,7 +69,7 @@ The top of the page is a red band with the Build That Wall logo: "BUILD THAT WAL
 
 #### The version badge and version history
 
-The badge in the top left shows the game's version, for example **v1.12**, next to a clock-arrow sign. Press it to open **Version history**: every update since the game was first published, newest first. Each day the game was updated is one version (1.0 was the first day), with the date and a list of what changed. Press **Close** to go back.
+The badge in the top left shows the game's version, for example **v3.12**, next to a clock-arrow sign. Press it to open **Version history**: every update, newest first, each with its date and a list of what changed. Each day the game was updated is one version. **1.0** was the original game made in Scratch; **2.0** was the first version of this website, converted from it; **3.0** was the rebuild without the Scratch parts. Press **Close** to go back.
 
 #### The notification bell
 
