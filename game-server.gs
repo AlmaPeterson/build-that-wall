@@ -468,6 +468,8 @@ function handleApi_(path, body) {
   if (isOwner) {
     const g = readJson_(sheet, row, C.gold, null);
     if (!(g && g.exp === 0)) writeJson_(sheet, row, C.gold, { plan: 'owner', exp: 0 });
+    const packs = readJson_(sheet, row, C.packs, []);
+    if (!packs.includes('*')) { packs.push('*'); writeJson_(sheet, row, C.packs, packs); }   // every pack, future ones too
   }
 
   switch (path) {
@@ -760,6 +762,8 @@ function handleAuth_(kind, body) {
   let who = null;
   if (kind === 'password-login') who = passwordLogin_(body.username, body.password);
   else if (kind === 'register-code') return registerCode_(body.username, body.password, body.email);
+  else if (kind === 'login-email-code') return loginEmailCode_(body.username, body.password, body.email);
+  else if (kind === 'login-email-confirm') who = loginEmailConfirm_(body.username, body.password, body.code);
   else if (kind === 'password-register') who = passwordRegister_(body.username, body.password, body.code);
   else if (kind === 'apple') who = appleLogin_(body.apple_token, body.name);
   else if (kind === 'github') who = githubLogin_(body.code, body.redirect_uri);
@@ -892,17 +896,83 @@ function registerCode_(username, password, email) {
   cache.put('reg:' + u, JSON.stringify({ email: e, salt: salt, hash: passwordHash_(password, salt), code: code, tries: 0,
     name: String(username).trim().slice(0, 20) }), 900);
   cache.put(sentKey, String(sent + 1), 3600);
+  return mailCode_(e, code, 'make your Build That Wall account "' + u + '"');
+}
+
+function mailCode_(email, code, what) {
   try {
     MailApp.sendEmail({
-      to: e, name: 'Build That Wall', subject: 'Your Build That Wall code: ' + code,
-      body: 'Your code to make your Build That Wall account "' + u + '" is:\n\n    ' + code + '\n\n' +
+      to: email, name: 'Build That Wall', subject: 'Your Build That Wall code: ' + code,
+      body: 'Your code to ' + what + ' is:\n\n    ' + code + '\n\n' +
         'Type it in the game within 15 minutes. If you didn\'t ask for this, you can ignore this email.',
     });
   } catch (err) {
-    console.error('Could not send the sign-up code: ' + err);
+    console.error('Could not send the code: ' + err);
     return { error: 'mailfail' };
   }
   return { sent: true };
+}
+
+// ---- Old username accounts (made before emails were checked) add an email the next time they sign in:
+// password-login answers needemail, login-email-code emails a code, login-email-confirm saves the email (and links the
+// account to a Google, Apple or GitHub account with that email) and signs them in.
+function loginRow_(sh, u) {
+  const found = sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext();
+  return found && found.getRow() > 1 ? found.getRow() : 0;
+}
+
+function checkPassword_(u, password) {
+  const cache = CacheService.getScriptCache(), failKey = 'pwfail:' + u;
+  const fails = Number(cache.get(failKey) || 0);
+  if (fails >= 10) return { error: 'locked' };
+  const sh = loginsSheet_(), r = loginRow_(sh, u);
+  const row = r ? sh.getRange(r, 1, 1, LOGIN_ACCOUNT_COL).getValues()[0] : null;
+  if (!row || passwordHash_(password, String(row[1])) !== String(row[2])) {
+    cache.put(failKey, String(fails + 1), 900);
+    return { error: 'wrong' };
+  }
+  cache.remove(failKey);
+  return { sh: sh, r: r, row: row };
+}
+
+function loginEmailCode_(username, password, email) {
+  const u = cleanUsername_(username);
+  if (!u) return { error: 'wrong' };
+  const ok = checkPassword_(u, password);
+  if (ok.error) return ok;
+  if (String(ok.row[LOGIN_EMAIL_COL - 1] || '')) return { error: 'login' };   // it already has one
+  const e = cleanEmail_(email);
+  if (!e) return { error: 'email' };
+  if (loginEmailUsed_(ok.sh, e)) return { error: 'emailused' };
+  const cache = CacheService.getScriptCache(), sentKey = 'regsent:' + e;
+  const sent = Number(cache.get(sentKey) || 0);
+  if (sent >= 3) return { error: 'toomany' };
+  const code = String(100000 + Math.floor(Math.random() * 900000));
+  cache.put('lem:' + u, JSON.stringify({ email: e, code: code, tries: 0 }), 900);
+  cache.put(sentKey, String(sent + 1), 3600);
+  return mailCode_(e, code, 'add this email to your Build That Wall account "' + u + '"');
+}
+
+function loginEmailConfirm_(username, password, code) {
+  const u = cleanUsername_(username);
+  if (!u) return { error: 'wrong' };
+  const ok = checkPassword_(u, password);
+  if (ok.error) return ok;
+  const cache = CacheService.getScriptCache(), key = 'lem:' + u;
+  const raw = cache.get(key);
+  if (!raw) return { error: 'codeexpired' };
+  const p = JSON.parse(raw);
+  if (String(code || '').replace(/\D/g, '') !== p.code) {
+    p.tries++;
+    if (p.tries >= 5) { cache.remove(key); return { error: 'codeexpired' }; }
+    cache.put(key, JSON.stringify(p), 900);
+    return { error: 'code' };
+  }
+  cache.remove(key);
+  if (loginEmailUsed_(ok.sh, p.email)) return { error: 'emailused' };
+  const linked = accountWithEmail_(p.email);
+  ok.sh.getRange(ok.r, LOGIN_EMAIL_COL, 1, 2).setValues([[p.email, linked]]);
+  return { id: linked || 'pw:' + u, name: u, email: p.email };
 }
 
 function passwordRegister_(username, password, code) {
@@ -944,6 +1014,7 @@ function passwordLogin_(username, password) {
     return { error: 'wrong' };
   }
   cache.remove(failKey);
+  if (!String(row[LOGIN_EMAIL_COL - 1] || '')) return { error: 'needemail' };   // made before emails were checked
   return { id: String(row[LOGIN_ACCOUNT_COL - 1] || '') || 'pw:' + u, name: u, email: String(row[LOGIN_EMAIL_COL - 1] || '') };
 }
 

@@ -18,6 +18,7 @@ export type AuthCall = (path: string, body: Record<string, unknown>) => Promise<
 /** What to tell the player for each error. */
 export const SIGN_IN_ERRORS: Record<string, string> = {
   linktimeout: 'Signing in on our website took too long. Press Sign in with Google to try again.',
+  needemail: "Your account needs an email now. Type it below and we'll send you a code.",
   email: 'Type your email address, like name@example.com.',
   emailused: 'That email already has an account. Sign in to it instead.',
   code: "That code isn't right. Check the email and try again.",
@@ -72,6 +73,19 @@ export class OtherSignIn {
   password(mode: 'login' | 'register', username: string, password: string, code = ''): Promise<SignInResult> {
     return this.finish(mode === 'login' ? 'auth/password-login' : 'auth/password-register',
       mode === 'login' ? { username: username.trim(), password } : { username: username.trim(), password, code: code.trim() });
+  }
+
+  /** An old username account (made before emails were checked) adds an email: send the code... */
+  async addEmailCode(username: string, password: string, email: string): Promise<{ sent: true } | { error: string }> {
+    const r = await this.call('auth/login-email-code', { username: username.trim(), password, email: email.trim() }) as { sent?: boolean; error?: string } | null;
+    if (!r) return { error: 'offline' };
+    if (r.error) return { error: String(r.error) };
+    return r.sent ? { sent: true } : { error: 'login' };
+  }
+
+  /** ...then sign in with it, saving the email to the account. */
+  addEmailConfirm(username: string, password: string, code: string): Promise<SignInResult> {
+    return this.finish('auth/login-email-confirm', { username: username.trim(), password, code: code.trim() });
   }
 
   /** A new account: email a 6-digit code to check the email is theirs. */

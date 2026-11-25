@@ -72,7 +72,7 @@ export class Entitlements {
 
   ownsPack(id: string): boolean {
     if (this.isOwner) return true;
-    return isSignedIn(this.store) && this.paidAll().some(p => p.kind === 'pack' && p.id === String(id));
+    return isSignedIn(this.store) && this.paidAll().some(p => p.kind === 'pack' && (p.id === String(id) || p.id === '*'));   // '*': every pack (the owner)
   }
 
   goldActive(): boolean {

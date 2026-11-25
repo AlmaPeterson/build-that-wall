@@ -120,6 +120,32 @@ describe('the sign-in box', () => {
     expect(tries).toEqual(['register sam secret123 000000', 'register sam secret123 123456']);
   });
 
+  it('an old account with no email adds one (emailed code) when it signs in', async () => {
+    const { store } = makeStore();
+    const steps: string[] = [];
+    const done = new GoogleSignIn(store).signIn('', {
+      password: async (mode, user) => { steps.push('password ' + mode + ' ' + user); return { error: 'needemail' }; },
+      addEmail: {
+        code: async (user, _pass, email) => { steps.push('code ' + user + ' ' + email); return { sent: true }; },
+        confirm: async (user, _pass, code) => { steps.push('confirm ' + user + ' ' + code); return { name: user }; },
+      },
+    });
+    const byLabel = (l: string) => document.querySelector(`input[aria-label="${l}"]`) as HTMLInputElement;
+    const submit = () => document.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    const tick = () => new Promise(r => setTimeout(r, 0));
+    byLabel('Username').value = 'oldsam'; byLabel('Password').value = 'secret123';
+    submit(); await tick();
+    expect(document.querySelector('[role=alert]')!.textContent).toContain('Your account needs an email now');
+    expect(byLabel('Your email').style.display).toBe('');
+    byLabel('Your email').value = 'sam@example.com';
+    submit(); await tick();
+    expect(byLabel('6-digit code').style.display).toBe('');
+    byLabel('6-digit code').value = '123456';
+    submit();
+    expect(await done).toBe('oldsam');
+    expect(steps).toEqual(['password login oldsam', 'code oldsam sam@example.com', 'confirm oldsam 123456']);
+  });
+
   it('shows Apple and GitHub when the game has them', async () => {
     const { store } = makeStore();
     const done = new GoogleSignIn(store).signIn('', { apple: async () => ({ name: 'Ann' }), github: async () => ({ name: 'Gus' }) });

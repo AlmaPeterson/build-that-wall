@@ -18,6 +18,11 @@ export interface SignInChoices {
   password?: (mode: 'login' | 'register', username: string, password: string, code?: string) => Promise<SignInResult>;
   /** A new username account: email a code to check the email (then password('register', ..., code)). */
   sendCode?: (username: string, password: string, email: string) => Promise<{ sent: true } | { error: string }>;
+  /** An old username account adds an email the first time it signs in: send the code, then sign in with it. */
+  addEmail?: {
+    code: (username: string, password: string, email: string) => Promise<{ sent: true } | { error: string }>;
+    confirm: (username: string, password: string, code: string) => Promise<SignInResult>;
+  };
   /** itch.io: Google sign-in happens on the game's website instead (link.ts). */
   elsewhere?: (stillOpen: () => boolean, show: (code: string, url: string) => void) => Promise<SignInResult>;
 }
@@ -111,7 +116,18 @@ export class GoogleSignIn {
         const login = el('button', btnCss + 'margin:4px 0 0;background:#b3122a;color:#fff;border:1px solid #b3122a', 'Sign in');
         const register = el('button', btnCss + 'margin:0;background:#fff;color:#b3122a;border:1px solid #b3122a', 'Create account');
         login.type = 'submit'; register.type = 'button';
-        form.onsubmit = e => { e.preventDefault(); void attempt(() => others.password!('login', user.value, pass.value)); };
+        // Old accounts with no email yet: the server says needemail, then email, code, and signed in
+        let adding: 'no' | 'email' | 'code' = 'no';
+        form.onsubmit = e => {
+          e.preventDefault();
+          if (adding === 'email') { void sendAddCode(); return; }
+          if (adding === 'code') { void attempt(() => others.addEmail!.confirm(user.value, pass.value, code.value)); return; }
+          void attempt(async () => {
+            const r = await others.password!('login', user.value, pass.value);
+            if ('error' in r && r.error === 'needemail' && others.addEmail) startAdding();
+            return r;
+          });
+        };
         // A new account: email, then the code we email, then it's made (sign-in to an existing account needs none)
         const email = input('email', 'Your email', 'email'); email.maxLength = 120; email.style.display = 'none';
         const code = input('text', '6-digit code', 'one-time-code'); code.maxLength = 6; code.inputMode = 'numeric'; code.style.display = 'none';
@@ -131,7 +147,25 @@ export class GoogleSignIn {
             register.textContent = 'Create account';
           } catch { msg.textContent = SIGN_IN_ERRORS.offline!; } finally { busy = false; }
         };
-        resend.onclick = () => void sendCode();
+        const startAdding = () => {
+          adding = 'email';
+          email.style.display = ''; note.style.display = ''; register.style.display = 'none'; email.focus();
+          note.textContent = "We'll email you a code to check it's really you. You only need to do this once.";
+          login.textContent = 'Email me a code';
+        };
+        const sendAddCode = async () => {
+          if (busy || !others.addEmail) return;
+          busy = true; msg.textContent = '';
+          try {
+            const r = await others.addEmail.code(user.value, pass.value, email.value);
+            if ('error' in r) { msg.textContent = SIGN_IN_ERRORS[r.error] ?? SIGN_IN_ERRORS.login!; return; }
+            adding = 'code';
+            code.style.display = ''; resend.style.display = ''; code.value = ''; code.focus();
+            note.textContent = 'We sent a 6-digit code to ' + email.value.trim() + '. Type it here (check your spam folder too).';
+            login.textContent = 'Sign in';
+          } catch { msg.textContent = SIGN_IN_ERRORS.offline!; } finally { busy = false; }
+        };
+        resend.onclick = () => void (adding === 'no' ? sendCode() : sendAddCode());
         register.onclick = () => {
           pass.autocomplete = 'new-password';
           if (!others.sendCode) { void attempt(() => others.password!('register', user.value, pass.value)); return; }

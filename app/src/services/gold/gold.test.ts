@@ -76,6 +76,14 @@ describe('GoldService', () => {
     expect(ent.goldInfo()).toBe('Owner: Gold always on');
   });
 
+  it("the owner's account owns every expansion pack, future ones too", () => {
+    const { ent } = setup();
+    expect(ent.ownsPack('swamp')).toBe(false);
+    ent.applyServer({ gold: { plan: 'owner', exp: 0 }, packs: ['*'] });
+    expect(ent.ownsPack('swamp')).toBe(true);
+    expect(ent.ownsPack('any-pack-made-later')).toBe(true);
+  });
+
   it('the old code-based trial ends "invalid" against today\'s server', async () => {
     const { gold } = setup({ '/trial': { packs: [], trialUsed: true } });
     expect(await gold.startTrialCode(SERVER)).toBe('invalid');
