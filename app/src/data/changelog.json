@@ -3,6 +3,7 @@
   "version": "3.12",
   "date": "2026-11-24",
   "changes": [
+   "Version numbers: 1.0 was the Scratch game, 2.0 the first commit, 3.0 the refactor",
    "CrazyGames covers: titles clear of the label zone; videos open on the new covers",
    "Big hands wrap onto rows on upright phones; footer under the board; labelled uploads",
    "Card choices wrap instead of scrolling; End Turn and Watch videos match",

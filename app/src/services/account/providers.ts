@@ -18,6 +18,12 @@ export type AuthCall = (path: string, body: Record<string, unknown>) => Promise<
 /** What to tell the player for each error. */
 export const SIGN_IN_ERRORS: Record<string, string> = {
   linktimeout: 'Signing in on our website took too long. Press Sign in with Google to try again.',
+  email: 'Type your email address, like name@example.com.',
+  emailused: 'That email already has an account. Sign in to it instead.',
+  code: "That code isn't right. Check the email and try again.",
+  codeexpired: 'That code has run out. Press "Email me a code" again.',
+  toomany: 'Too many codes were sent to that email. Try again in an hour.',
+  mailfail: "We couldn't send the email. Check the address and try again.",
   wrong: 'Wrong username or password.',
   locked: 'Too many tries. Wait 15 minutes and try again.',
   taken: 'That username is taken. Pick another one.',
@@ -62,9 +68,18 @@ export class OtherSignIn {
     return { name: this.accept(r as AuthReply) };
   }
 
-  /** Sign in, or make a new account, with a username and password. */
-  password(mode: 'login' | 'register', username: string, password: string): Promise<SignInResult> {
-    return this.finish(mode === 'login' ? 'auth/password-login' : 'auth/password-register', { username: username.trim(), password });
+  /** Sign in, or make a new account (with the code emailed by sendCode), with a username and password. */
+  password(mode: 'login' | 'register', username: string, password: string, code = ''): Promise<SignInResult> {
+    return this.finish(mode === 'login' ? 'auth/password-login' : 'auth/password-register',
+      mode === 'login' ? { username: username.trim(), password } : { username: username.trim(), password, code: code.trim() });
+  }
+
+  /** A new account: email a 6-digit code to check the email is theirs. */
+  async sendCode(username: string, password: string, email: string): Promise<{ sent: true } | { error: string }> {
+    const r = await this.call('auth/register-code', { username: username.trim(), password, email: email.trim() }) as { sent?: boolean; error?: string } | null;
+    if (!r) return { error: 'offline' };
+    if (r.error) return { error: String(r.error) };
+    return r.sent ? { sent: true } : { error: 'login' };
   }
 
   /** Apple's sign-in pop-up. Apple only gives the player's name the first time they sign in. */

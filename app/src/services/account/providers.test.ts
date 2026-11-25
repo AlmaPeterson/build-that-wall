@@ -24,10 +24,19 @@ describe('OtherSignIn', () => {
     expect(store.get('color')).toBe('blue');
   });
 
-  it('makes a new account', async () => {
-    const { calls, others } = setup({ '/auth/password-register': reply });
-    expect(await others.password('register', 'sam', 'secret123')).toEqual({ name: 'sam' });
-    expect(calls[0]!.url).toContain('path=auth%2Fpassword-register');
+  it('makes a new account only with the code emailed to the player', async () => {
+    const { calls, others } = setup({ '/auth/register-code': { sent: true }, '/auth/password-register': reply });
+    expect(await others.sendCode(' sam ', 'secret123', ' sam@example.com ')).toEqual({ sent: true });
+    expect(calls[0]!.url).toContain('path=auth%2Fregister-code');
+    expect(calls[0]!.body).toMatchObject({ username: 'sam', password: 'secret123', email: 'sam@example.com' });
+    expect(await others.password('register', 'sam', 'secret123', ' 123456 ')).toEqual({ name: 'sam' });
+    expect(calls[1]!.url).toContain('path=auth%2Fpassword-register');
+    expect(calls[1]!.body).toMatchObject({ username: 'sam', password: 'secret123', code: '123456' });
+  });
+
+  it('says why a code could not be sent', async () => {
+    const { others } = setup({ '/auth/register-code': { error: 'emailused' } });
+    expect(await others.sendCode('sam', 'secret123', 'sam@example.com')).toEqual({ error: 'emailused' });
   });
 
   it("passes on the server's errors and says when it can't be reached", async () => {
@@ -69,7 +78,7 @@ describe('the sign-in box', () => {
     const done = new GoogleSignIn(store).signIn('', {
       password: async (mode, user, pass) => { tries.push(`${mode} ${user} ${pass}`); return pass === 'right' ? { name: user } : { error: 'wrong' }; },
     });
-    const inputs = document.querySelectorAll('input');
+    const inputs = [...document.querySelectorAll('input')].filter(i => i.style.display !== 'none');
     expect(inputs).toHaveLength(2);
     inputs[0]!.value = 'sam'; inputs[1]!.value = 'bad';
     document.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
@@ -80,6 +89,35 @@ describe('the sign-in box', () => {
     expect(await done).toBe('sam');
     expect(tries).toEqual(['login sam bad', 'register sam right']);
     expect(document.querySelector('form')).toBeNull();
+  });
+
+  it('a new account asks for an email, emails a code, and is made only with that code', async () => {
+    const { store } = makeStore();
+    const sent: string[] = [], tries: string[] = [];
+    const done = new GoogleSignIn(store).signIn('', {
+      password: async (mode, user, pass, code) => { tries.push(`${mode} ${user} ${pass} ${code}`); return code === '123456' ? { name: user } : { error: 'code' }; },
+      sendCode: async (user, _pass, email) => { sent.push(`${user} ${email}`); return { sent: true }; },
+    });
+    const byLabel = (l: string) => document.querySelector(`input[aria-label="${l}"]`) as HTMLInputElement;
+    const button = (t: string) => [...document.querySelectorAll('button')].find(b => b.textContent === t)!;
+    byLabel('Username').value = 'sam'; byLabel('Password').value = 'secret123';
+    expect(byLabel('Your email').style.display).toBe('none');
+    button('Create account').click();                                  // asks for the email
+    expect(byLabel('Your email').style.display).toBe('');
+    byLabel('Your email').value = 'sam@example.com';
+    button('Email me a code').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(sent).toEqual(['sam sam@example.com']);
+    expect(byLabel('6-digit code').style.display).toBe('');
+    expect(document.body.textContent).toContain('We sent a 6-digit code to sam@example.com');
+    byLabel('6-digit code').value = '000000';
+    button('Create account').click();
+    await new Promise(r => setTimeout(r, 0));
+    expect(document.querySelector('[role=alert]')!.textContent).toBe("That code isn't right. Check the email and try again.");
+    byLabel('6-digit code').value = '123456';
+    button('Create account').click();
+    expect(await done).toBe('sam');
+    expect(tries).toEqual(['register sam secret123 000000', 'register sam secret123 123456']);
   });
 
   it('shows Apple and GitHub when the game has them', async () => {

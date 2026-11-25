@@ -441,6 +441,14 @@ const C = { sub: 1, email: 2, name: 3, data: 4, gold: 5, packs: 6, trial: 7, cod
 const SAVE_KEYS = /^(name|back|color|starc|namebg|tutor|prefs|lb|myroom|stat_[a-z]+)$/;
 const DAY = 86400;
 
+/** Another account with this email (signed in another way) already had the free trial. */
+function trialUsedByEmail_(sheet, row, email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (!e || sheet.getLastRow() < 2) return false;
+  return sheet.getRange(2, 1, sheet.getLastRow() - 1, ACCOUNT_COLS.length).getValues()
+    .some((r, i) => i + 2 !== row && r[C.trial - 1] === true && String(r[C.email - 1]).trim().toLowerCase() === e);
+}
+
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -472,6 +480,7 @@ function handleApi_(path, body) {
       return { ok: true };
     case 'trial': {
       if (sheet.getRange(row, C.trial).getValue() === true) return { error: 'used' };
+      if (trialUsedByEmail_(sheet, row, user.email)) return { error: 'used' };
       const gold = readJson_(sheet, row, C.gold, null);
       if (!(gold && (gold.exp === 0 || gold.exp > now_()))) writeJson_(sheet, row, C.gold, { plan: 'trial', exp: now_() + 7 * DAY });
       sheet.getRange(row, C.trial).setValue(true);
@@ -745,7 +754,8 @@ const SESSION_DAYS = 30;
 function handleAuth_(kind, body) {
   let who = null;
   if (kind === 'password-login') who = passwordLogin_(body.username, body.password);
-  else if (kind === 'password-register') who = passwordRegister_(body.username, body.password);
+  else if (kind === 'register-code') return registerCode_(body.username, body.password, body.email);
+  else if (kind === 'password-register') who = passwordRegister_(body.username, body.password, body.code);
   else if (kind === 'apple') who = appleLogin_(body.apple_token, body.name);
   else if (kind === 'github') who = githubLogin_(body.code, body.redirect_uri);
   else if (kind === 'link-claim') return linkClaim_(body.link);
@@ -817,7 +827,8 @@ function b64urlText_(s) { return Utilities.newBlob(b64urlBytes_(s)).getDataAsStr
 function loginsSheet_() {
   const ss = accountsSheet_().getParent();
   let sh = ss.getSheetByName('Logins');
-  if (!sh) { sh = ss.insertSheet('Logins'); sh.appendRow(['Username', 'Salt', 'Hash', 'Created']); sh.setFrozenRows(1); }
+  if (!sh) { sh = ss.insertSheet('Logins'); sh.appendRow(['Username', 'Salt', 'Hash', 'Created', 'Email']); sh.setFrozenRows(1); }
+  if (sh.getRange(1, LOGIN_EMAIL_COL).getValue() !== 'Email') sh.getRange(1, LOGIN_EMAIL_COL).setValue('Email');   // sheets made before emails
   return sh;
 }
 
@@ -833,15 +844,72 @@ function cleanUsername_(u) {
   return /^[a-z0-9._-]{3,20}$/.test(s) ? s : '';
 }
 
-function passwordRegister_(username, password) {
+// ---- New username accounts are checked by email: register-code emails a 6-digit code (at most 3 an hour to an
+// address), and password-register makes the account only with that code (5 tries, 15 minutes). One account per
+// email. Signing in to an account that already exists needs no code.
+const LOGIN_EMAIL_COL = 5;
+
+function cleanEmail_(email) {
+  const e = String(email || '').trim().toLowerCase();
+  return e.length <= 120 && /^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$/.test(e) ? e : '';
+}
+
+function loginEmailUsed_(sh, email) {
+  const n = sh.getLastRow() - 1;
+  if (n < 1) return false;
+  return sh.getRange(2, LOGIN_EMAIL_COL, n, 1).getValues().some(r => String(r[0]).trim().toLowerCase() === email);
+}
+
+function registerCode_(username, password, email) {
   const u = cleanUsername_(username);
   if (!u) return { error: 'username' };
   if (String(password || '').length < 8) return { error: 'weak' };
+  const e = cleanEmail_(email);
+  if (!e) return { error: 'email' };
   const sh = loginsSheet_();
   if (sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext()) return { error: 'taken' };
+  if (loginEmailUsed_(sh, e)) return { error: 'emailused' };
+  const cache = CacheService.getScriptCache(), sentKey = 'regsent:' + e;
+  const sent = Number(cache.get(sentKey) || 0);
+  if (sent >= 3) return { error: 'toomany' };
+  const code = String(100000 + Math.floor(Math.random() * 900000));
   const salt = Utilities.getUuid();
-  sh.appendRow([u, salt, passwordHash_(password, salt), new Date()]);
-  return { id: 'pw:' + u, name: String(username).trim().slice(0, 20) };
+  cache.put('reg:' + u, JSON.stringify({ email: e, salt: salt, hash: passwordHash_(password, salt), code: code, tries: 0,
+    name: String(username).trim().slice(0, 20) }), 900);
+  cache.put(sentKey, String(sent + 1), 3600);
+  try {
+    MailApp.sendEmail({
+      to: e, name: 'Build That Wall', subject: 'Your Build That Wall code: ' + code,
+      body: 'Your code to make your Build That Wall account "' + u + '" is:\n\n    ' + code + '\n\n' +
+        'Type it in the game within 15 minutes. If you didn\'t ask for this, you can ignore this email.',
+    });
+  } catch (err) {
+    console.error('Could not send the sign-up code: ' + err);
+    return { error: 'mailfail' };
+  }
+  return { sent: true };
+}
+
+function passwordRegister_(username, password, code) {
+  const u = cleanUsername_(username);
+  if (!u) return { error: 'username' };
+  const cache = CacheService.getScriptCache(), key = 'reg:' + u;
+  const raw = cache.get(key);
+  if (!raw) return { error: 'codeexpired' };
+  const p = JSON.parse(raw);
+  if (passwordHash_(password, p.salt) !== p.hash) return { error: 'codeexpired' };   // not the password the code was sent for
+  if (String(code || '').replace(/\D/g, '') !== p.code) {
+    p.tries++;
+    if (p.tries >= 5) { cache.remove(key); return { error: 'codeexpired' }; }
+    cache.put(key, JSON.stringify(p), 900);
+    return { error: 'code' };
+  }
+  cache.remove(key);
+  const sh = loginsSheet_();
+  if (sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext()) return { error: 'taken' };
+  if (loginEmailUsed_(sh, p.email)) return { error: 'emailused' };
+  sh.appendRow([u, p.salt, p.hash, new Date(), p.email]);
+  return { id: 'pw:' + u, name: p.name, email: p.email };
 }
 
 function passwordLogin_(username, password) {
@@ -853,13 +921,13 @@ function passwordLogin_(username, password) {
   if (fails >= 10) return { error: 'locked' };
   const sh = loginsSheet_();
   const found = sh.getRange('A:A').createTextFinder(u).matchEntireCell(true).findNext();
-  const row = found && found.getRow() > 1 ? sh.getRange(found.getRow(), 1, 1, 3).getValues()[0] : null;
+  const row = found && found.getRow() > 1 ? sh.getRange(found.getRow(), 1, 1, LOGIN_EMAIL_COL).getValues()[0] : null;
   if (!row || passwordHash_(password, String(row[1])) !== String(row[2])) {
     cache.put(failKey, String(fails + 1), 900);
     return { error: 'wrong' };
   }
   cache.remove(failKey);
-  return { id: 'pw:' + u, name: u };
+  return { id: 'pw:' + u, name: u, email: String(row[LOGIN_EMAIL_COL - 1] || '') };
 }
 
 // ---- Sign in with Apple: Apple's token is signed with RS256; the signature is checked here with Apple's keys

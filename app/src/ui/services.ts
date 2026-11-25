@@ -132,7 +132,8 @@ export function createServices(deps: ServiceDeps) {
     const name = await google.signIn(itch ? '' : c.googleClientId, viaServer ? {
       apple: c.appleClientId && !itch ? () => others.apple(c.appleClientId) : undefined,
       github: c.githubClientId && !itch ? () => others.github(c.githubClientId) : undefined,
-      password: (mode, user, pass) => others.password(mode, user, pass),
+      password: (mode, user, pass, code) => others.password(mode, user, pass, code),
+      sendCode: (user, pass, email) => others.sendCode(user, pass, email),
       elsewhere: itch && c.googleClientId ? (stillOpen, show) => signInElsewhere({
         call: (path, body) => api.call(c.serverUrl, path, body), accept: r => others.accept(r), stillOpen, show,
       }) : undefined,

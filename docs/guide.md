@@ -1501,7 +1501,7 @@ When you aren't signed in, it says "You're playing as a guest. Everything works 
 1. Press **Sign in**. A box titled **Sign in to Build That Wall** opens.
 2. Choose how to sign in:
    - **Sign in with Google:** press the Google button and pick your Google account.
-   - **Username and password:** under "or use a username", type a username and password, then press **Sign in** (an existing account) or **Create account** (a new one).
+   - **Username and password:** under "or use a username", type a username and password, then press **Sign in** for an account you already have. For a **new account**, press **Create account**: a box for your email appears. Type your email and press **Email me a code**. We email you a 6-digit code (check your spam folder too); type it in the code box and press **Create account** again. The code works for 15 minutes; **Send a new code** sends another. Each email can have one username account.
    - **Sign in with Apple** and **Sign in with GitHub** buttons appear too, once the game's owner has turned them on.
 3. When it works, the box closes and the page says "Welcome, *name*!".
 
@@ -1518,6 +1518,11 @@ Press **Cancel** to close the box without signing in.
 | "Usernames are 3 to 20 letters, numbers, dots, dashes or underscores." | The username has spaces or other symbols, or is too short or long. |
 | "Use at least 8 characters for the password." | The password is too short. |
 | "That username is taken. Pick another one." | Someone already created that username. |
+| "Type your email address, like name@example.com." | The email box is empty or isn't an email address. |
+| "That email already has an account. Sign in to it instead." | A username account was already made with that email. |
+| "That code isn't right. Check the email and try again." | The code doesn't match the one we emailed. |
+| "That code has run out. Press \"Email me a code\" again." | The code is more than 15 minutes old, or was typed wrong 5 times. |
+| "Too many codes were sent to that email. Try again in an hour." | Up to 3 codes an hour can be sent to one email. |
 | "Wrong username or password." | Check both and try again. |
 | "Too many tries. Wait 15 minutes and try again." | 10 wrong passwords in a row: wait 15 minutes. |
 | "Couldn't reach the game server. Try again in a moment." | A connection problem. |
@@ -1558,7 +1563,7 @@ The card shows your Gold status: "Gold unlocks every extra and supports the game
 
 **Buying Gold:** the **1 year** and **30 days** buttons show the prices (19.99 USD a year, 2.99 USD for 30 days). Payments are turned off right now: the card says "Payments are turned off right now. Reason: Not Ready For Payments Yet" and the buttons are greyed out. Gold belongs to your account, so you must sign in first.
 
-**Try Gold free for 7 days:** press it to get 7 days of Gold, free. No payment is needed, so it works even while payments are turned off. Signed in, the trial belongs to your account ("Your 7-day Gold free trial has started. Enjoy!"). Not signed in, it works on this device ("Your 7-day Gold free trial has started on this device. Enjoy! Sign in to keep Gold on all your devices."). During the last part of the trial, a countdown appears, and a message says when it ends. Each account, and each device, gets one trial: "The free trial was already used on this account (or on this device)."
+**Try Gold free for 7 days:** press it to get 7 days of Gold, free. No payment is needed, so it works even while payments are turned off. Signed in, the trial belongs to your account ("Your 7-day Gold free trial has started. Enjoy!"). Not signed in, it works on this device ("Your 7-day Gold free trial has started on this device. Enjoy! Sign in to keep Gold on all your devices."). During the last part of the trial, a countdown appears, and a message says when it ends. Each account, each email and each device gets one trial, so a second account with the same email (for example a Google account and a username account) can't start another: "The free trial was already used on this account (or on this device)."
 
 **Gold code:** if you were given a code starting with BTW1, type it in the **Gold code** box and press **Use code**. "Gold code accepted. Gold is unlocked." means it worked; "That code has expired." or "That code isn't valid. Check it and try again." means it didn't.
 

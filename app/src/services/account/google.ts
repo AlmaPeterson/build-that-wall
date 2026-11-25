@@ -15,7 +15,9 @@ interface GoogleId {
 export interface SignInChoices {
   apple?: () => Promise<SignInResult>;
   github?: () => Promise<SignInResult>;
-  password?: (mode: 'login' | 'register', username: string, password: string) => Promise<SignInResult>;
+  password?: (mode: 'login' | 'register', username: string, password: string, code?: string) => Promise<SignInResult>;
+  /** A new username account: email a code to check the email (then password('register', ..., code)). */
+  sendCode?: (username: string, password: string, email: string) => Promise<{ sent: true } | { error: string }>;
   /** itch.io: Google sign-in happens on the game's website instead (link.ts). */
   elsewhere?: (stillOpen: () => boolean, show: (code: string, url: string) => void) => Promise<SignInResult>;
 }
@@ -110,8 +112,40 @@ export class GoogleSignIn {
         const register = el('button', btnCss + 'margin:0;background:#fff;color:#b3122a;border:1px solid #b3122a', 'Create account');
         login.type = 'submit'; register.type = 'button';
         form.onsubmit = e => { e.preventDefault(); void attempt(() => others.password!('login', user.value, pass.value)); };
-        register.onclick = () => { pass.autocomplete = 'new-password'; void attempt(() => others.password!('register', user.value, pass.value)); };
-        form.append(user, pass, login, register); box.append(form);
+        // A new account: email, then the code we email, then it's made (sign-in to an existing account needs none)
+        const email = input('email', 'Your email', 'email'); email.maxLength = 120; email.style.display = 'none';
+        const code = input('text', '6-digit code', 'one-time-code'); code.maxLength = 6; code.inputMode = 'numeric'; code.style.display = 'none';
+        const note = el('div', 'font-size:12px;color:#555;line-height:1.35;display:none');
+        const resend = el('button', 'display:none;border:0;background:none;color:#1f22f5;font:bold 13px Arial;cursor:pointer;padding:2px 0;text-align:left', 'Send a new code');
+        resend.type = 'button';
+        let stage: 'start' | 'email' | 'code' = 'start';
+        const sendCode = async () => {
+          if (busy || !others.sendCode) return;
+          busy = true; msg.textContent = '';
+          try {
+            const r = await others.sendCode(user.value, pass.value, email.value);
+            if ('error' in r) { msg.textContent = SIGN_IN_ERRORS[r.error] ?? SIGN_IN_ERRORS.login!; return; }
+            stage = 'code';
+            code.style.display = ''; resend.style.display = ''; code.value = ''; code.focus();
+            note.textContent = 'We sent a 6-digit code to ' + email.value.trim() + '. Type it here (check your spam folder too).';
+            register.textContent = 'Create account';
+          } catch { msg.textContent = SIGN_IN_ERRORS.offline!; } finally { busy = false; }
+        };
+        resend.onclick = () => void sendCode();
+        register.onclick = () => {
+          pass.autocomplete = 'new-password';
+          if (!others.sendCode) { void attempt(() => others.password!('register', user.value, pass.value)); return; }
+          if (stage === 'start') {
+            stage = 'email';
+            email.style.display = ''; note.style.display = ''; email.focus();
+            note.textContent = "New account: we'll email you a code to check it's really you.";
+            register.textContent = 'Email me a code';
+            return;
+          }
+          if (stage === 'email') { void sendCode(); return; }
+          void attempt(() => others.password!('register', user.value, pass.value, code.value));
+        };
+        form.append(user, pass, login, email, note, code, resend, register); box.append(form);
       }
       const cancel = el('button', 'margin-top:12px;padding:6px 16px;border:1px solid #aaa;background:#f4f4f4;color:#222;border-radius:6px;cursor:pointer', 'Cancel');
       cancel.onclick = () => finish('');
