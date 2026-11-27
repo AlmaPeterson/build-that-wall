@@ -42,7 +42,8 @@ export function MyWalls({ state, seat }: { state: GameState; seat: Seat }) {
     return <div class="at walls-none" style={{ left: u(g.none.x), top: u(g.none.y), width: u(g.none.w), height: u(g.none.h) }}>No walls built yet</div>;
   }
   return (
-    <div class="at walls-mine" aria-label="Your walls">
+    // Placed from geometry.ts, so the upright layout puts them just above your hand (the CSS alone had the sideways spot)
+    <div class="at walls-mine" aria-label="Your walls" style={{ left: u(g.mine.x), top: u(g.mine.y) }}>
       <WallCards state={state} seat={seat} w={g.mine.w} h={g.mine.h} step={g.mine.step} maxWidth={g.mine.max} />
     </div>
   );
