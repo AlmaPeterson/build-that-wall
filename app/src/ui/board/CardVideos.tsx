@@ -1,6 +1,9 @@
 // While you wait for your turn: "Watch videos" shows every card, and a card opens the page its QR code links to
 // (each card's video), right here in the game. When the game needs you again, the device vibrates and dings,
 // and the popup's X turns green and wiggles until you close it.
+// Closing a card's page with the X only hides it: "Watch videos" brings that page back exactly where you left the
+// video (the page lives on another site, so the game can't pause it; the page says to pause first). Going back to
+// "All cards" or to a new game lets it go.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { catalogue, type CardId } from '../../data/cards';
 import { playDing } from '../audio';
@@ -12,6 +15,20 @@ import './card-videos.css';
 
 /** The videos are open (the gallery, or one card's page). */
 export const videosOpen = createStore<CardId | 'all' | null>(null);
+
+/** The card page kept (hidden) after you closed it with the X, to carry on from there. Only for this game. */
+export const keptCard = createStore<CardId | null>(null);
+
+/** "Watch videos": back to the card you were watching, or every card. */
+export function openVideos(): void {
+  videosOpen.set(keptCard.get() ?? 'all');
+}
+
+/** Show a card's page in the game (the gallery, and every card popup's Scan QR Code); any page kept from before is let go. */
+export function openCard(id: CardId): void {
+  keptCard.set(id);
+  videosOpen.set(id);
+}
 
 /** Every card with a page to show (its QR code's link), in card order. */
 export const VIDEO_CARDS = catalogue.cards.filter(c => !!c.link);
@@ -49,23 +66,28 @@ export function WatchVideosButton({ controller }: { controller: GameController }
   const mine = needsMe(useStore(controller.snapshot));
   const over = !!useStore(controller.snapshot).view?.over;
   if (mine || over) return null;
-  return <Button color="gold" class="side__videos" onClick={() => videosOpen.set('all')}>Watch videos</Button>;
+  return <Button color="gold" class="side__videos" onClick={openVideos}>Watch videos</Button>;
 }
 
 /** The gallery and a card's page, over the whole screen. Also buzzes and dings when it's your move again. */
 export function CardVideos({ controller }: { controller: GameController }) {
   const open = useStore(videosOpen);
+  const kept = useStore(keptCard);
   const yourMove = useYourMove(controller);
-  // A finished or ended game closes them
-  useEffect(() => () => videosOpen.set(null), [controller]);
-  if (open === null) return null;
+  // A finished or ended game closes them, and forgets the card you were watching
+  useEffect(() => () => { videosOpen.set(null); keptCard.set(null); }, [controller]);
+  if (open === null && kept === null) return null;
+  // The X closes everything; a card's page stays (hidden) so the video can carry on later
   const close = (
     <button type="button" class={'videos__x' + (yourMove ? ' videos__x--go' : '')} aria-label={yourMove ? "Close: it's your move" : 'Close'}
-      title={yourMove ? "It's your move!" : 'Close'} onClick={() => videosOpen.set(open === 'all' ? null : 'all')}>✕</button>
+      title={yourMove ? "It's your move!" : 'Close'} onClick={() => videosOpen.set(null)}>✕</button>
   );
+  const hidden = open === null;
   return (
-    <div class="videos" role="dialog" aria-modal="true" aria-label={open === 'all' ? 'Card videos' : 'Card page'}>
-      {open === 'all' ? <Gallery close={close} yourMove={yourMove} /> : <CardPage id={open} close={close} yourMove={yourMove} />}
+    <div class={'videos' + (hidden ? ' videos--hidden' : '')} role="dialog" aria-modal={!hidden} aria-hidden={hidden}
+      aria-label={open === 'all' ? 'Card videos' : 'Card page'}>
+      {open === 'all' && <Gallery close={close} yourMove={yourMove} />}
+      {kept !== null && open !== 'all' && <CardPage key={kept} id={kept} close={close} yourMove={yourMove} />}
     </div>
   );
 }
@@ -83,7 +105,7 @@ function Gallery({ close, yourMove }: { close: preact.JSX.Element; yourMove: boo
       <ul class="videos__grid">
         {VIDEO_CARDS.map(c => (
           <li key={c.id}>
-            <button type="button" onClick={() => videosOpen.set(c.id)}>
+            <button type="button" onClick={() => openCard(c.id)}>
               <img src={cardImage(c.id, 'thumb')} alt="" loading="lazy" />
               <span>{c.name}</span>
             </button>
@@ -101,7 +123,7 @@ function CardPage({ id, close, yourMove }: { id: CardId; close: preact.JSX.Eleme
   return (
     <div class="videos__box videos__box--page">
       <header class="videos__head">
-        <button type="button" class="videos__back" onClick={() => videosOpen.set('all')}>‹ All cards</button>
+        <button type="button" class="videos__back" onClick={() => { keptCard.set(null); videosOpen.set('all'); }}>‹ All cards</button>
         <h2>{card.name}</h2>
         {close}
       </header>
@@ -111,7 +133,10 @@ function CardPage({ id, close, yourMove }: { id: CardId; close: preact.JSX.Eleme
         <iframe src={card.link} title={card.name + ' video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           allowFullScreen referrerpolicy="strict-origin-when-cross-origin" onLoad={() => setLoaded(true)} />
       </div>
-      <p class="videos__out"><a href={card.link} target="_blank" rel="noopener">Not showing? Open it in a new tab</a></p>
+      <p class="videos__out">
+        Pause the video before you close this: next time you tap Watch videos, it carries on from there.{' '}
+        <a href={card.link} target="_blank" rel="noopener">Not showing? Open it in a new tab</a>
+      </p>
     </div>
   );
 }

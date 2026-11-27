@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameState } from '../../game';
 import { GameController, type GameSnapshot } from '../controller';
-import { CardVideos, VIDEO_CARDS, WatchVideosButton, needsMe, videosOpen } from './CardVideos';
+import { CardVideos, VIDEO_CARDS, WatchVideosButton, keptCard, needsMe, videosOpen } from './CardVideos';
 
 /** A snapshot where it's `turn`'s turn and seat 0 is the one on this device. */
 const snap = (turn: number, extra: Partial<GameSnapshot> = {}): GameSnapshot => ({
@@ -30,7 +30,7 @@ describe('Watch videos', () => {
     c = new GameController();
     c.snapshot.set(snap(1));
   });
-  afterEach(() => { act(() => { render(null, root); }); root.remove(); videosOpen.set(null); vi.useRealTimers(); });
+  afterEach(() => { act(() => { render(null, root); }); root.remove(); videosOpen.set(null); keptCard.set(null); vi.useRealTimers(); });
 
   const show = () => act(() => { render(<><WatchVideosButton controller={c} /><CardVideos controller={c} /></>, root); });
   const button = (text: string) => [...root.querySelectorAll('button')].find(b => b.textContent?.includes(text)) as HTMLButtonElement | undefined;
@@ -52,6 +52,46 @@ describe('Watch videos', () => {
     const frame = root.querySelector('iframe')!;
     expect(frame.getAttribute('src')).toBe(VIDEO_CARDS[0]!.link);
     act(() => { button('All cards')!.click(); });
+    expect(root.querySelector('.videos__grid')).not.toBeNull();
+  });
+
+  it('closing a card keeps its page, and Watch videos goes back to it where you left off', () => {
+    show();
+    act(() => { button('Watch videos')!.click(); });
+    act(() => { (root.querySelectorAll('.videos__grid button')[1] as HTMLButtonElement).click(); });
+    const frame = root.querySelector('iframe')!;
+    act(() => { (root.querySelector('.videos__x') as HTMLButtonElement).click(); });
+    // Out of sight, but the very same page (so the video is where you left it)
+    expect(root.querySelector('.videos--hidden')).not.toBeNull();
+    expect(root.querySelector('iframe')).toBe(frame);
+    // Your turn comes and goes, then Watch videos: straight back to that card, not the list
+    act(() => { c.snapshot.set(snap(0)); });
+    act(() => { c.snapshot.set(snap(1)); });
+    act(() => { button('Watch videos')!.click(); });
+    expect(root.querySelector('.videos--hidden')).toBeNull();
+    expect(root.querySelector('.videos__grid')).toBeNull();
+    expect(root.querySelector('iframe')).toBe(frame);
+    expect(frame.getAttribute('src')).toBe(VIDEO_CARDS[1]!.link);
+    // "All cards" lets it go: next time starts at the list
+    act(() => { button('All cards')!.click(); });
+    expect(root.querySelector('iframe')).toBeNull();
+    act(() => { (root.querySelector('.videos__x') as HTMLButtonElement).click(); });
+    expect(root.querySelector('.videos')).toBeNull();
+    act(() => { button('Watch videos')!.click(); });
+    expect(root.querySelector('.videos__grid')).not.toBeNull();
+  });
+
+  it('a new game forgets the card you were watching', () => {
+    show();
+    act(() => { videosOpen.set('all'); });
+    act(() => { (root.querySelector('.videos__grid button') as HTMLButtonElement).click(); });
+    act(() => { (root.querySelector('.videos__x') as HTMLButtonElement).click(); });
+    expect(root.querySelector('iframe')).not.toBeNull();
+    const next = new GameController();
+    next.snapshot.set(snap(1));
+    act(() => { render(<><WatchVideosButton controller={next} /><CardVideos controller={next} /></>, root); });
+    expect(root.querySelector('iframe')).toBeNull();
+    act(() => { button('Watch videos')!.click(); });
     expect(root.querySelector('.videos__grid')).not.toBeNull();
   });
 

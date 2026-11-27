@@ -3,6 +3,9 @@
   position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, .7);
   display: flex; align-items: center; justify-content: center; padding: 12px;
 }
+/* Closed, but a card's page is kept so its video carries on from the same spot: out of sight and out of the way.
+   Not display: none, so the page inside isn't reloaded or thrown away by the browser. */
+.videos--hidden { visibility: hidden; pointer-events: none; }
 .videos__box {
   background: var(--paper, #fff); border-radius: 14px; width: min(980px, 100%); max-height: 100%;
   display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
