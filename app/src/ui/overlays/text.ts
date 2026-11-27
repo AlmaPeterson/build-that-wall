@@ -16,14 +16,14 @@ export function optionLabel(option: string): string {
   return known[option] ?? option.charAt(0).toUpperCase() + option.slice(1);
 }
 
-/** The question a prompt asks, in plain words. */
-export function promptTitle(kind: string, card: CardId, purpose?: string): string {
+/** The question a prompt asks, in plain words. `keeping`: handing out cards, and this one stays with you. */
+export function promptTitle(kind: string, card: CardId, purpose?: string, keeping = false): string {
   switch (kind) {
     case 'block': return 'Block it with Self-Defense?';
     case 'paySavings': return 'Pay the Debt with Savings?';
     case 'chooseSeat': return 'Who do you want to play ' + cardName(card) + ' on?';
     case 'chooseWall': return card === 7 ? 'Which wall do you want to take?' : card === 25 ? 'Which pair do you want to protect?' : 'Pick a built wall';
-    case 'chooseHandCard': return purpose === 'build' ? 'Pick a wall to build for free' : 'Pick a card to give away';
+    case 'chooseHandCard': return purpose === 'build' ? 'Pick a wall to build for free' : keeping ? 'Pick a card to keep' : 'Pick a card to give away';
     case 'pickCards': return 'Pick your cards';
     case 'pickHandCards': return card === 23 ? 'Pick the sets to build for free' : 'Pick the walls to build for free';
     default: return cardName(card);

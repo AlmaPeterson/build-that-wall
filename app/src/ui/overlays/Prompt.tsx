@@ -62,11 +62,12 @@ export function PromptView({ prompt, view }: Props) {
       );
     case 'chooseHandCard': {
       const hand = view.seats[d.seat]?.hand ?? [];
+      const keeping = d.purpose === 'give' && d.to === d.seat;
       const sub = d.purpose === 'give' && d.to !== undefined
-        ? (d.to === d.seat ? 'This one stays with you.' : 'It goes to ' + seatName(view, d.to) + '.')
+        ? (keeping ? 'This one stays with you.' : 'It goes to ' + seatName(view, d.to) + '.')
         : undefined;
       return (
-        <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose)} sub={sub}
+        <Shell d={d} view={view} title={promptTitle(d.kind, d.card, d.purpose, keeping)} sub={sub}
           onCancel={d.optional ? () => answer(null) : undefined} cancelText={d.purpose === 'build' ? 'Stop building' : 'Skip'}>
           <HandCards hand={hand} slots={d.options} onPick={slot => answer(slot)} />
         </Shell>

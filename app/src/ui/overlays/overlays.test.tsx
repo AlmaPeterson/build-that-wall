@@ -91,9 +91,14 @@ describe('prompts', () => {
   it('chooseHandCard: give names the receiver; optional builds can stop', () => {
     const a = ask({ kind: 'chooseHandCard', seat: 0, card: 8, purpose: 'give', options: [0, 2], to: 1, optional: false });
     expect(root.textContent).toContain('It goes to Ben.');
+    expect(root.textContent).toContain('Pick a card to give away');
     expect(buttons().some(x => x.textContent === 'Skip')).toBe(false);
     click('Debt');
     expect(a).toEqual([2]);
+    // Your own turn in the round: the card stays with you
+    ask({ kind: 'chooseHandCard', seat: 0, card: 8, purpose: 'give', options: [0, 2], to: 0, optional: false });
+    expect(root.textContent).toContain('Pick a card to keep');
+    expect(root.textContent).not.toContain('give away');
     const b = ask({ kind: 'chooseHandCard', seat: 0, card: 3, purpose: 'build', options: [0, 3], optional: true });
     click('Stop building');
     expect(b).toEqual([null]);
