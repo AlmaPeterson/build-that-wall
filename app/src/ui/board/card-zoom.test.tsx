@@ -4,11 +4,11 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { settings } from '../app-state';
-import { cardById } from '../../data/cards';
 import { DEFAULT_SETTINGS } from '../../game';
 import { showCard, zoomedCard } from '../components/zoom';
 import { GameController } from '../controller';
 import { Board } from './Board';
+import { keptCard, videosOpen } from './CardVideos';
 import { CardPopup, DOUBLE_CLICK_MS } from './CardPopup';
 import { CardZoom } from './CardZoom';
 
@@ -62,7 +62,7 @@ describe('card zoom by double-click / right-click', () => {
     expect(zoomedCard.get()).toBeNull();
   });
 
-  it('every card popup has Scan QR Code (the card link): full size, a hand card, a Play Immediately card', async () => {
+  it('every card popup has Scan QR Code: it shows the card page inside the game (full size, a hand card, a Play Immediately card)', async () => {
     root = document.createElement('div');
     document.body.appendChild(root);
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
@@ -71,16 +71,19 @@ describe('card zoom by double-click / right-click', () => {
     await act(() => { render(<CardZoom />, root!); });
     expect([...root!.querySelectorAll('button')].some(b => /Zoom/.test(b.textContent ?? ''))).toBe(false);
     await act(async () => { scan()!.click(); await tick(); });
-    expect(open).toHaveBeenCalledWith(cardById(29).link, '_blank', 'noopener');
+    expect(videosOpen.get()).toBe(29);
     await act(() => { render(null, root!); });
     // The actions popup of a hand card, and the Continue popup of a drawn Play Immediately card
     for (const [card, closeLabel] of [[14, 'Back'], [1, 'Continue']] as const) {
       await act(() => { render(<CardPopup card={card} closeLabel={closeLabel} actions={{ buttons: [], note: '' }} onChoose={() => {}} onClose={() => {}} />, root!); });
       await act(async () => { scan()!.click(); await tick(); });
-      expect(open).toHaveBeenLastCalledWith(cardById(card).link, '_blank', 'noopener');
+      expect(videosOpen.get()).toBe(card);
       await act(() => { render(null, root!); });
     }
+    // Never a new browser tab: that would take you out of the game
+    expect(open).not.toHaveBeenCalled();
     open.mockRestore();
+    videosOpen.set(null); keptCard.set(null);
   });
 
   it('the mouse wheel over the picture zooms it in and back out', async () => {

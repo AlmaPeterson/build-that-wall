@@ -1331,6 +1331,7 @@ The game keeps going behind the window: bots keep playing and online players kee
 1. Tap a card in the gallery. Its page opens inside the window: the same page the card's QR code leads to, on buildthatwallgame.com.
 2. The page shows the card's picture, its card type, its action, its special power and its video. Scroll down within the window to see it all, and press play on the video to watch it.
 3. Press **‹ All cards** at the top left to go back to the gallery.
+4. Press the **X** at the top right to close the window and go back to the game. The card's page is kept: next time you press **Watch videos**, it opens straight on that card, with the video where you left it. Pause the video before you close the window (the window can't pause it for you, so otherwise you'll still hear it). Going back to **‹ All cards**, or starting a new game, forgets the card.
 
 ![A card's page](guide/63-video-card-page.png)
 
@@ -1351,13 +1352,13 @@ When the game needs you again after you have been waiting at least 3 seconds:
 
 *Your move: a green bar, and the X turns green and wiggles.*
 
-Press the green **X** to close the window and play. (On a card's page, the X goes back to the gallery first; press it again to close.)
+Press the green **X** to close the window and play. After your turn, **Watch videos** takes you back to the card you were watching.
 
 The buzz and ding also happen when the videos window isn't open, so you notice your turn even if you looked away.
 
 ### 15.5 Scan QR Code
 
-Every card popup in the game also has a **Scan QR Code** button. It opens that card's page in a new browser tab, which is handy if you want to keep it open. The **Watch videos** window shows the same pages inside the game.
+Every card popup in the game also has a **Scan QR Code** button. It opens that card's page inside the game, in the same window as **Watch videos**, so you never leave the game. Close it with the **X** to go back to the card. If you'd rather have the page in its own browser tab, use **Not showing? Open it in a new tab** at the bottom.
 
 ## 16. Settings
 

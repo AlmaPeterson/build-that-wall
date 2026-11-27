@@ -1,5 +1,6 @@
 // A card from the hand, zoomed in, with what can be done with it (Alerts and Buttons › Play Popup).
-// Every card popup has Scan QR Code (opens the page the card's QR code links to), and the mouse wheel
+// Every card popup has Scan QR Code (opens the page the card's QR code links to, inside the game: the Watch videos
+// window, so you never leave the game), and the mouse wheel
 // over the picture zooms it in or out (components/picture-zoom.ts).
 import { useEffect, useRef } from 'preact/hooks';
 import { cardById, type CardId } from '../../data/cards';
@@ -8,6 +9,7 @@ import { Button } from '../components/Button';
 import { RESIZE_TITLE, useDraggable } from '../components/drag';
 import { usePictureZoom } from '../components/picture-zoom';
 import { cardMenuProps } from '../components/zoom';
+import { openCard } from './CardVideos';
 import type { CardActions, CardChoice } from './board-state';
 
 interface Props {
@@ -52,7 +54,7 @@ export function CardPopup({ card, actions, onChoose, onClose, closeLabel = 'Back
       <div class="zoom__group drag-box" data-drag-children ref={drag.ref} style={drag.style}>
       <img class="zoom__card" src={cardImage(card, 'high')} alt={c.name} draggable={false} ref={pic.ref} {...pic.props}
         {...(zoomable ? cardMenuProps(card) : {})} />
-      {c.link && <Button class="zoom__qr" onClick={() => openLink(c.link!)} title="Opens the page this card's QR code links to">Scan QR Code</Button>}
+      {c.link && <Button class="zoom__qr" onClick={() => openCard(card)} title="Shows the page this card's QR code links to">Scan QR Code</Button>}
       <Button class="zoom__close" aria-label="Close" onClick={onClose}>X</Button>
       <div class="zoom__text">
         <h3>{c.name}</h3>
@@ -67,8 +69,4 @@ export function CardPopup({ card, actions, onChoose, onClose, closeLabel = 'Back
       </div>
     </div>
   );
-}
-
-function openLink(url: string): void {
-  try { window.open(url, '_blank', 'noopener'); } catch { /* blocked */ }
 }
