@@ -3,6 +3,7 @@ import { onCG } from './ui/platform';
 import { startCrazyGames } from './ui/crazygames';
 import { App } from './ui/app';
 import './ui/theme.css';
+import './ui/fullscreen';             // phones go full screen as a game starts
 import './ui/replay';                 // records games for Gold replays (before a saved game is brought back)
 import { clearSavedGame, resumeSavedGame } from './ui/saved-game';
 import { controller, screen } from './ui/app-state';

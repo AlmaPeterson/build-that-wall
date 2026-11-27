@@ -337,6 +337,9 @@ button.board__log { cursor: pointer; font-family: inherit; }
 
 /* The menu at the top right (Settings, tutorial tips, Instructions, End Game): a pill like Game log, and a dark list */
 .board__menu { z-index: 43; right: calc(var(--u) * 6); top: calc(var(--u) * 38); }
+/* The full screen button beside it: the same pill, just the icon */
+.board__menu { display: flex; gap: calc(var(--u) * 4); }
+.board__menu .board__fullscreen { padding-left: calc(var(--u) * 5); padding-right: calc(var(--u) * 5); }
 .board__menu-button {
   display: inline-flex; align-items: center; gap: calc(var(--u) * 4); min-height: calc(var(--u) * 17);
   padding: calc(var(--u) * 2) calc(var(--u) * 9) calc(var(--u) * 2) calc(var(--u) * 7);
@@ -380,6 +383,7 @@ button.board__log { cursor: pointer; font-family: inherit; }
 /* Touch screens: the small pills are big enough for a finger */
 @media (pointer: coarse) {
   .board__menu-button, .board__clock { min-height: max(calc(var(--u) * 17), 36px); padding-left: max(calc(var(--u) * 7), 12px); padding-right: max(calc(var(--u) * 9), 14px); }
+  .board__menu .board__fullscreen { min-width: 40px; justify-content: center; padding-left: 8px; padding-right: 8px; }
   .board__menu-list { width: max(calc(var(--u) * 130), 200px); }
   .board__menu-list button { min-height: max(calc(var(--u) * 22), 42px); font-size: max(calc(var(--u) * 10 * var(--tb)), 15px); }
 }

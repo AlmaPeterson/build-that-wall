@@ -1,8 +1,9 @@
-// The home page's corners: the version badge (left) opens the version history; the bell (right) shows
+// The home page's corners: the version badge (left) opens the version history; full screen and the bell (right); the bell shows
 // notifications: new versions, new expansion packs, holiday sales on Gold and, for the owner, players' feedback.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Notice } from '../../services/notices/notices';
 import { Button } from '../components/Button';
+import { FullscreenButton } from '../components/FullscreenButton';
 import { Modal } from '../components/Modal';
 import { loadInbox, markRead, notices, showNotices, unreadIn, VERSIONS } from '../notifications';
 import { useStore } from '../store';
@@ -65,6 +66,7 @@ export function Bell() {
   const fbUnread = list.filter(n => n.kind === 'feedback' && !n.read).map(n => n.id);
   return (
     <div class="corner corner--right" ref={box}>
+      <FullscreenButton class="bell corner__fullscreen" />
       <button type="button" class="bell" aria-label={'Notifications' + (unread ? ', ' + unread + ' new' : '')} aria-expanded={open} onClick={toggle}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a6 6 0 0 0-6 6v3.6L4.3 15A1 1 0 0 0 5.2 16.5h13.6a1 1 0 0 0 .9-1.5L18 11.6V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3z" /></svg>
         {unread > 0 && <span class="bell__count">{unread > 9 ? '9+' : unread}</span>}

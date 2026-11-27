@@ -8,6 +8,7 @@ import type { Action } from '../../game';
 import { controller as controllerStore, screen, settings } from '../app-state';
 import { playSfx } from '../audio';
 import { Button } from '../components/Button';
+import { FullscreenButton } from '../components/FullscreenButton';
 import type { GameController } from '../controller';
 import { animatorFor, FlightLayer } from '../anim';
 import { useStore } from '../store';
@@ -208,7 +209,7 @@ export function Board({ controller }: { controller: GameController }) {
   );
 }
 
-/** Everything that isn't playing a card, in one menu at the top right: Game log, Settings, tutorial tips, Instructions, End Game. */
+/** The full screen button, then everything that isn't playing a card in one menu at the top right: Game log, Settings, tutorial tips, Instructions, End Game. */
 function BoardMenu({ tutorial, onEndGame }: { tutorial: boolean; onEndGame: () => void }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -223,6 +224,7 @@ function BoardMenu({ tutorial, onEndGame }: { tutorial: boolean; onEndGame: () =
   const go = (fn: () => void) => () => { setOpen(false); fn(); };
   return (
     <div class="at board__menu" ref={box}>
+      <FullscreenButton class="board__menu-button board__fullscreen" />
       <button type="button" class="board__menu-button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v2.6H3zm0 5.7h18v2.6H3zm0 5.7h18V19H3z" /></svg>
         Menu
